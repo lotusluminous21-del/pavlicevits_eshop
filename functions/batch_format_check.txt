@@ -1,0 +1,24 @@
+Blob: input_2ae5e5ba-bb69-4889-9baf-50d33a964399.jsonl
+Size: 625940 bytes
+Lines: 11
+
+=== JSONL Structure (first line) ===
+{
+  "request": {
+    "contents": [
+      {
+        "parts": [
+          {
+            "inline_data": {
+              "mime_type": "image/jpeg",
+              "data": "<base64 24344 chars>"
+            }
+          },
+          {
+            "text": "\nProfessional product photography of COLORMATIC 1K \u0391\u03a3\u03a4\u0391\u03a1\u0399 \u0393\u0395\u039c/\u039a\u039f HG2 400ML.. \nThe item is placed on a clean, light-grey polished concrete surface with subtle industrial textures. \nBackground is a softly blurred, minimalist workshop setting with neutral earth tones. \nLighting is soft, natural daylight from the side, creating realistic soft shadows. \nAuthentic aesthetic, premium yet practical. Clear focus, 2K resolution.\n"
+          }
+        ]
+      }
+    ]
+  }
+}

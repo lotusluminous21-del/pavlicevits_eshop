@@ -1,0 +1,101 @@
+﻿LEVEL  NAME                      EXECUTION_ID  TIME_UTC                 LOG
+       trigger-batch-enrichment  mQVHD0pmclQi  2026-02-14 13:36:51.244  DEBUG: Result: {'batch_id': '8246bda8-34fa-4dcb-98b6-2397e8603df8', 'job_name': 'projects/879284048895/locations/europe-west1/batchPredictionJobs/1845167634543280128', 'count': 11}
+       trigger-batch-enrichment  mQVHD0pmclQi  2026-02-14 13:36:47.720  DEBUG: Import successful. Calling function...
+       trigger-batch-enrichment  mQVHD0pmclQi  2026-02-14 13:36:45.260  DEBUG: Importing ai.enrichment...
+       trigger-batch-enrichment  mQVHD0pmclQi  2026-02-14 13:36:45.260  DEBUG: SKUs received: ['SP030301', 'SP100201', 'SP100301', 'SP100401', 'SP100501', 'SP100601', 'SP100701', 'SP100801', 'SP100901', 'SP101001', 'SP101101']
+       trigger-batch-enrichment  mQVHD0pmclQi  2026-02-14 13:36:45.260  DEBUG: trigger_batch_enrichment started
+I      trigger-batch-enrichment                2026-02-14 13:36:45.125
+I      trigger-batch-enrichment                2026-02-14 13:36:44.167  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 13:36:43.963    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 13:36:43.963  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 13:36:42.428  Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+I      trigger-batch-enrichment                2026-02-14 13:36:42.412
+I      trigger-batch-enrichment                2026-02-14 12:21:29.765  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 12:21:29.353    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 12:21:29.353  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 12:21:26.995  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+I      trigger-batch-enrichment                2026-02-14 12:14:22.668  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 12:14:22.249    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 12:14:22.249  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 12:14:19.829  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+I      trigger-batch-enrichment                2026-02-14 11:34:03.989  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 11:34:03.554    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 11:34:03.554  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 11:34:00.156  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+       trigger-batch-enrichment  2G82gajsc7We  2026-02-14 11:20:05.594  DEBUG: Result: {'batch_id': '861df82d-d81c-450e-ae26-114aa4d3be69', 'job_name': 'projects/879284048895/locations/europe-west1/batchPredictionJobs/7633982005574631424', 'count': 8}
+       trigger-batch-enrichment  2G82gajsc7We  2026-02-14 11:19:54.850  DEBUG: Import successful. Calling function...
+       trigger-batch-enrichment  2G82gajsc7We  2026-02-14 11:19:54.850  DEBUG: Importing ai.enrichment...
+       trigger-batch-enrichment  2G82gajsc7We  2026-02-14 11:19:54.849  DEBUG: SKUs received: ['SP030301', 'SP100201', 'SP100501', 'SP100601', 'SP100701', 'SP100901', 'SP101001', 'SP101101']
+       trigger-batch-enrichment  2G82gajsc7We  2026-02-14 11:19:54.849  DEBUG: trigger_batch_enrichment started
+I      trigger-batch-enrichment                2026-02-14 11:19:54.840
+I      trigger-batch-enrichment                2026-02-14 11:19:54.729
+       trigger-batch-enrichment  6xvUVQ7iZi1W  2026-02-14 11:15:25.031  DEBUG: Result: {'batch_id': '0fb6210f-60fc-4c89-b724-29dae31b43d9', 'job_name': 'projects/879284048895/locations/europe-west1/batchPredictionJobs/1042963950917910528', 'count': 11}
+       trigger-batch-enrichment  6xvUVQ7iZi1W  2026-02-14 11:15:22.164  DEBUG: Import successful. Calling function...
+       trigger-batch-enrichment  6xvUVQ7iZi1W  2026-02-14 11:15:19.564  DEBUG: Importing ai.enrichment...
+       trigger-batch-enrichment  6xvUVQ7iZi1W  2026-02-14 11:15:19.564  DEBUG: SKUs received: ['SP030301', 'SP100201', 'SP100301', 'SP100401', 'SP100501', 'SP100601', 'SP100701', 'SP100801', 'SP100901', 'SP101001', 'SP101101']
+       trigger-batch-enrichment  6xvUVQ7iZi1W  2026-02-14 11:15:19.564  DEBUG: trigger_batch_enrichment started
+I      trigger-batch-enrichment                2026-02-14 11:15:19.416
+I      trigger-batch-enrichment                2026-02-14 11:15:19.315
+I      trigger-batch-enrichment                2026-02-14 11:10:01.042  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 11:10:00.664    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 11:10:00.664  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 11:09:57.389  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+       trigger-batch-enrichment  Es8aRGsV25JF  2026-02-14 11:07:47.122  DEBUG: Result: {'error': 'A document must have an even number of path elements'}
+       trigger-batch-enrichment  Es8aRGsV25JF  2026-02-14 11:07:47.059  Failed to trigger batch job: A document must have an even number of path elements
+       trigger-batch-enrichment  Es8aRGsV25JF  2026-02-14 11:07:45.991  DEBUG: Import successful. Calling function...
+       trigger-batch-enrichment  Es8aRGsV25JF  2026-02-14 11:07:43.476  DEBUG: Importing ai.enrichment...
+       trigger-batch-enrichment  Es8aRGsV25JF  2026-02-14 11:07:43.476  DEBUG: SKUs received: ['SP100201']
+       trigger-batch-enrichment  Es8aRGsV25JF  2026-02-14 11:07:43.476  DEBUG: trigger_batch_enrichment started
+I      trigger-batch-enrichment                2026-02-14 11:07:43.308
+I      trigger-batch-enrichment                2026-02-14 11:07:43.177
+I      trigger-batch-enrichment                2026-02-14 11:07:11.920  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 11:07:11.455    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 11:07:11.455  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 11:07:08.319  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+       trigger-batch-enrichment  PA2zRxo13gce  2026-02-14 11:03:43.310  DEBUG: Result: {'error': "Batches.create() got an unexpected keyword argument 'dest'"}
+       trigger-batch-enrichment  PA2zRxo13gce  2026-02-14 11:03:43.193  Failed to trigger batch job: Batches.create() got an unexpected keyword argument 'dest'
+       trigger-batch-enrichment  PA2zRxo13gce  2026-02-14 11:03:41.929  DEBUG: Import successful. Calling function...
+       trigger-batch-enrichment  PA2zRxo13gce  2026-02-14 11:03:38.373  DEBUG: Importing ai.enrichment...
+       trigger-batch-enrichment  PA2zRxo13gce  2026-02-14 11:03:38.373  DEBUG: SKUs received: ['SP100201', 'SP100901']
+       trigger-batch-enrichment  PA2zRxo13gce  2026-02-14 11:03:38.373  DEBUG: trigger_batch_enrichment started
+I      trigger-batch-enrichment                2026-02-14 11:03:38.171
+I      trigger-batch-enrichment                2026-02-14 11:03:38.074
+I      trigger-batch-enrichment                2026-02-14 11:03:03.000  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 11:03:02.562    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 11:03:02.562  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 11:02:59.558  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+       trigger-batch-enrichment  xglrdFRz7TmR  2026-02-14 11:01:56.961  DEBUG: Result: {'error': "module 'google.genai.types' has no attribute 'BatchJobConfig'"}
+       trigger-batch-enrichment  xglrdFRz7TmR  2026-02-14 11:01:56.698  Failed to trigger batch job: module 'google.genai.types' has no attribute 'BatchJobConfig'
+       trigger-batch-enrichment  xglrdFRz7TmR  2026-02-14 11:01:55.448  DEBUG: Import successful. Calling function...
+       trigger-batch-enrichment  xglrdFRz7TmR  2026-02-14 11:01:55.448  DEBUG: Importing ai.enrichment...
+       trigger-batch-enrichment  xglrdFRz7TmR  2026-02-14 11:01:55.448  DEBUG: SKUs received: ['SP100201', 'SP100701', 'SP100901', 'SP101001', 'SP101101']
+       trigger-batch-enrichment  xglrdFRz7TmR  2026-02-14 11:01:55.448  DEBUG: trigger_batch_enrichment started
+I      trigger-batch-enrichment                2026-02-14 11:01:55.440
+I      trigger-batch-enrichment                2026-02-14 11:01:55.314
+       trigger-batch-enrichment  8H1JEeMt4fO3  2026-02-14 10:58:08.102  DEBUG: Result: {'error': "module 'google.genai.types' has no attribute 'BatchJobConfig'"}
+       trigger-batch-enrichment  8H1JEeMt4fO3  2026-02-14 10:58:07.734  Failed to trigger batch job: module 'google.genai.types' has no attribute 'BatchJobConfig'
+       trigger-batch-enrichment  8H1JEeMt4fO3  2026-02-14 10:58:05.344  DEBUG: Import successful. Calling function...
+       trigger-batch-enrichment  8H1JEeMt4fO3  2026-02-14 10:58:02.659  DEBUG: Importing ai.enrichment...
+       trigger-batch-enrichment  8H1JEeMt4fO3  2026-02-14 10:58:02.659  DEBUG: SKUs received: ['SP100201', 'SP100301', 'SP100401', 'SP100501', 'SP100701', 'SP100901', 'SP101001', 'SP101101']
+       trigger-batch-enrichment  8H1JEeMt4fO3  2026-02-14 10:58:02.658  DEBUG: trigger_batch_enrichment started
+I      trigger-batch-enrichment                2026-02-14 10:58:02.491
+I      trigger-batch-enrichment                2026-02-14 10:58:02.387
+I      trigger-batch-enrichment                2026-02-14 10:54:24.805  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 10:54:24.340    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 10:54:24.340  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 10:54:21.244  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+I      trigger-batch-enrichment                2026-02-14 10:48:42.940  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 10:48:42.584    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 10:48:42.584  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 10:48:40.370  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+I      trigger-batch-enrichment                2026-02-14 10:41:28.911  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 10:41:28.560    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 10:41:28.560  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 10:41:26.272  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+I      trigger-batch-enrichment                2026-02-14 10:36:58.435  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 10:36:57.899    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 10:36:57.899  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      trigger-batch-enrichment                2026-02-14 10:36:54.899  Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.
+I      trigger-batch-enrichment                2026-02-14 10:27:34.210  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       trigger-batch-enrichment                2026-02-14 10:27:31.425    warnings.warn(message, FutureWarning)
+       trigger-batch-enrichment                2026-02-14 10:27:31.425  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.

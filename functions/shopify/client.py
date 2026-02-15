@@ -94,3 +94,159 @@ class ShopifyClient:
         except Exception as e:
             logger.error(f"Error syncing customer to Shopify: {e}")
             return None
+
+    def get_inventory_item_id_by_sku(self, sku: str) -> Optional[str]:
+        """
+        Fetches the Inventory Item ID for a given SKU.
+        Note: This requires querying Product Variants first.
+        """
+        if not self.domain or not self.token:
+            return None
+
+        headers = {
+            "X-Shopify-Access-Token": self.token,
+            "Content-Type": "application/json"
+        }
+        
+        # GraphQL Query to find variant by SKU
+        query = """
+        {
+          productVariants(first: 1, query: "sku:%s") {
+            edges {
+              node {
+                inventoryItem {
+                  id
+                }
+              }
+            }
+          }
+        }
+        """ % sku
+        
+        try:
+            with httpx.Client() as client:
+                response = client.post(
+                    f"https://{self.domain}/admin/api/2024-01/graphql.json",
+                    headers=headers,
+                    json={"query": query}
+                )
+                response.raise_for_status()
+                data = response.json()
+                
+                edges = data.get("data", {}).get("productVariants", {}).get("edges", [])
+                if edges:
+                    return edges[0]["node"]["inventoryItem"]["id"]
+                return None
+        except Exception as e:
+            logger.error(f"Error finding inventory item for SKU {sku}: {e}")
+            return None
+
+    def update_inventory_bulk(self, adjustments: List[Dict[str, Any]], location_id: str = None) -> bool:
+        """
+        Updates inventory levels for multiple items.
+        uses inventorySetQuantities (GraphQL).
+        
+        adjustments: List of dicts with 'inventoryItemId' and 'quantity'.
+        """
+        if not self.domain or not self.token:
+            return False
+            
+        if not location_id:
+            # TODO: Fetch default location ID if not provided
+            # For now, we assume it's passed or we hardcode the primary one
+            location_id = os.environ.get("SHOPIFY_LOCATION_ID")
+            if not location_id:
+                logger.error("SHOPIFY_LOCATION_ID is missing")
+                return False
+
+        headers = {
+            "X-Shopify-Access-Token": self.token,
+            "Content-Type": "application/json"
+        }
+
+        mutation = """
+        mutation inventorySetQuantities($input: InventorySetQuantitiesInput!) {
+          inventorySetQuantities(input: $input) {
+            userErrors {
+              field
+              message
+            }
+            inventoryAdjustmentGroup {
+              reason
+              changes {
+                name
+                delta
+              }
+            }
+          }
+        }
+        """
+        
+        # Prepare inputs
+        inputs = []
+        for adj in adjustments:
+            inputs.append({
+                "inventoryItemId": adj["inventoryItemId"],
+                "quantity": adj["quantity"],
+                "locationId": location_id
+            })
+            
+        payload = {
+            "query": mutation,
+            "variables": {
+                "input": {
+                    "name": "available",
+                    "reason": "correction",
+                    "ignoreCompareQuantity": True,
+                    "quantities": inputs
+                }
+            }
+        }
+
+        try:
+            with httpx.Client() as client:
+                response = client.post(
+                    f"https://{self.domain}/admin/api/2024-01/graphql.json", 
+                    headers=headers, 
+                    json=payload
+                )
+                response.raise_for_status()
+                result = response.json()
+                
+                errors = result.get("data", {}).get("inventorySetQuantities", {}).get("userErrors", [])
+                if errors:
+                    logger.error(f"Shopify Inventory Update Errors: {errors}")
+                    return False
+                
+                logger.info(f"Successfully updated inventory for {len(inputs)} items.")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Error updating Shopify inventory: {e}")
+            return False
+
+    def create_product(self, product_data: Dict[str, Any]) -> Optional[str]:
+        """
+        Creates a new product in Shopify.
+        """
+        if not self.domain or not self.token:
+            return None
+
+        headers = {
+            "X-Shopify-Access-Token": self.token,
+            "Content-Type": "application/json"
+        }
+
+        url = f"{self.base_url}/products.json"
+        
+        try:
+            with httpx.Client() as client:
+                response = client.post(url, headers=headers, json={"product": product_data})
+                response.raise_for_status()
+                data = response.json()
+                return data.get("product", {}).get("id")
+        except Exception as e:
+            logger.error(f"Error creating product in Shopify: {e}")
+            return None
+
+

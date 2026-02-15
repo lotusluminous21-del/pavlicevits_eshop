@@ -4,7 +4,6 @@ from firebase_functions import https_fn, options
 from firebase_admin import firestore, initialize_app
 from google import genai
 from google.genai import types
-import numpy as np
 
 # Initialize Firebase if not already done
 # Initialize Firebase if not already done - moved inside
@@ -13,7 +12,7 @@ import numpy as np
 # except ValueError:
 #     pass
 
-@https_fn.on_call(region="europe-west1", memory=options.MemoryOption.MB_512)
+# Decorator moved to main.py
 def chat_assistant(req: https_fn.CallableRequest) -> dict:
     """
     AI Buyer Assistant that uses RAG to answer questions about products.
@@ -44,42 +43,76 @@ def chat_assistant(req: https_fn.CallableRequest) -> dict:
         location=os.environ.get("GOOGLE_CLOUD_LOCATION", "europe-west1")
     )
 
-    # Define the Search Tool function
+    # Define the Search Tool function using Vertex AI Search
     def search_products(query: str) -> list[dict]:
         """
-        Searches the product catalogue using semantic vector search.
+        Searches the product knowledge base using Vertex AI Search (RAG).
         Args:
-            query: The search query string.
+            query: The customer's question or search query.
         Returns:
-            A list of relevant product objects.
+            A list of relevant products with descriptions.
         """
-        # Generate embedding for the query
-        emb_resp = client.models.embed_content(
-            model="text-embedding-004",
-            contents=query
-        )
-        query_vector = emb_resp.embeddings[0].values
-        
-        # Perform Vector Search in Firestore
-        # Note: Requires a vector index on 'embedding_field'
-        products_ref = db.collection("products")
-        vector_query = products_ref.find_nearest(
-            vector_field="embedding_field",
-            query_vector=firestore.Vector(query_vector),
-            distance_measure=firestore.DistanceMeasure.COSINE,
-            limit=5
-        )
-        
-        results = []
-        for doc in vector_query.get():
-            data = doc.to_dict()
-            # Remove embedding field to save tokens
-            data.pop("embedding_field", None) 
-            data["id"] = doc.id
-            results.append(data)
+        try:
+            import google.auth
+            import google.auth.transport.requests
+            import requests
+
+            # 1. Get Auth
+            credentials, project = google.auth.default()
+            auth_request = google.auth.transport.requests.Request()
+            credentials.refresh(auth_request)
+            token = credentials.token
+
+            # 2. Call Vertex AI Search
+            # Constants
+            PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "pavlicevits-9a889")
+            LOCATION = "global"
+            DATA_STORE_ID = "product-search-store"
             
-        print(f"Found {len(results)} products for query: {query}")
-        return results
+            url = f"https://discoveryengine.googleapis.com/v1/projects/{PROJECT_ID}/locations/{LOCATION}/collections/default_collection/dataStores/{DATA_STORE_ID}/servingConfigs/default_search:search"
+            
+            payload = {
+                "query": query,
+                "pageSize": 5,
+                "contentSearchSpec": {
+                    "snippetSpec": {
+                        "maxSnippetCount": 1
+                    },
+                    "summarySpec": {
+                        "summaryResultCount": 5,
+                        "includeCitations": True
+                    }
+                }
+            }
+
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+            results = []
+            for item in data.get("results", []):
+                doc = item.get("document", {})
+                struct_data = doc.get("structData", {})
+                results.append({
+                    "id": doc.get("id"),
+                    "title": struct_data.get("title"),
+                    "description": struct_data.get("description"),
+                    "price": struct_data.get("price"),
+                    "url": struct_data.get("url"),
+                    "image_url": struct_data.get("image_url")
+                })
+            
+            print(f"Vertex AI Search found {len(results)} results for: {query}")
+            return results
+
+        except Exception as e:
+            print(f"Vertex AI Search failed: {e}")
+            return []
 
     # 3. Retrieve Conversation History
     # We store history in: chats/{sessionId}/messages/{messageId}

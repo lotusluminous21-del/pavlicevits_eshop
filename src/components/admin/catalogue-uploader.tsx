@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
 import { UploadCloud } from 'lucide-react';
 
@@ -17,12 +18,28 @@ export function CatalogueUploader() {
         setProgress(0);
 
         try {
+            const db = getFirestore(app);
             const storage = getStorage(app);
-            // Upload to 'catalogues/' path with timestamp to avoid name collisions
+
+            // 1. Create a Job record in Firestore for status tracking
+            const jobRef = await addDoc(collection(db, 'ingestion_jobs'), {
+                file_name: file.name,
+                status: 'uploading',
+                progress: 0,
+                created_at: serverTimestamp(),
+                updated_at: serverTimestamp(),
+                type: 'manual_upload'
+            });
+
+            // 2. Upload to 'catalogues/' path with jobId in metadata
             const fileName = `catalogues/${Date.now()}_${file.name}`;
             const storageRef = ref(storage, fileName);
 
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            const uploadTask = uploadBytesResumable(storageRef, file, {
+                customMetadata: {
+                    jobId: jobRef.id
+                }
+            });
 
             uploadTask.on(
                 'state_changed',
@@ -38,10 +55,9 @@ export function CatalogueUploader() {
                 () => {
                     // Upload completed successfully
                     getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                        console.log('File available at', downloadURL);
+                        console.log('File uploaded to', downloadURL);
                         setUploading(false);
-                        alert("Upload complete! Processing has started. Drafts will appear below shortly.");
-                        // Optional: Reset input
+                        // No need for alert anymore, the IngestionStatus component will show progress
                         if (e.target) e.target.value = '';
                     });
                 }
@@ -82,7 +98,7 @@ export function CatalogueUploader() {
                             style={{ width: `${progress}%` }}
                         ></div>
                     </div>
-                    <p className="text-xs text-gray-500">Uploading... {Math.round(progress)}%</p>
+                    <p className="text-xs text-gray-500">Uploading to Storage... {Math.round(progress)}%</p>
                 </div>
             )}
         </div>

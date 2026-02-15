@@ -2,7 +2,7 @@ from firebase_functions import identity_fn
 from firebase_admin import firestore
 import time
 
-@identity_fn.before_user_created(region="europe-west1")
+# Decorator moved to main.py
 def create_user_document(event: identity_fn.AuthBlockingEvent) -> identity_fn.BeforeCreateResponse | None:
     """
     Triggered before a new user is created in Firebase Auth (Blocking Function).

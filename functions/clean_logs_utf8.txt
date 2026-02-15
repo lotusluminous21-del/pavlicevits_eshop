@@ -1,0 +1,101 @@
+﻿LEVEL  NAME            EXECUTION_ID  TIME_UTC                 LOG
+I      enrich-product                2026-02-14 13:36:50.803
+I      enrich-product                2026-02-14 13:36:50.635
+I      enrich-product                2026-02-14 13:36:50.161
+I      enrich-product                2026-02-14 13:36:49.911
+I      enrich-product                2026-02-14 13:36:49.730
+I      enrich-product                2026-02-14 13:36:49.411
+I      enrich-product                2026-02-14 13:36:49.268
+I      enrich-product                2026-02-14 13:36:49.052
+I      enrich-product                2026-02-14 13:36:48.875
+I      enrich-product                2026-02-14 13:36:48.676
+I      enrich-product                2026-02-14 13:36:48.458
+I      enrich-product                2026-02-14 13:36:38.841
+I      enrich-product                2026-02-14 13:36:38.840
+I      enrich-product                2026-02-14 13:36:38.585
+I      enrich-product                2026-02-14 13:36:38.584
+I      enrich-product                2026-02-14 13:36:38.581
+I      enrich-product                2026-02-14 13:36:38.574
+I      enrich-product                2026-02-14 13:36:38.571
+I      enrich-product                2026-02-14 13:36:38.569
+I      enrich-product                2026-02-14 13:36:38.565
+I      enrich-product                2026-02-14 13:36:38.564
+I      enrich-product                2026-02-14 13:36:38.561
+I      enrich-product                2026-02-14 13:35:36.685
+I      enrich-product                2026-02-14 13:35:36.672
+I      enrich-product                2026-02-14 13:35:36.543
+I      enrich-product                2026-02-14 13:35:36.541
+I      enrich-product                2026-02-14 13:35:36.537
+I      enrich-product                2026-02-14 13:35:36.531
+I      enrich-product                2026-02-14 13:35:36.373
+I      enrich-product                2026-02-14 13:35:36.372
+I      enrich-product                2026-02-14 13:35:36.371
+I      enrich-product                2026-02-14 13:35:36.371
+I      enrich-product                2026-02-14 13:35:36.370
+I      enrich-product                2026-02-14 13:35:36.369
+I      enrich-product                2026-02-14 13:35:36.094
+I      enrich-product                2026-02-14 13:35:36.084
+I      enrich-product                2026-02-14 13:35:36.081
+I      enrich-product                2026-02-14 13:35:35.838
+I      enrich-product                2026-02-14 13:35:35.834
+I      enrich-product                2026-02-14 13:35:35.826
+I      enrich-product                2026-02-14 13:35:35.822
+I      enrich-product                2026-02-14 13:35:35.821
+I      enrich-product                2026-02-14 13:35:35.818
+I      enrich-product                2026-02-14 13:35:35.815
+I      enrich-product                2026-02-14 13:35:31.921
+I      enrich-product                2026-02-14 13:35:31.917
+I      enrich-product                2026-02-14 13:35:29.285  Default STARTUP TCP probe succeeded after 1 attempt for container "worker" on port 8080.
+       enrich-product                2026-02-14 13:35:28.924    warnings.warn(message, FutureWarning)
+       enrich-product                2026-02-14 13:35:28.924  /layers/google.python.pip/pip/lib/python3.10/site-packages/google/api_core/_python_version_support.py:275: FutureWarning: You are using a Python version (3.10.19) which Google will stop supporting in new releases of google.api_core once it reaches its end of life (2026-10-04). Please upgrade to the latest Python version, or at least Python 3.11, to continue receiving updates for google.api_core past that date.
+I      enrich-product                2026-02-14 13:35:27.410
+I      enrich-product                2026-02-14 13:35:27.139
+I      enrich-product                2026-02-14 13:35:27.083
+I      enrich-product                2026-02-14 13:35:27.083
+I      enrich-product                2026-02-14 13:35:27.082
+I      enrich-product                2026-02-14 13:35:27.080
+I      enrich-product                2026-02-14 13:35:27.078
+I      enrich-product                2026-02-14 13:35:27.072
+I      enrich-product                2026-02-14 13:35:27.006  Starting new instance. Reason: AUTOSCALING - Instance started due to configured scaling factors (e.g. CPU utilization, request throughput, etc.) or no existing capacity for current traffic.
+I      enrich-product                2026-02-14 13:35:26.984
+I      enrich-product                2026-02-14 12:26:03.450
+I      enrich-product                2026-02-14 12:26:03.335
+I      enrich-product                2026-02-14 12:25:57.205
+I      enrich-product                2026-02-14 12:25:57.073
+I      enrich-product                2026-02-14 12:23:46.932
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:43.117  DEBUG: Found 0 images on page.
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:43.117  DEBUG: Resolved to https://graffitisupply.shop/2x-OTR-REPLACEMENT-TIP-BROAD-15MM
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:43.055  DEBUG: Fetching https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGJPlryb09y2ZQc4qopSDRCPe8LoPxxWhm4WcddI9DnB8mM9B5sdWyFk-Y1M_nXiP9XaUfAgDgCd5HAPxoa_1mqmFlnc4wa-2wNWJzPG6ATh50bDscXdFfZrma8NAXstkwrCv_5hy_UzJD3E3qh1Gum3Xma51bMGQ==...
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:43.055  DEBUG: Found 0 images on page.
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:43.055  DEBUG: Resolved to https://graffitisupply.shop/?a=3833&lang=eng
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:42.977  DEBUG: Fetching https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHGrpfWFN-7wLriU2YvRpBDgwOLilyH_mF_dIZSHbtNHJEQXLQ_oYRgxFTx5djRmf0M8CreYWgJ7PscuWpTNi9KNlPvACg4qddMg9wg993PsJqLtX-u4dkJHkzDh-jDrnfW3C2Efco=...
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:42.977  DEBUG: Failed to fetch https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHaMhT55VuHosMZWAV6n7RrTlpG2pUxNFtAfqr4VsUihy53NFjP0QoNBfqWG60AlxqXrGfXZHXJpX_kXaJzyl7ABrM4KjgK0hEMQCm6qKgqPXBJkB0J2WonZu4HgJ3mNg==: HTTPSConnectionPool(host='www.ebay.com', port=443): Read timed out. (read timeout=10.0)
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:32.891  DEBUG: Fetching https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHaMhT55VuHosMZWAV6n7RrTlpG2pUxNFtAfqr4VsUihy53NFjP0QoNBfqWG60AlxqXrGfXZHXJpX_kXaJzyl7ABrM4KjgK0hEMQCm6qKgqPXBJkB0J2WonZu4HgJ3mNg==...
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:32.891  DEBUG: Found 2 images on page.
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:32.889  DEBUG: Resolved to https://www.betterrun.shop/en/markers/permanent-markers/otr-marker-hard-to-buff-otr.070-15mm-broad-tip-black
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:32.804  DEBUG: Fetching https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGRJwy1tantxFt9k6LMw_zkbZBQ325HKEuq2C0pHrwdFqGFWv6vy4Y5TGV67zBS14ZTixyUNpOaeb0m_2lpo0yVkNt0VvaXKsVtdRFA19R_GomVzxHafX5jbS-Gm7Y9_iPXIbmTOyKVUimr74ZKV1E15CjOpnkqVK6Eto3kqYck419b0Rr8c1TG0qMX352K0GYD4qFzIg03Q_SpFjhOPH0mVlnqtZQd...
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:32.804  DEBUG: Failed to fetch https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGk_s4x0g0Y6mJKYs3TUlqohOvhnnKVQTE4GnkzigJe-qLWBebV7mAdmluk6dhC7B55gwaQhLwacpVLHVYZWUfk39tqwV6Np3wJM44yhP6bneXS-iROdCD_F8P9V3WoSVjq0USp1StMQbPGtLIgnxkTvKHXlFxgBrIrgqRnxV6Glgx5lx1vKHjLgzx4Dg==: 403 Client Error: Forbidden for url: https://shop.bombingscience.com/canada/otr-standard-replacement-otr002-otr003.html
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:32.731  DEBUG: Fetching https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGk_s4x0g0Y6mJKYs3TUlqohOvhnnKVQTE4GnkzigJe-qLWBebV7mAdmluk6dhC7B55gwaQhLwacpVLHVYZWUfk39tqwV6Np3wJM44yhP6bneXS-iROdCD_F8P9V3WoSVjq0USp1StMQbPGtLIgnxkTvKHXlFxgBrIrgqRnxV6Glgx5lx1vKHjLgzx4Dg==...
+       enrich-product  mBjx0Pb1pdDl  2026-02-14 12:23:32.731  DEBUG: Extracting images from 10 sources...
+I      enrich-product                2026-02-14 12:23:18.252
+I      enrich-product                2026-02-14 12:23:18.188
+I      enrich-product                2026-02-14 12:23:18.020
+I      enrich-product                2026-02-14 12:23:18.018
+I      enrich-product                2026-02-14 12:23:18.004
+I      enrich-product                2026-02-14 12:23:18.004
+I      enrich-product                2026-02-14 12:23:17.999
+I      enrich-product                2026-02-14 12:23:17.995
+I      enrich-product                2026-02-14 12:23:17.988
+I      enrich-product                2026-02-14 12:23:17.960
+I      enrich-product                2026-02-14 12:23:17.855
+I      enrich-product                2026-02-14 12:23:17.849
+I      enrich-product                2026-02-14 12:23:17.847
+I      enrich-product                2026-02-14 12:23:17.841
+I      enrich-product                2026-02-14 12:23:17.840
+I      enrich-product                2026-02-14 12:23:17.839
+I      enrich-product                2026-02-14 12:23:17.839
+I      enrich-product                2026-02-14 12:23:17.839
+I      enrich-product                2026-02-14 12:23:17.834
+I      enrich-product                2026-02-14 12:23:17.833
+I      enrich-product                2026-02-14 12:23:17.828
+I      enrich-product                2026-02-14 12:23:10.104

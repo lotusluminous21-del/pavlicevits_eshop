@@ -1,5 +1,10 @@
 firebase-functions
 firebase-admin
 google-genai
+google-auth
 httpx
-numpy
+pydantic
+requests
+python-dotenv
+google-cloud-storage
+google-cloud-firestore

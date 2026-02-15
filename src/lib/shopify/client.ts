@@ -20,16 +20,23 @@ export const shopifyClient = createStorefrontApiClient({
 });
 
 export async function shopifyFetch<T>(query: string, variables?: Record<string, string | number | boolean | null | undefined | object>): Promise<T> {
-    const response = await shopifyClient.request(query, { variables });
+    console.log('Shopify Fetching with domain:', env.SHOPIFY_STORE_DOMAIN);
+    try {
+        const response = await shopifyClient.request(query, { variables });
 
-    if (response.errors) {
-        const errorMessage = response.errors.graphQLErrors
-            ? response.errors.graphQLErrors.map((e: { message: string }) => e.message).join(', ')
-            : response.errors.message || 'Unknown error';
-        throw new Error(errorMessage);
+        if (response.errors) {
+            console.error('Shopify GraphQL Errors:', JSON.stringify(response.errors, null, 2));
+            const errorMessage = response.errors.graphQLErrors
+                ? response.errors.graphQLErrors.map((e: { message: string }) => e.message).join(', ')
+                : response.errors.message || 'Unknown error';
+            throw new Error(errorMessage);
+        }
+
+        return response.data as T;
+    } catch (error) {
+        console.error('Shopify Fetch Error caught:', error);
+        throw error;
     }
-
-    return response.data as T;
 }
 
 export async function getProducts({

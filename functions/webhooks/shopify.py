@@ -2,9 +2,10 @@ import logging
 import datetime
 from typing import Dict, Any, Optional
 
-from aade.types import AADEInvoice, InvoiceType, Party, InvoiceRow, InvoiceSummary
-from aade.invoice_generator import InvoiceGenerator
-from aade.invoice_transmitter import InvoiceTransmitter
+# AADE imports removed as Pylon handles compliance
+# from aade.types import AADEInvoice, InvoiceType, Party, InvoiceRow, InvoiceSummary
+# from aade.invoice_generator import InvoiceGenerator
+# from aade.invoice_transmitter import InvoiceTransmitter
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,28 +22,148 @@ def handle_order_paid(payload: Dict[str, Any]):
     logger.info(f"Processing paid order: {order_name} ({order_id})")
     
     try:
-        # 1. Map Shopify Order to AADE Invoice
-        invoice = map_shopify_to_aade(payload)
+        # DEPRECATED: Direct AADE Transmit (Pylon now handles this)
+        # invoice = map_shopify_to_aade(payload)
+        # transmitter = InvoiceTransmitter()
+        # result = transmitter.submit_invoice_sync(invoice) 
         
-        if not invoice:
-            logger.warning(f"Could not map order {order_name} to AADE Invoice. Skipping.")
-            return
-            
-        # 2. Transmit to AADE
-        transmitter = InvoiceTransmitter()
-        result = transmitter.submit_invoice_sync(invoice) # We'll add a sync wrapper or use async properly
-        
-        # Note: In a real Cloud Function, we might need to handle async loops properly if using httpx async
-        # For now, assuming we might need to patch result or run async.
-        # Let's see if we can just log for now as the user asked for "Development" mode.
-        
-        if result.get("success"):
-            logger.info(f"Successfully sent invoice for {order_name} to AADE. Mark: {result.get('mark')}")
-        else:
-            logger.error(f"Failed to send invoice for {order_name}: {result.get('error')}")
-            
+        # 1. Transmit to Pylon ERP (Primary route)
+        try:
+            pylon_success = transmit_order_to_pylon(payload)
+            if pylon_success:
+                logger.info(f"Successfully synced order {order_name} to Pylon.")
+            else:
+                logger.error(f"Failed to sync order {order_name} to Pylon.")
+        except Exception as p_err:
+            logger.error(f"Error syncing to Pylon: {p_err}")
+
     except Exception as e:
-        logger.error(f"Error processing AADE for order {order_name}: {e}")
+        logger.error(f"Error processing order {order_name}: {e}")
+
+def handle_refund_created(payload: Dict[str, Any]):
+    """
+    Handles 'refunds/create' webhook from Shopify.
+    Generates a Credit Note for AADE and Pylon.
+    """
+    refund_id = payload.get("id")
+    order_id = payload.get("order_id")
+    
+    logger.info(f"Processing refund {refund_id} for order {order_id}")
+    
+    try:
+        # In a real scenario, we'd fetch the full order to get customer details
+        # For now, we'll use the refund payload which contains line items being refunded
+        
+        # 1. Map to Pylon Credit Note
+        pylon_success = transmit_refund_to_pylon(payload)
+        if pylon_success:
+            logger.info(f"Successfully synced refund {refund_id} to Pylon.")
+        
+        # 2. Map to AADE Credit Note -> Handled by Pylon
+        pass
+
+    except Exception as e:
+        logger.error(f"Error processing refund {refund_id}: {e}")
+
+def transmit_refund_to_pylon(refund_data: Dict[str, Any]) -> bool:
+    import asyncio
+    from pylon.client import PylonClient
+    from pylon.models import PylonCreditNote, PylonOrderItem
+    
+    try:
+        items = []
+        for line in refund_data.get("refund_line_items", []):
+            line_item = line.get("line_item", {})
+            items.append(PylonOrderItem(
+                sku=line_item.get("sku") or "UNKNOWN",
+                quantity=float(line.get("quantity", 1)),
+                price_unit=float(line_item.get("price", 0.0))
+            ))
+            
+        credit_note = PylonCreditNote(
+            original_order_code=str(refund_data.get("order_id")), # Or name if available
+            date=datetime.datetime.now(),
+            items=items,
+            total_amount=sum(i.price_unit * i.quantity for i in items)
+        )
+        
+        client = PylonClient()
+        return asyncio.run(client.create_credit_note(credit_note))
+    except Exception as e:
+        logger.error(f"Pylon Refund Transmission Error: {e}")
+        return False
+
+def transmit_order_to_pylon(order_data: Dict[str, Any]) -> bool:
+    """
+    Maps Shopify order to Pylon format and transmits it.
+    Uses asyncio.run() to bridge sync/async.
+    """
+    import asyncio
+    from pylon.client import PylonClient 
+    
+    try:
+        pylon_order = map_shopify_to_pylon(order_data)
+        if not pylon_order:
+            logger.warning("Skipping Pylon sync: Could not map order.")
+            return False
+
+        client = PylonClient()
+        
+        async def _async_transmit():
+            return await client.create_sales_order(pylon_order)
+            
+        return asyncio.run(_async_transmit())
+    except Exception as e:
+        logger.error(f"Pylon Transmission Error: {e}")
+        return False
+
+def map_shopify_to_pylon(order: Dict[str, Any]) -> Optional['PylonOrder']:
+    """
+    Maps Shopify JSON to PylonOrder Pydantic model.
+    """
+    from pylon.models import PylonOrder, PylonCustomer, PylonOrderItem
+    
+    try:
+        # Customer Mapping
+        billing = order.get("billing_address", {})
+        customer_email = order.get("email") or "no-email@example.com"
+        
+        customer = PylonCustomer(
+            email=customer_email,
+            first_name=billing.get("first_name", "Guest"),
+            last_name=billing.get("last_name", "User"),
+            phone=billing.get("phone"),
+            vat_number=find_vat_number(order), # Re-use existing helper
+            address_street=billing.get("address1"),
+            address_city=billing.get("city"),
+            address_zip=billing.get("zip")
+        )
+        
+        # Items Mapping
+        items = []
+        for line in order.get("line_items", []):
+            items.append(PylonOrderItem(
+                sku=line.get("sku") or "UNKNOWN-SKU",
+                quantity=float(line.get("quantity", 1)),
+                price_unit=float(line.get("price", 0.0)),
+                # Discount Logic if needed
+            ))
+            
+        pylon_order = PylonOrder(
+            order_code=order.get("name"),
+            date=datetime.datetime.fromisoformat(order.get("created_at").replace("Z", "+00:00")),
+            customer=customer,
+            items=items,
+            total_amount=float(order.get("total_price", 0.0)),
+            currency=order.get("currency", "EUR"),
+            notes=order.get("note")
+        )
+        return pylon_order
+        
+    except Exception as e:
+        logger.error(f"Error mapping to Pylon Order: {e}")
+        return None
+
 
 def map_shopify_to_aade(order: Dict[str, Any]) -> Optional[AADEInvoice]:
     """

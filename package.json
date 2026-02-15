@@ -28,6 +28,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
+    "react-resizable-panels": "^4.6.3",
     "reactfire": "^4.2.3",
     "schema-dts": "^1.1.5",
     "stripe": "^20.3.0",

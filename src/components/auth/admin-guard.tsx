@@ -11,7 +11,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         if (!loading) {
             if (!user) {
-                router.push('/login?redirect=/admin/drafts');
+                router.push('/login?redirect=/admin/products');
             } else if (!isAdmin) {
                 // User logged in but not admin
                 router.push('/');

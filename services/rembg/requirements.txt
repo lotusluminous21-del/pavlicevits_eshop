@@ -1,0 +1,6 @@
+rembg[cpu]==2.0.57
+flask==3.0.3
+firebase-admin==6.5.0
+gunicorn==22.0.0
+requests==2.32.3
+google-cloud-storage==2.18.2

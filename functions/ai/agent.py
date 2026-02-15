@@ -3,16 +3,12 @@ from firebase_admin import firestore
 from google import genai
 from google.genai import types
 from .config import AIConfig
-import numpy as np
 
 # Advisor Agent
 # Uses Vector Search (RAG) to find relevant products in the catalogue
 # and uses Gemini to reason about bundling them.
 
-@https_fn.on_call(
-    region=AIConfig.LOCATION,
-    memory=options.MemoryOption.MB_512,
-)
+# Decorator moved to main.py
 def suggest_bundles(req: https_fn.CallableRequest) -> dict:
     """
     Suggests a bundle of products based on a seed product or a user need.
