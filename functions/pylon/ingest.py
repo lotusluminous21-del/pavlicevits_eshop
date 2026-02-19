@@ -58,7 +58,8 @@ def parse_pylon_csv(csv_content: str) -> List[Dict[str, Any]]:
     SKU_KEYS = ["Κωδικός", "Kwdivko", "SKU", "Code"]
     NAME_KEYS = ["Όνομα", "Onoma", "Name", "Περιγραφή"]
     STOCK_KEYS = ["Υπόλοιπο", "Stock", "Quantity", "Ποσότητα"]
-    PRICE_KEYS = ["Λιανική", "Retail", "Price", "Τιμή"]
+    PRICE_RETAIL_KEYS = ["Λιανική", "Retail", "Price", "Τιμή"]
+    PRICE_BULK_KEYS = ["Χονδρική", "Hondriki", "Bulk", "Wholesale"]
     ACTIVE_KEYS = ["Ενεργό", "Active", "Status"]
 
     for row in reader:
@@ -71,8 +72,11 @@ def parse_pylon_csv(csv_content: str) -> List[Dict[str, Any]]:
         stock_val = find_val(row, STOCK_KEYS) or "0"
         stock = parse_float_greek(str(stock_val))
         
-        price_val = find_val(row, PRICE_KEYS) or "0"
-        price = parse_float_greek(str(price_val))
+        price_retail_val = find_val(row, PRICE_RETAIL_KEYS) or "0"
+        price_retail = parse_float_greek(str(price_retail_val))
+
+        price_bulk_val = find_val(row, PRICE_BULK_KEYS) or "0"
+        price_bulk = parse_float_greek(str(price_bulk_val))
         
         active_raw = find_val(row, ACTIVE_KEYS) or "Ναι"
         active = str(active_raw).lower() in ["ναι", "yes", "true", "1"]
@@ -82,7 +86,8 @@ def parse_pylon_csv(csv_content: str) -> List[Dict[str, Any]]:
             "source": "manual_csv",
             "pylon_data": {
                 "name": str(name).strip() if name else "",
-                "price_retail": price,
+                "price_retail": price_retail,
+                "price_bulk": price_bulk,
                 "stock_quantity": stock,
                 "active": active,
                 "raw_csv_row": row
@@ -100,31 +105,46 @@ def parse_pylon_csv(csv_content: str) -> List[Dict[str, Any]]:
 def ingest_products_to_firestore(products: List[Dict[str, Any]], db: firestore.client) -> Dict[str, int]:
     """
     Upserts parsed products into the staging_products collection.
+    Preserves status if the product has already been processed.
     """
-    batch = db.batch()
     count = 0
     total_processed = 0
     results = {"created": 0, "updated": 0, "errors": 0}
 
-    for p in products:
-        doc_ref = db.collection(STAGING_COLLECTION).document(p["sku"])
+    # For status preservation, we need to know what's already there.
+    # We'll process in chunks to avoid hitting Firestore limits and to keep it efficient.
+    chunk_size = 100
+    for i in range(0, len(products), chunk_size):
+        chunk = products[i:i + chunk_size]
+        skus = [p["sku"] for p in chunk]
         
-        # Check if exists to determine created vs updated (optional optimization)
-        # For batching, we just set.
-        batch.set(doc_ref, p, merge=True)
-        count += 1
-        total_processed += 1
+        # 1. Fetch existing docs to check statuses
+        existing_docs = {doc.id: doc.to_dict() for doc in db.collection(STAGING_COLLECTION).where("sku", "in", skus).get()}
+        
+        batch = db.batch()
+        for p in chunk:
+            sku = p["sku"]
+            doc_ref = db.collection(STAGING_COLLECTION).document(sku)
+            
+            existing = existing_docs.get(sku)
+            if existing:
+                # PRESERVATION LOGIC:
+                # If the product is already ENRICHED, APPROVED, or in a specific wizard step, 
+                # we don't want to reset it to "IMPORTED".
+                current_status = existing.get("status")
+                if current_status and current_status != "IMPORTED":
+                    # Keep existing status
+                    p["status"] = current_status
+                results["updated"] += 1
+            else:
+                results["created"] += 1
 
-        # Commit batch every 400 items (limit is 500)
-        if count >= 400:
-            batch.commit()
-            batch = db.batch()
-            count = 0
-            logger.info(f"Committed batch of 400 products.")
+            batch.set(doc_ref, p, merge=True)
+            count += 1
+            total_processed += 1
 
-    if count > 0:
         batch.commit()
-        logger.info(f"Committed final batch of {count} products.")
-    
+        logger.info(f"Committed batch of {len(chunk)} products.")
+
     results["total"] = total_processed
     return results

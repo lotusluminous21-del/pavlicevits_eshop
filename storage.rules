@@ -15,6 +15,12 @@ service firebase.storage {
       allow write: if request.auth != null;
     }
 
+    // Source images from manual uploads — public read, admin write
+    match /source-images/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
     // Default deny all other paths
     match /{allPaths=**} {
       allow read, write: if false;

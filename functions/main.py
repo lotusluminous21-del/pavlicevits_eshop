@@ -45,6 +45,15 @@ def enrich_product(event: firestore_fn.Event[firestore_fn.Change[firestore_fn.Do
         enrich_product(event)
     except Exception as e:
         print(f"Error in enrich_product wrapper: {e}")
+        # Critical: Report system-level errors back to the document so the UI doesn't hang
+        try:
+            if event.data.after:
+                event.data.after.reference.update({
+                    "status": "ENRICHMENT_FAILED",
+                    "enrichment_message": f"System Error: {str(e)[:100]}"
+                })
+        except Exception as report_err:
+            print(f"Failed to report error to Firestore: {report_err}")
 
 # --- 3. Chat Assistant Callable ---
 @https_fn.on_call(region="europe-west1", memory=options.MemoryOption.MB_512)
@@ -259,13 +268,29 @@ def trigger_batch_enrichment(req: https_fn.CallableRequest) -> dict:
             
         from ai.batch_processor import start_studio_session
         result = start_studio_session(skus, environment=environment, priority=priority)
-        print(f"Studio session created: {result}")
+        print(f"Studio sessions created: {result}")
         return result
     except Exception as e:
         print(f"Error in trigger_batch_enrichment: {e}")
         import traceback
         traceback.print_exc()
         return {"error": f"Runtime Error: {str(e)}"}
+
+
+@https_fn.on_call(region="europe-west1", memory=options.MemoryOption.MB_256)
+def abort_studio_session(req: https_fn.CallableRequest) -> dict:
+    """Callable to abort one or more running batches."""
+    try:
+        data = req.data
+        batch_ids = data.get("batch_ids", [])
+        if not batch_ids:
+            return {"error": "Missing batch_ids"}
+            
+        from ai.batch_processor import abort_studio_session
+        return abort_studio_session(batch_ids)
+    except Exception as e:
+        print(f"Error in abort_studio_session: {e}")
+        return {"error": str(e)}
 
 
 @firestore_fn.on_document_created(
@@ -291,13 +316,13 @@ def on_batch_created(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -
         print(f"Error processing batch {batch_id}: {e}")
         import traceback
         traceback.print_exc()
-        # Mark batch as failed
-        from firebase_admin import firestore
-        db = firestore.client()
-        db.collection("enrichment_batches").document(batch_id).update({
-            "status": "FAILED",
-            "error_details": f"Trigger error: {str(e)[:200]}",
-        })
+        
+        # Mark batch AND products as failed using the new utility
+        from ai.batch_processor import fail_batch
+        try:
+            fail_batch(batch_id, f"System Error: {str(e)[:150]}")
+        except Exception as fe:
+            print(f"Failed to report system error: {fe}")
 
 @https_fn.on_call(region="europe-west1", memory=options.MemoryOption.MB_256)
 def trigger_bg_removal(req: https_fn.CallableRequest) -> dict:
@@ -305,6 +330,8 @@ def trigger_bg_removal(req: https_fn.CallableRequest) -> dict:
     try:
         data = req.data
         skus = data.get("skus", [])
+        mode = data.get("mode", "generated") # "generated" (default) or "source"
+        
         if not skus:
             return {"error": "Missing SKUs"}
 
@@ -312,12 +339,15 @@ def trigger_bg_removal(req: https_fn.CallableRequest) -> dict:
         from firebase_admin import firestore
         db = firestore.client()
         
+        target_status = "PENDING_BG_REMOVAL" if mode == "generated" else "PENDING_SOURCE_BG_REMOVAL"
+        message = "Manually triggering background removal..." if mode == "generated" else "Triggering source background removal..."
+        
         batch = db.batch()
         for sku in skus:
             doc_ref = db.collection("staging_products").document(sku)
             batch.update(doc_ref, {
-                "status": "PENDING_BG_REMOVAL",
-                "enrichment_message": "Manually triggering background removal..."
+                "status": target_status,
+                "enrichment_message": message
             })
         batch.commit()
         return {"success": True, "count": len(skus)}

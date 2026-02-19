@@ -1,9 +1,16 @@
-'use client';
+"use client";
 
 import { useState } from 'react';
 import { publishProductAction } from '@/app/actions/publish-product';
 import { doc, deleteDoc, setDoc, getFirestore } from 'firebase/firestore';
 import { app } from '@/lib/firebase';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle2, XCircle, Loader2, Save } from "lucide-react";
 
 interface DraftReviewCardProps {
     draft: {
@@ -28,15 +35,11 @@ export function DraftReviewCard({ draft }: DraftReviewCardProps) {
     const handlePublish = async () => {
         setIsPublishing(true);
 
-        // 1. Call Server Action to Publish
         const result = await publishProductAction(draft.id, formData);
 
         if (result.success) {
             const db = getFirestore(app);
-
-            // 2. PROMOTE TO LIVE (for Agent RAG)
             try {
-                // Copy data to 'products_live' using the Shopify ID as key
                 await setDoc(doc(db, 'products_live', result.shopifyId), {
                     ...formData,
                     shopifyId: result.shopifyId,
@@ -46,15 +49,13 @@ export function DraftReviewCard({ draft }: DraftReviewCardProps) {
                     embedding_reindex_needed: true
                 });
 
-                // 3. Remove from Drafts
                 await deleteDoc(doc(db, 'product_drafts', draft.id));
-                alert(`Published! Shopify ID: ${result.shopifyId}`);
+                // Optional: Toast notification here using toast()
             } catch (err) {
                 console.error("Error promoting:", err);
-                alert("Published to Shopify, but failed to sync to RAG DB.");
             }
         } else {
-            alert(`Error: ${result.error}`);
+            console.error(result.error);
             setIsPublishing(false);
         }
     };
@@ -66,68 +67,72 @@ export function DraftReviewCard({ draft }: DraftReviewCardProps) {
     };
 
     return (
-        <div className="bg-white border rounded-lg p-6 shadow-sm flex flex-col md:flex-row gap-6">
-            <div className="flex-1 space-y-4">
+        <Card className="overflow-hidden hover:shadow-md transition-shadow">
+            <CardHeader className="bg-gray-50/50 pb-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <CardTitle className="text-base font-bold text-gray-900 line-clamp-1">{draft.title}</CardTitle>
+                        <CardDescription className="text-xs font-mono">{draft.sku}</CardDescription>
+                    </div>
+                    <Badge variant="outline" className="bg-white">Draft</Badge>
+                </div>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Product Title</label>
-                        <input
+                        <Label htmlFor="title" className="text-xs font-bold text-gray-500 uppercase">Product Title</Label>
+                        <Input
+                            id="title"
                             name="title"
                             value={formData.title}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded"
+                            className="bg-gray-50/50"
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Price (Cents/Unit)</label>
-                        <input
+                        <Label htmlFor="price" className="text-xs font-bold text-gray-500 uppercase">Price (Cents)</Label>
+                        <Input
+                            id="price"
                             name="price"
                             value={formData.price || ''}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded"
                             placeholder="e.g. 1999"
+                            className="bg-gray-50/50"
                         />
                     </div>
                 </div>
 
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Description</label>
-                    <textarea
+                    <Label htmlFor="description" className="text-xs font-bold text-gray-500 uppercase">Description</Label>
+                    <Textarea
+                        id="description"
                         name="description"
                         value={formData.description}
                         onChange={handleChange}
-                        className="w-full p-2 border rounded h-24"
+                        className="h-32 bg-gray-50/50 resize-None"
                     />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">SKU</label>
-                        <input
-                            name="sku"
-                            value={formData.sku || ''}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex md:flex-col gap-2 justify-end md:justify-start min-w-[150px]">
-                <button
+            </CardContent>
+            <CardFooter className="bg-gray-50/30 p-4 flex justify-end gap-3 border-t border-gray-100">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDiscard}
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Discard
+                </Button>
+                <Button
+                    size="sm"
                     onClick={handlePublish}
                     disabled={isPublishing}
-                    className="bg-black text-white px-4 py-2 rounded hover:bg-gray-800 disabled:opacity-50"
+                    className="bg-black hover:bg-gray-800 text-white font-bold"
                 >
+                    {isPublishing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                     {isPublishing ? 'Publishing...' : 'Approve & Publish'}
-                </button>
-                <button
-                    onClick={handleDiscard}
-                    className="border border-red-200 text-red-600 px-4 py-2 rounded hover:bg-red-50"
-                >
-                    Discard
-                </button>
-            </div>
-        </div>
+                </Button>
+            </CardFooter>
+        </Card>
     );
 }

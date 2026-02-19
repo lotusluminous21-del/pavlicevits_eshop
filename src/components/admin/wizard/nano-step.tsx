@@ -1,8 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Loader2, CheckCircle2, ChevronLeft, ChevronRight, Wand2, ArrowRight, XCircle, RotateCcw, Layers, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle2, ChevronLeft, ChevronRight, Wand2, ArrowRight, XCircle, RotateCcw, Layers, Image as ImageIcon, RefreshCw, PenTool, Trash2 } from "lucide-react";
 import { WizardLayout } from "./wizard-layout";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
+import {
+    WizardSidebarItem,
+    SharedWizardHeader,
+    SharedWizardFooter,
+    WizardProduct
+} from "./shared-wizard-components";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Variant {
     sku_suffix: string;
@@ -14,6 +36,9 @@ interface ProductData {
     status: string;
     enrichment_message?: string;
     name: string;
+    pylon_data?: {
+        name: string;
+    };
     ai_data?: {
         title_el?: string;
         variants?: Variant[];
@@ -27,30 +52,58 @@ interface NanoStepProps {
     products: ProductData[];
     onBack: () => void;
     onRetry: (sku: string) => void;
-    onRemoveBg: (sku: string) => void;
-    onStartStudio: (environment: string) => void;
-    onRegenerate: (sku: string, environment: string) => void;
+    onRemoveBg: (sku: string, mode?: "generated" | "source") => void;
+    onStartStudio: (environment: string, model: string) => void;
+    onRegenerate: (sku: string, environment: string, model: string) => void;
+    onRegenerateAll: (environment: string, model: string) => void;
+    onAbort: () => void;
     onComplete: () => void;
 }
 
-type Environment = "clean" | "realistic";
+type Environment = "clean" | "realistic" | "modern";
 
-export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio, onRegenerate, onComplete }: NanoStepProps) {
+export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio, onRegenerate, onRegenerateAll, onAbort, onComplete }: NanoStepProps) {
     const [activeIndex, setActiveIndex] = useState(0);
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-    const [environment, setEnvironment] = useState<Environment>("clean");
+    const [environment, setEnvironment] = useState<Environment>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('nano_banana_env');
+            if (saved === 'clean' || saved === 'realistic' || saved === 'modern') return saved;
+        }
+        return 'clean';
+    });
+
+    const [generationModel, setGenerationModel] = useState<"gemini" | "imagen">(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('nano_banana_model');
+            if (saved === 'gemini' || saved === 'imagen') return saved;
+        }
+        return 'gemini';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('nano_banana_env', environment);
+    }, [environment]);
+
+    useEffect(() => {
+        localStorage.setItem('nano_banana_model', generationModel);
+    }, [generationModel]);
+
     const activeProduct = products[activeIndex];
 
-    // Helper to get the best display image (BG removed > Generated)
+    // Helper to get the best display image (BG removed > Generated) with cache buster
     const getDisplayImage = (product: ProductData) => {
         if (!product?.ai_data) return null;
 
         // Check for final BG removed image first
         const finalImage = product.ai_data.images?.find(img => img.suffix === 'base')?.url;
-        if (finalImage) return finalImage;
+        const url = finalImage || product.ai_data.generated_images?.base;
 
-        // Fallback to generated image
-        return product.ai_data.generated_images?.base || null;
+        if (!url) return null;
+
+        // Add cache buster if it's a studio image that might have been overwritten
+        const buster = `?t=${Date.now()}`;
+        return url.includes('studio_base.jpg') ? `${url}${buster}` : url;
     };
 
     const displayImage = activeProduct ? getDisplayImage(activeProduct) : null;
@@ -69,6 +122,9 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
         p.status === 'ENRICHMENT_FAILED'
     );
 
+    // Any items have generated images?
+    const hasAnyGenerated = products.some(p => p.ai_data?.generated_images?.base);
+
     // Check if we are in the "Start" state
     const hasVisuals = products.some(p => p.ai_data?.generated_images?.base);
     const isReady = products.every(p => p.status === 'READY_FOR_STUDIO') && !hasVisuals;
@@ -76,199 +132,232 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
 
     const sidebarTitle = (
         <div className="space-y-4">
-            <h3 className="font-bold text-gray-900 flex items-center gap-2 text-sm">
-                <Wand2 className="w-4 h-4 text-indigo-600" />
-                Generation Status
+            <h3 className="font-bold text-gray-900 flex items-center gap-2 text-[11px] uppercase tracking-wider px-1">
+                <Wand2 className="w-3.5 h-3.5 text-indigo-600" />
+                Studio Config
             </h3>
 
-            {/* Environment Toggle - Persistent */}
-            <div className="bg-gray-50 rounded-lg p-2 border border-gray-100">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Style Setting</span>
-                <div className="flex flex-col gap-1">
-                    <button
-                        onClick={() => setEnvironment("clean")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all text-left flex items-center gap-2 ${environment === "clean"
-                            ? "bg-white text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-100"
-                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                            }`}
-                    >
-                        <span className={`w-2 h-2 rounded-full ${environment === "clean" ? "bg-indigo-500" : "bg-gray-300"}`} />
-                        Clean White
-                    </button>
-                    <button
-                        onClick={() => setEnvironment("realistic")}
-                        className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all text-left flex items-center gap-2 ${environment === "realistic"
-                            ? "bg-white text-indigo-700 shadow-sm ring-1 ring-inset ring-indigo-100"
-                            : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                            }`}
-                    >
-                        <span className={`w-2 h-2 rounded-full ${environment === "realistic" ? "bg-amber-500" : "bg-gray-300"}`} />
-                        Realistic Setting
-                    </button>
+            {/* Compact Selectors Container */}
+            <div className="space-y-3 px-1">
+                {/* Model Selector - Horizontal */}
+                <div className="space-y-1.5">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">Engine</span>
+                    <div className="grid grid-cols-2 gap-1 bg-gray-100/50 p-1 rounded-lg border border-gray-100">
+                        <button
+                            onClick={() => setGenerationModel("gemini")}
+                            className={cn(
+                                "py-1.5 px-2 rounded-md text-[10px] font-bold transition-all text-center flex items-center justify-center gap-1.5",
+                                generationModel === "gemini"
+                                    ? "bg-white text-indigo-700 shadow-sm"
+                                    : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                            )}
+                        >
+                            <div className={cn("w-1.5 h-1.5 rounded-full", generationModel === "gemini" ? "bg-indigo-500" : "bg-gray-400")} />
+                            Gemini
+                        </button>
+                        <button
+                            onClick={() => setGenerationModel("imagen")}
+                            className={cn(
+                                "py-1.5 px-2 rounded-md text-[10px] font-bold transition-all text-center flex items-center justify-center gap-1.5",
+                                generationModel === "imagen"
+                                    ? "bg-white text-indigo-700 shadow-sm"
+                                    : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                            )}
+                        >
+                            <div className={cn("w-1.5 h-1.5 rounded-full", generationModel === "imagen" ? "bg-purple-500" : "bg-gray-400")} />
+                            Imagen
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            {/* Progress bar */}
-            <div>
-                <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">Overall</span>
-                    <span className="text-[10px] font-bold text-indigo-600">{progressPercent}%</span>
-                </div>
-                <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                    <div
-                        className="bg-indigo-600 h-full transition-all duration-1000 ease-in-out"
-                        style={{ width: `${progressPercent}%` }}
-                    />
+                {/* Environment Selector - 3-column grid */}
+                <div className="space-y-1.5">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">Style</span>
+                    <div className="grid grid-cols-3 gap-1 bg-gray-100/50 p-1 rounded-lg border border-gray-100">
+                        <button
+                            onClick={() => setEnvironment("clean")}
+                            className={cn(
+                                "py-2 rounded-md text-[9px] font-bold transition-all flex flex-col items-center gap-1",
+                                environment === "clean"
+                                    ? "bg-white text-indigo-700 shadow-sm"
+                                    : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
+                            )}
+                        >
+                            <div className={cn("w-1 h-1 rounded-full", environment === "clean" ? "bg-indigo-500" : "bg-gray-300")} />
+                            Clean
+                        </button>
+                        <button
+                            onClick={() => setEnvironment("realistic")}
+                            className={cn(
+                                "py-2 rounded-md text-[9px] font-bold transition-all flex flex-col items-center gap-1",
+                                environment === "realistic"
+                                    ? "bg-white text-indigo-700 shadow-sm"
+                                    : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
+                            )}
+                        >
+                            <div className={cn("w-1 h-1 rounded-full", environment === "realistic" ? "bg-amber-500" : "bg-gray-300")} />
+                            Real
+                        </button>
+                        <button
+                            onClick={() => setEnvironment("modern")}
+                            className={cn(
+                                "py-2 rounded-md text-[9px] font-bold transition-all flex flex-col items-center gap-1",
+                                environment === "modern"
+                                    ? "bg-white text-indigo-700 shadow-sm"
+                                    : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
+                            )}
+                        >
+                            <div className={cn("w-1 h-1 rounded-full", environment === "modern" ? "bg-teal-500" : "bg-gray-300")} />
+                            Modern
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 
     const sidebarList = (
-        <div className="flex flex-col gap-1 p-2">
-            {products.map((p, idx) => {
-                const status = p.status;
-                const isEnriching = status === 'PENDING_NANO_BANANA' || status.includes('GENERATING') || status === 'BATCH_GENERATING';
-                const isFailed = status === 'ENRICHMENT_FAILED';
-                const isBgRemoving = status === 'PENDING_BG_REMOVAL';
+        <TooltipProvider>
+            <div className="flex flex-col gap-1 px-2">
+                {products.map((p, idx) => {
+                    const status = p.status;
+                    const isEnriching = status === 'PENDING_NANO_BANANA' || status.includes('GENERATING') || status === 'BATCH_GENERATING';
+                    const isFailed = status === 'ENRICHMENT_FAILED';
+                    const isBgRemoving = status === 'PENDING_BG_REMOVAL' || status === 'PENDING_SOURCE_BG_REMOVAL';
 
-                return (
-                    <button
-                        key={p.sku}
-                        onClick={() => setActiveIndex(idx)}
-                        className={`w-full p-3 text-left transition-all rounded-xl flex items-center justify-between group ${activeIndex === idx ? "bg-white shadow-sm ring-1 ring-inset ring-indigo-100" : "hover:bg-gray-100/50 text-gray-600"
-                            }`}
-                    >
-                        <div className="truncate pr-2">
-                            <div className={`text-sm font-bold truncate ${activeIndex === idx ? "text-indigo-600" : "text-gray-700"}`}>
-                                {p.ai_data?.title_el || p.name}
-                            </div>
-                            <div className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wider flex items-center gap-2">
-                                {status === 'BATCH_GENERATING' ? (
-                                    <><Loader2 className="w-2 h-2 animate-spin" /> Batch Processing...</>
+                    return (
+                        <WizardSidebarItem
+                            key={p.sku}
+                            product={p as unknown as WizardProduct}
+                            isActive={activeIndex === idx}
+                            onClick={() => setActiveIndex(idx)}
+                            statusIndicator={
+                                status === 'BATCH_GENERATING' ? (
+                                    <><Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-400" /> Batch Processing...</>
                                 ) : isEnriching ? (
-                                    <><Loader2 className="w-2 h-2 animate-spin" /> Studio Rendering...</>
+                                    <><Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-400" /> {p.enrichment_message?.replace("...", "") || "Rendering"}</>
                                 ) : isBgRemoving ? (
-                                    <><Loader2 className="w-2 h-2 animate-spin" /> Removing BG...</>
+                                    <><Loader2 className="w-2.5 h-2.5 animate-spin text-cyan-500" /> Removing BG...</>
                                 ) : isFailed ? (
-                                    <><XCircle className="w-2 h-2 text-red-500" /> Failed</>
+                                    <><XCircle className="w-2.5 h-2.5 text-red-500" /> Failed</>
                                 ) : status === 'APPROVED' ? (
-                                    <><CheckCircle2 className="w-2 h-2 text-green-500" /> Done</>
+                                    <><CheckCircle2 className="w-2.5 h-2.5 text-green-500" /> Done</>
                                 ) : status === 'PENDING_STUDIO_REVIEW' ? (
-                                    <><Sparkles className="w-2 h-2 text-indigo-500" /> Ready for Review</>
+                                    <><Sparkles className="w-2.5 h-2.5 text-amber-500" /> Ready for Review</>
                                 ) : status === 'READY_FOR_STUDIO' ? (
-                                    "Ready to Start"
-                                ) : "Queued"}
-                            </div>
-                        </div>
-                    </button>
-                );
-            })}
-        </div>
+                                    <span className="text-gray-300">Ready</span>
+                                ) : "Queued"
+                            }
+                        />
+                    );
+                })}
+            </div>
+        </TooltipProvider>
     );
 
     const failedCount = products.filter(p => p.status === 'ENRICHMENT_FAILED').length;
 
     const mainContent = isReady ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-full">
-            <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
-                <Wand2 className="w-8 h-8 text-indigo-600" />
+        <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-full animate-in fade-in zoom-in duration-300">
+            <div className="w-24 h-24 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-3xl flex items-center justify-center mb-8 shadow-inner ring-1 ring-inset ring-white/50">
+                <Wand2 className="w-12 h-12 text-indigo-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Nano Banana Studio</h2>
-            <p className="text-gray-500 max-w-sm mb-6 text-sm">
-                Generate professional product photography. <br />Select your style in the sidebar.
+            <h2 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Nano Banana Studio</h2>
+            <p className="text-gray-500 max-w-md mb-8 text-lg font-medium leading-relaxed">
+                Generate professional product photography automatically.
             </p>
 
-            <button
-                onClick={() => onStartStudio(environment)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-full font-bold text-sm shadow-xl shadow-indigo-100 flex items-center gap-2 transition-all transform hover:scale-105"
+            <Button
+                onClick={() => onStartStudio(environment, generationModel)}
+                size="lg"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-8 rounded-full font-bold text-sm shadow-xl shadow-indigo-200 transition-all transform hover:scale-105"
             >
-                <Wand2 className="w-4 h-4" />
-                Start Studio Generation
-            </button>
+                <Wand2 className="w-4 h-4 mr-2" />
+                Start Generation
+            </Button>
         </div>
     ) : activeProduct ? (
-        <div className="flex-1 flex flex-col h-full">
-            {/* Live progress banner — shown while generation is still in progress */}
-            {isBatchGenerating && (
-                <div className="mx-4 mt-4 bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex items-center gap-4">
-                    <Loader2 className="w-5 h-5 text-indigo-600 animate-spin flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-center mb-1.5">
-                            <span className="text-xs font-bold text-indigo-900">
-                                Generating Studio Images
-                            </span>
-                            <span className="text-xs font-bold text-indigo-600">
-                                {completedItems + failedCount} / {totalItems}
-                            </span>
-                        </div>
-                        <div className="w-full bg-indigo-100 h-1.5 rounded-full overflow-hidden">
-                            <div
-                                className="bg-indigo-600 h-full transition-all duration-1000 ease-in-out rounded-full"
-                                style={{ width: `${Math.round(((completedItems + failedCount) / totalItems) * 100)}%` }}
-                            />
-                        </div>
-                        <p className="text-[10px] text-indigo-500 mt-1.5">
-                            {completedItems} completed{failedCount > 0 && <span className="text-red-500 font-bold"> · {failedCount} failed</span>}
-                            {' '}· Select products in sidebar to preview
-                        </p>
-                    </div>
-                </div>
-            )}
+        <div className="flex-1 flex flex-col h-full bg-gray-50/30">
+            {/* Live progress banner moved to footer */}
 
             {/* Product comparison view — always visible */}
-            <div className="p-8 space-y-12 max-w-7xl mx-auto flex-1">
-                <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                        <Wand2 className="w-3.5 h-3.5 text-indigo-500" />
-                        Master Product
+            <div className="p-8 space-y-12 max-w-7xl mx-auto flex-1 w-full flex flex-col justify-center">
+                <div className="space-y-6">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 justify-center">
+                        <PenTool className="w-3 h-3" />
+                        Studio Transformation
                     </h4>
 
-                    <div className="grid grid-cols-2 gap-8 items-center max-w-3xl mx-auto">
+                    <div className="grid grid-cols-2 gap-8 items-center max-w-5xl mx-auto w-full">
                         {/* Source */}
-                        <div className="space-y-2 group relative">
-                            <div className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 grayscale opacity-70 transition-all group-hover:opacity-100 group-hover:grayscale-0">
-                                {activeProduct.ai_data?.selected_images?.base && (
+                        <div className="space-y-3 group relative">
+                            <div className="relative aspect-square rounded-3xl overflow-hidden border-4 border-white bg-white shadow-xl shadow-gray-200/50 transition-all group-hover:shadow-2xl group-hover:scale-[1.02]">
+                                {activeProduct.ai_data?.selected_images?.base ? (
                                     <img
-                                        src={activeProduct.ai_data.selected_images.base}
+                                        src={`${activeProduct.ai_data.selected_images.base}${activeProduct.ai_data.selected_images.base.includes('studio_base.jpg') ? `?t=${Date.now()}` : ''}`}
                                         alt="Source"
-                                        className="w-full h-full object-cover cursor-pointer"
-                                        onClick={() => setLightboxImage(activeProduct.ai_data?.selected_images?.base || null)}
+                                        className="w-full h-full object-cover cursor-pointer grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500"
+                                        onClick={() => setLightboxImage(activeProduct.ai_data?.selected_images?.base ? `${activeProduct.ai_data.selected_images.base}?t=${Date.now()}` : null)}
                                     />
+                                ) : (
+                                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                                        <ImageIcon className="w-12 h-12 text-gray-300" />
+                                    </div>
                                 )}
-                                <div className="absolute top-3 left-3 bg-black/50 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase backdrop-blur-sm">Source</div>
-                                {activeProduct.ai_data?.selected_images?.base && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setLightboxImage(activeProduct.ai_data?.selected_images?.base || null);
-                                        }}
-                                        className="absolute top-3 right-3 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 backdrop-blur-sm"
-                                        title="View Large"
-                                    >
-                                        <ImageIcon className="w-3 h-3" />
-                                    </button>
+                                <div className="absolute top-4 left-4 bg-white/90 text-gray-900 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase backdrop-blur-md shadow-sm flex items-center gap-2">
+                                    Original Input
+                                    {activeProduct.status === 'PENDING_SOURCE_BG_REMOVAL' && <Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-600" />}
+                                </div>
+
+                                {activeProduct.status === 'PENDING_SOURCE_BG_REMOVAL' && (
+                                    <div className="absolute inset-0 z-40 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
+                                        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-3" />
+                                        <Badge variant="secondary" className="bg-white/80 backdrop-blur-md text-indigo-900 shadow-sm animate-pulse">
+                                            Removing Background...
+                                        </Badge>
+                                    </div>
+                                )}
+
+                                {/* Manual BG Removal for Source */}
+                                {activeProduct.ai_data?.selected_images?.base && !['BATCH_GENERATING', 'PENDING_NANO_BANANA', 'PENDING_SOURCE_BG_REMOVAL'].includes(activeProduct.status) && (
+                                    <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 z-30">
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onRemoveBg(activeProduct.sku, "source");
+                                            }}
+                                            className="w-full bg-white/90 hover:bg-white text-gray-900 border-0 text-[10px] font-bold uppercase"
+                                        >
+                                            <Layers className="w-3 h-3 mr-2" />
+                                            Remove Background
+                                        </Button>
+                                    </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Result */}
-                        <div className="space-y-2 relative group">
-                            <div className="absolute -left-6 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-1.5 border border-gray-100 text-gray-400">
-                                <ArrowRight className="w-4 h-4" />
+                        <div className="space-y-3 relative group">
+                            <div className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg shadow-indigo-100 rounded-full p-2 border border-gray-100 text-indigo-600">
+                                <ArrowRight className="w-5 h-5" />
                             </div>
-                            <div className={`relative aspect-square rounded-2xl overflow-hidden border-2 transition-all ${displayImage
-                                ? "border-green-500 shadow-2xl shadow-green-100/50 ring-4 ring-green-50/50"
-                                : activeProduct.status === 'ENRICHMENT_FAILED'
-                                    ? "border-red-200 bg-red-50"
-                                    : "border-indigo-100 bg-indigo-50 animate-pulse border-dashed"
-                                }`}>
+
+                            <div className={cn(
+                                "relative aspect-square rounded-3xl overflow-hidden border-4 bg-white transition-all shadow-2xl",
+                                displayImage
+                                    ? "border-white shadow-green-200/50 ring-4 ring-green-50/30"
+                                    : activeProduct.status === 'ENRICHMENT_FAILED'
+                                        ? "border-red-100 shadow-red-100/50"
+                                        : "border-white shadow-indigo-200/50 ring-4 ring-indigo-50/30 animate-pulse"
+                            )}>
                                 {displayImage ? (
                                     <>
                                         <img
                                             src={displayImage}
                                             alt="Generated"
-                                            className="w-full h-full object-contain cursor-pointer hover:scale-105 transition-transform duration-700"
+                                            className="w-full h-full object-contain cursor-pointer transition-transform duration-700 hover:scale-105"
                                             onClick={() => setLightboxImage(displayImage)}
                                         />
 
@@ -276,75 +365,153 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                         {activeProduct.status === 'PENDING_BG_REMOVAL' && (
                                             <div className="absolute inset-0 z-40 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
                                                 <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-3" />
-                                                <span className="text-xs font-bold text-indigo-900 uppercase tracking-widest bg-white/80 px-4 py-1.5 rounded-full shadow-sm ring-1 ring-indigo-50">
+                                                <Badge variant="secondary" className="bg-white/80 backdrop-blur-md text-indigo-900 shadow-sm animate-pulse">
                                                     Removing Background...
-                                                </span>
+                                                </Badge>
                                             </div>
                                         )}
 
-                                        <button
+                                        <Button
+                                            size="icon"
+                                            variant="secondary"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setLightboxImage(displayImage);
                                             }}
-                                            className="absolute top-3 right-3 bg-black/50 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 backdrop-blur-sm z-20"
-                                            title="View Large"
+                                            className="absolute top-4 right-4 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 text-white border-0 z-20"
                                         >
-                                            <ImageIcon className="w-3 h-3" />
-                                        </button>
+                                            <ImageIcon className="w-4 h-4" />
+                                        </Button>
 
                                         {!['BATCH_GENERATING', 'PENDING_NANO_BANANA', 'PENDING_STUDIO_GENERATION'].some(s => activeProduct.status.includes(s)) && (
-                                            <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/60 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity grid grid-cols-2 gap-2 z-30">
-                                                <button
-                                                    onClick={() => onRegenerate(activeProduct.sku, environment)}
-                                                    className="col-span-2 bg-indigo-600 text-white py-2 rounded-lg font-bold text-[10px] uppercase flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg"
+                                            <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 grid grid-cols-2 gap-3 z-30">
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => onRegenerate(activeProduct.sku, environment, generationModel)}
+                                                    className="col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white border-0 text-[10px] font-bold uppercase"
                                                 >
-                                                    <RotateCcw className="w-3 h-3" />
-                                                    Create Alternative
-                                                </button>
-                                                <button
+                                                    <RotateCcw className="w-3 h-3 mr-2" />
+                                                    Retry
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
                                                     onClick={() => onRemoveBg(activeProduct.sku)}
-                                                    className="col-span-2 bg-white/90 backdrop-blur text-gray-900 py-2 rounded-lg font-bold text-[10px] uppercase flex items-center justify-center gap-2 hover:bg-white transition-colors shadow-lg"
+                                                    className="col-span-1 bg-white/90 hover:bg-white text-gray-900 border-0 text-[10px] font-bold uppercase"
                                                 >
-                                                    <Layers className="w-3 h-3 text-indigo-600" />
+                                                    <Layers className="w-3 h-3 mr-2" />
                                                     Remove BG
-                                                </button>
+                                                </Button>
                                             </div>
                                         )}
                                     </>
                                 ) : activeProduct.status === 'ENRICHMENT_FAILED' ? (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-red-400 p-4 text-center">
-                                        <XCircle className="w-8 h-8 mb-2" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest mb-1">Generation Failed</span>
-                                        <p className="text-[10px] text-red-300 mb-3 max-w-[180px]">{activeProduct.enrichment_message}</p>
-                                        <button
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-red-500 p-8 text-center bg-red-50/50">
+                                        <XCircle className="w-12 h-12 mb-4 drop-shadow-sm" />
+                                        <span className="text-xs font-bold uppercase tracking-widest mb-2">Generation Failed</span>
+                                        <p className="text-xs text-red-400 mb-6 max-w-[200px] leading-relaxed">{activeProduct.enrichment_message}</p>
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
                                             onClick={() => onRetry(activeProduct.sku)}
-                                            className="flex items-center gap-1 text-[10px] bg-red-50 text-red-600 px-3 py-1.5 rounded-full hover:bg-red-100 transition-colors font-bold"
+                                            className="rounded-full font-bold"
                                         >
-                                            <RotateCcw className="w-3 h-3" /> Retry
-                                        </button>
+                                            <RotateCcw className="w-3.5 h-3.5 mr-2" /> Retry Generation
+                                        </Button>
                                     </div>
                                 ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-indigo-300">
-                                        <Loader2 className="w-8 h-8 animate-spin mb-3" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest mb-1">
-                                            {activeProduct.status === 'BATCH_GENERATING' ? 'In Queue...' : 'Rendering...'}
-                                        </span>
-                                        {activeProduct.enrichment_message && (
-                                            <span className="text-[10px] text-indigo-400">{activeProduct.enrichment_message}</span>
+                                    <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
+                                        <div className="relative">
+                                            {isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING') ? (
+                                                <>
+                                                    <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full animate-pulse" />
+                                                    <Loader2 className="w-12 h-12 text-indigo-500 animate-[spin_3s_linear_infinite] relative z-10" />
+                                                </>
+                                            ) : (
+                                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-inner">
+                                                    <Wand2 className="w-8 h-8 text-gray-300" />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="space-y-1">
+                                                <h4 className="font-bold text-gray-900 uppercase tracking-tight text-sm">Studio Transformation</h4>
+                                                <p className="text-[10px] text-gray-400 font-medium">
+                                                    {isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING')
+                                                        ? "AI is synthesizing your studio shot..."
+                                                        : "Product ready for studio synthesis."}
+                                                </p>
+                                            </div>
+
+                                            {(isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING')) ? (
+                                                <div className="flex flex-col gap-2 w-full max-w-[200px] mx-auto text-left">
+                                                    {[
+                                                        { label: "Normalization", key: "Optimizing frame" },
+                                                        { label: "Studio Synthesis", key: "Synthesizing studio" },
+                                                        { label: "Final Render", key: "Generating high-fidelity" }
+                                                    ].map((phase, i) => {
+                                                        const isActive = activeProduct.enrichment_message?.includes(phase.key);
+                                                        const isDone = !isActive && activeProduct.enrichment_message && i < [
+                                                            "Optimizing frame",
+                                                            "Synthesizing studio",
+                                                            "Generating high-fidelity"
+                                                        ].findIndex(k => activeProduct.enrichment_message?.includes(k));
+
+                                                        return (
+                                                            <div key={phase.label} className="flex items-center gap-3">
+                                                                <div className={cn(
+                                                                    "w-1.5 h-1.5 rounded-full transition-all duration-500",
+                                                                    isActive ? "bg-indigo-500 ring-4 ring-indigo-100 animate-pulse" :
+                                                                        isDone ? "bg-green-500" : "bg-gray-200"
+                                                                )} />
+                                                                <span className={cn(
+                                                                    "text-[10px] font-bold uppercase tracking-wider transition-colors",
+                                                                    isActive ? "text-indigo-600" :
+                                                                        isDone ? "text-green-600/60" : "text-gray-300"
+                                                                )}>
+                                                                    {phase.label}
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    onClick={() => onRegenerate(activeProduct.sku, environment, generationModel)}
+                                                    size="sm"
+                                                    disabled={isBatchGenerating}
+                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-[10px]"
+                                                >
+                                                    <Sparkles className="w-3 h-3 mr-2" /> Start Generation
+                                                </Button>
+                                            )}
+                                        </div>
+
+                                        {(activeProduct.status === 'ENRICHMENT_FAILED' || isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING')) && activeProduct.enrichment_message && (
+                                            <span className="text-[9px] text-indigo-400/60 font-medium mt-6 italic bg-white/50 px-3 py-1 rounded-full border border-indigo-50">
+                                                {activeProduct.enrichment_message}
+                                            </span>
                                         )}
                                     </div>
                                 )}
-                                <div className={`absolute top-3 left-3 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase backdrop-blur-sm ${displayImage ? "bg-green-600/90"
-                                    : activeProduct.status === 'ENRICHMENT_FAILED' ? "bg-red-600/90"
-                                        : "bg-indigo-600/90"
-                                    }`}>
+
+                                <Badge
+                                    className={cn(
+                                        "absolute top-4 left-4 text-[10px] font-bold px-3 py-1 uppercase backdrop-blur-md shadow-sm border-0",
+                                        displayImage ? "bg-green-500/90 hover:bg-green-600/90" :
+                                            activeProduct.status === 'ENRICHMENT_FAILED' ? "bg-red-500/90" :
+                                                (isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING')) ? "bg-indigo-500/90" : "bg-gray-400/90"
+                                    )}
+                                >
                                     {displayImage
                                         ? (activeProduct.status === 'APPROVED' ? "Ready / BG Removed" : "Studio Visual")
                                         : activeProduct.status === 'ENRICHMENT_FAILED'
                                             ? "Failed"
-                                            : "Generating..."}
-                                </div>
+                                            : (isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING'))
+                                                ? "Generating..."
+                                                : "Pending"}
+                                </Badge>
                             </div>
                         </div>
                     </div>
@@ -354,63 +521,173 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
     ) : null;
 
     const footerActions = (
-        <>
-            <div className="flex flex-col justify-center gap-2">
-                <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1.5">
-                    <Sparkles className="w-3 h-3 text-amber-500" />
-                    Visuals are generated at high resolution.
-                </span>
-                <div className="flex gap-4">
-                    <button
-                        onClick={() => onStartStudio(environment)}
-                        disabled={isBatchGenerating}
-                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 underline text-left disabled:opacity-30 flex items-center gap-1"
-                    >
-                        <RefreshCw className="w-3 h-3" />
-                        Regenerate All
-                    </button>
-                    <button
-                        onClick={() => onRemoveBg("ALL")}
-                        disabled={!isAllProcessed}
-                        className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 underline text-left disabled:opacity-30"
-                    >
-                        Bulk Remove All Backgrounds
-                    </button>
+        <SharedWizardFooter
+            onBack={onBack}
+            centerContent={
+                <div className="flex flex-col flex-1 max-w-sm">
+                    {isBatchGenerating ? (
+                        <div className="animate-in fade-in slide-in-from-bottom-2">
+                            <div className="flex justify-between items-center mb-1.5">
+                                <div className="flex items-center gap-2">
+                                    <Loader2 className="w-3 h-3 text-indigo-600 animate-spin" />
+                                    <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-tight">Studio Working...</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md">
+                                    {completedItems + failedCount}/{totalItems}
+                                </span>
+                            </div>
+                            <Progress value={((completedItems + failedCount) / totalItems) * 100} className="h-1 bg-indigo-50" />
+                            <div className="mt-1.5 flex justify-between">
+                                <span className="text-[9px] text-gray-400 font-medium">Estimated time:</span>
+                                <span className="text-[9px] text-indigo-500 font-bold uppercase">
+                                    {(() => {
+                                        const totalSeconds = Math.max(1, (totalItems - completedItems) * 5);
+                                        const mins = Math.ceil(totalSeconds / 60);
+                                        return `${mins} minutes`;
+                                    })()}
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-0.5 opacity-60">
+                            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1.5">
+                                <Sparkles className="w-3 h-3 text-amber-500" />
+                                Visuals generated at 4K resolution.
+                            </span>
+                            <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Studio Idle</p>
+                        </div>
+                    )}
                 </div>
-            </div>
-            <button
-                onClick={onComplete}
-                disabled={!isAllProcessed}
-                className="bg-green-600 hover:bg-green-700 text-white px-8 py-2 rounded-full font-bold text-xs shadow-lg shadow-green-100 transition-all transform hover:scale-105 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
-            >
-                Finalize & Approve All
-            </button>
-        </>
+            }
+            rightContent={
+                <div className="flex items-center gap-3">
+                    {/* Abort Action (Visible only when generating) */}
+                    {isBatchGenerating && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    className="h-10 px-5 rounded-full font-bold text-xs transition-all transform hover:scale-105 duration-200 shadow-lg shadow-red-100"
+                                >
+                                    <XCircle className="w-3.5 h-3.5 mr-2" />
+                                    Abort
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Abort Studio Process?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will stop any running and queued studio generation processes.
+                                        Products currently being processed may finish, but subsequent ones will be skipped.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={onAbort} className="bg-red-600 hover:bg-red-700">
+                                        Abort Process
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
+
+                    {/* Regenerate All Action */}
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                variant="outline"
+                                disabled={isBatchGenerating}
+                                className="h-10 px-5 rounded-full border-indigo-100 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 font-bold text-xs transition-all transform hover:scale-105 duration-200"
+                            >
+                                <RotateCcw className="w-3.5 h-3.5 mr-2" />
+                                Regenerate All
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Regenerate All Visuals?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will cancel any existing processes and restart studio generation for all products in this list.
+                                    Existing studio images will be overwritten.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onRegenerateAll(environment, generationModel)} className="bg-indigo-600 hover:bg-indigo-700">
+                                    Regenerate All
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
+                    {/* Bulk Remove BG Action */}
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                variant="outline"
+                                disabled={!hasAnyGenerated || isBatchGenerating}
+                                className="h-10 px-5 rounded-full border-cyan-100 text-cyan-700 hover:bg-cyan-100 hover:text-cyan-800 font-bold text-xs transition-all transform hover:scale-105 duration-200"
+                            >
+                                <Layers className="w-3.5 h-3.5 mr-2" />
+                                Bulk Remove BG
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Bulk Remove Background?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Background removal will be triggered for products that have studio images generated but haven't had their background removed yet.
+                                    Products with manual edits or already removed backgrounds will be skipped to preserve your work.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onRemoveBg("ALL")} className="bg-cyan-600 hover:bg-cyan-700">
+                                    Remove Backgrounds
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button
+                                disabled={isBatchGenerating}
+                                className="bg-green-600 hover:bg-green-700 h-10 px-6 text-white rounded-full font-bold shadow-lg shadow-green-100 transition-all transform hover:scale-105 disabled:opacity-30 disabled:scale-100 disabled:shadow-none text-xs"
+                            >
+                                Send to Staging Area <CheckCircle2 className="w-4 h-4 ml-2" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Send All Products to Staging Area?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This will move all products to the Visual Staging Area for final review. You can still reach them in the Staging Area before they go live on Shopify.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={onComplete} className="bg-green-600 hover:bg-green-700">
+                                    Send to Staging Area
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            }
+        />
     );
 
     const headerContent = activeProduct && (
-        <div className="px-6 py-3 flex justify-between items-center bg-white">
-            <div>
-                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-1 rounded">Phase 3 / Studio Monitor</span>
-                <h2 className="text-lg font-bold text-gray-900 mt-1 truncate max-w-md">{activeProduct.ai_data?.title_el || activeProduct.name}</h2>
-            </div>
-            <div className="flex gap-1">
-                <button
-                    onClick={() => setActiveIndex(prev => Math.max(0, prev - 1))}
-                    disabled={activeIndex === 0}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors"
-                >
-                    <ChevronLeft className="w-4 h-4 text-gray-600" />
-                </button>
-                <button
-                    onClick={() => setActiveIndex(prev => Math.min(products.length - 1, prev + 1))}
-                    disabled={activeIndex === products.length - 1}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg disabled:opacity-30 transition-colors"
-                >
-                    <ChevronRight className="w-4 h-4 text-gray-600" />
-                </button>
-            </div>
-        </div>
+        <SharedWizardHeader
+            title={activeProduct.ai_data?.title_el || activeProduct.pylon_data?.name || activeProduct.name || activeProduct.sku}
+            phaseLabel="Phase 3 / Studio Monitor"
+            icon={Wand2}
+            onPrev={() => setActiveIndex(prev => Math.max(0, prev - 1))}
+            onNext={() => setActiveIndex(prev => Math.min(products.length - 1, prev + 1))}
+            prevDisabled={activeIndex === 0}
+            nextDisabled={activeIndex === products.length - 1}
+        />
     );
 
     return (
@@ -426,7 +703,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
             {/* Lightbox Overlay */}
             {lightboxImage && (
                 <div
-                    className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-8 backdrop-blur-md"
+                    className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-8 backdrop-blur-md animate-in fade-in duration-200"
                     onClick={() => setLightboxImage(null)}
                 >
                     <div className="relative max-w-7xl max-h-[90vh] w-full h-full flex items-center justify-center">
@@ -435,18 +712,17 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             alt="Lightbox"
                             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                         />
-                        <button
+                        <Button
+                            variant="secondary"
+                            size="icon"
                             onClick={() => setLightboxImage(null)}
-                            className="absolute top-4 right-4 text-white hover:text-gray-300 bg-white/10 p-2 rounded-full backdrop-blur-md transition-colors hover:bg-white/20"
+                            className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-md"
                         >
                             <span className="sr-only">Close</span>
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                        </button>
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-xs font-mono uppercase tracking-widest bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                            High Resolution Preview
-                        </div>
+                        </Button>
                     </div>
                 </div>
             )}

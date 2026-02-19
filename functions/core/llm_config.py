@@ -5,6 +5,7 @@ class ModelName(Enum):
     SIMPLE = "gemini-2.5-flash-lite"
     COMPLEX = "gemini-2.5-flash-lite" # Updated to correct Vertex AI ID (2.5)
     IMAGE_GEN = "gemini-2.5-flash-image"
+    IMAGE_RECONTEXT = "imagen-product-recontext-preview-06-30"
     EMBEDDING = "text-embedding-004"
 
 class LLMConfig:
@@ -21,7 +22,9 @@ class LLMConfig:
         return ModelName.COMPLEX.value if complex else ModelName.SIMPLE.value
 
     @classmethod
-    def get_image_model_name(cls) -> str:
+    def get_image_model_name(cls, model_type: str = "gemini") -> str:
+        if model_type == "imagen":
+            return ModelName.IMAGE_RECONTEXT.value
         return ModelName.IMAGE_GEN.value
 
     @classmethod

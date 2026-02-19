@@ -1,23 +1,35 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Source_Sans_3, Geist_Mono, Manrope } from "next/font/google";
 import "./globals.css";
+// Imports removed
 import { Providers } from "@/providers/Providers";
 import { AuthProvider } from "@/lib/auth-context";
-import { ChatAssistant } from "@/components/ai/chat-assistant";
+// Imports removed
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
+// Imports removed
 
 import { constructMetadata } from "@/lib/seo/metadata";
 import { constructOrganizationSchema } from "@/lib/seo/structured-data";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+});
+
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
+  subsets: ["latin", "greek"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const manrope = Manrope({
+  variable: "--font-heading",
+  subsets: ["latin", "greek"],
 });
 
 export const metadata: Metadata = constructMetadata();
@@ -31,16 +43,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${sourceSans.variable} ${geistMono.variable} ${manrope.variable} antialiased min-h-screen flex flex-col font-sans`}
       >
         <Providers>
           <AuthProvider>
-            <Navbar />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
-            <ChatAssistant />
+            {children}
           </AuthProvider>
           <script
             type="application/ld+json"

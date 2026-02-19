@@ -1,41 +1,42 @@
 import os
 import logging
 import json
-from firebase_admin import firestore
+import base64
+import requests
+import time
+import random
+import uuid
+import urllib3
+from typing import List, Dict, Any, Optional
+from pydantic import BaseModel, Field
+from firebase_admin import firestore, storage
 from firebase_functions import firestore_fn, options
 from google import genai
 from google.genai import types
-from typing import List, Dict, Any, Optional
-from pydantic import BaseModel, Field
 
-from core.llm_config import LLMConfig
-from google.cloud import storage as gcs_storage
-import base64
-import requests
-
-import logging
-import json
-import urllib3
+from core.llm_config import LLMConfig, ModelName
+from .image_utils import normalize_product_image
 
 # Suppress SSL warnings since we use verify=False for some extractors
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
-import time
-import random
-import uuid
-from firebase_admin import storage
-
 def upload_image_to_storage(image_bytes: bytes, mime_type: str, sku: str) -> str:
     """
     Uploads raw image bytes to Firebase Storage and returns the public URL.
+    Overwrites previous version for efficient storage.
     """
     try:
         bucket = storage.bucket() # Uses default bucket
-        filename = f"{uuid.uuid4()}.jpg"
+        # Use a fixed filename to allow overwriting and efficient storage
+        filename = "studio_base.jpg"
         blob_path = f"generated-images/{sku}/{filename}"
         blob = bucket.blob(blob_path)
+        blob.cache_control = "no-cache, max-age=0"
+        
+        # Atomic Reset: If we are uploading a NEW base, ensure any old derived visuals in Firestore are gone
+        # Note: This is usually handled by the frontend, but we do it here as a safety bridge.
         
         blob.upload_from_string(image_bytes, content_type=mime_type)
         blob.make_public()
@@ -180,7 +181,7 @@ def enrich_product(event: firestore_fn.Event[firestore_fn.Change[firestore_fn.Do
 
         # PHASE 1: Metadata & Variant Discovery
         if status == "PENDING_METADATA":
-            handle_metadata_phase(new_doc.reference, data, firestore.client())
+            handle_metadata_phase(new_doc.reference, data, firestore.client(), force_metadata=True)
         
         # PHASE 2: Image Sourcing
         elif status == "PENDING_IMAGE_SOURCING":
@@ -199,15 +200,20 @@ def enrich_product(event: firestore_fn.Event[firestore_fn.Change[firestore_fn.Do
 
         # PHASE 4: Final BG Removal & Prep
         elif status == "PENDING_BG_REMOVAL":
-            handle_bg_removal_phase(new_doc.reference, sku, data.get("ai_data", {}))
+            handle_bg_removal_phase(new_doc.reference, sku, data.get("ai_data", {}), mode="generated")
+
+        # PHASE 4.5: Source BG Removal (Optional)
+        elif status == "PENDING_SOURCE_BG_REMOVAL":
+            handle_bg_removal_phase(new_doc.reference, sku, data.get("ai_data", {}), mode="source")
 
     except Exception as e:
         logger.error(f"Global enrichment trigger error: {e}", exc_info=True)
         # Try to report to doc if possible
         try:
             event.data.after.reference.update({
-                "enrichment_message": f"Global Trigger Error: {str(e)[:50]}"
-            })
+            "status": "ENRICHMENT_FAILED",
+            "enrichment_message": f"Global Trigger Error: {str(e)[:50]}"
+        })
         except:
             pass
 
@@ -215,30 +221,10 @@ def enrich_product(event: firestore_fn.Event[firestore_fn.Change[firestore_fn.Do
 from core.discovery_service import DiscoveryService
 from core.content_extractor import ContentExtractor
 
-# --- Pydantic Models for Structured Output ---
-class ProductVariant(BaseModel):
-    sku_suffix: str
-    variant_name: str
-    option_name: str
-    option_value: str
-    pylon_sku: Optional[str] = None
+from .schema import ProductEnrichmentData
 
-class ProductImage(BaseModel):
-    url: str
-    description: Optional[str] = None
 
-class ProductEnrichmentData(BaseModel):
-    title_el: str = Field(description="Customer-friendly product title in Greek")
-    description_el: str = Field(description="SEO-optimized product description in Greek")
-    description: str = Field(description="Product description in English")
-    short_description: str = Field(description="Brief summary for collections")
-    tags: List[str] = Field(description="List of relevant tags")
-    category: str = Field(description="Main product category")
-    variants: List[ProductVariant] = Field(description="Discovered product variants", default=[])
-    attributes: Dict[str, Any] = Field(description="Key-value product attributes", default={})
-    confidence_score: float = Field(description="Confidence score 0.0-1.0")
-
-def handle_metadata_phase(product_ref, data, db):
+def handle_metadata_phase(product_ref, data, db, force_metadata=False):
     """
     Phase 1: Generate Metadata AND Search for Images using Gemini Grounding + Scraper.
     """
@@ -253,7 +239,12 @@ def handle_metadata_phase(product_ref, data, db):
         })
         return
 
-    logger.info(f"Starting Grounding + Scraper Enrichment for {sku}")
+    ai_data_existing = data.get("ai_data", {})
+    # Detection: If title_el exists, we are likely refining/sourcing images for already approved metadata
+    is_refinement = bool(ai_data_existing.get("title_el")) and not force_metadata
+    search_query = data.get("search_query")
+
+    logger.info(f"Starting Grounding + Scraper Enrichment for {sku} (is_refinement={is_refinement}, custom_query={bool(search_query)})")
     
     try:
         # Initialize Services
@@ -261,7 +252,7 @@ def handle_metadata_phase(product_ref, data, db):
         content_extractor = ContentExtractor()
 
         # --- STEP 1: Grounded Search (Text + Source URLs) ---
-        search_result = discovery_service.search_and_enrich(name)
+        search_result = discovery_service.search_and_enrich(name, search_query=search_query)
         
         if search_result.get("error"):
             raise Exception(f"Discovery Service Failed: {search_result['error']}")
@@ -281,66 +272,84 @@ def handle_metadata_phase(product_ref, data, db):
             logger.info(f"Extracted {len(found_images)} images.")
         
         # --- STEP 3: Structure Data (Gemini) ---
-        client = LLMConfig.get_client()
-        model_name = LLMConfig.get_model_name(complex=True)
-        
-        structure_prompt = f"""You are a Shopify Data Expert. 
-        Extract product information into a valid JSON structure based on the text below.
-        
-        SOURCE TEXT:
-        {generated_text}
-        
-        REQUIREMENTS:
-        - Description must be in Greek, professional, and SEO-friendly.
-        - Create a catchy Greek Title.
-        - Identify variants if mentioned in the text.
-        """
-        
-        structure_response = client.models.generate_content(
-            model=model_name,
-            contents=[structure_prompt],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=ProductEnrichmentData,
-                temperature=0.0
+        # Skip metadata structuring if we are only refining images and already have metadata
+        if is_refinement:
+            logger.info(f"Skipping metadata structuring for {sku} as it already exists.")
+            new_ai_data = {
+                **ai_data_existing,
+                "variant_images": {
+                    "base": found_images
+                },
+                "grounding_sources": source_urls,
+                "grounding_text": generated_text,
+                "refined_at": firestore.SERVER_TIMESTAMP
+            }
+            # Also clear the search_query after use to prevent accidental re-runs with it
+            product_ref.update({
+                "status": "PENDING_IMAGE_SELECTION", # Advance directly to selection
+                "ai_data": new_ai_data,
+                "search_query": firestore.DELETE_FIELD,
+                "enrichment_message": f"Refined search complete. Found {len(found_images)} images."
+            })
+        else:
+            client = LLMConfig.get_client()
+            model_name = LLMConfig.get_model_name(complex=True)
+            
+            structure_prompt = f"""You are a Shopify Data Expert for a Paint Shop. 
+            Extract product information into a valid JSON structure based on the text below.
+            
+            SOURCE TEXT:
+            {generated_text}
+            
+            REQUIREMENTS:
+            - Description must be in Greek, professional, and SEO-friendly.
+            - Create a catchy Greek Title.
+            - Identify variants if mentioned in the text.
+            - EXTRACT TECHNICAL SPECS: Look specifically for finish (Matte/Gloss), surfaces (Wood/Metal), coverage, drying time, etc.
+            """
+            
+            structure_response = client.models.generate_content(
+                model=model_name,
+                contents=[structure_prompt],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=ProductEnrichmentData,
+                    temperature=0.0
+                )
             )
-        )
-        
-        import json
-        structured_data = json.loads(structure_response.text)
-        
-        # Combine extracted images with structured data
-        # We store them in 'variant_images.base' as a starting point
-        
-        ai_data = {
-            "title_el": structured_data.get("title_el", ""),
-            "description_el": structured_data.get("description_el", ""),
-            "description": structured_data.get("description", ""),
-            "tags": structured_data.get("tags", []),
-            "category": structured_data.get("category", ""),
-            "variants": structured_data.get("variants", []),
-            "attributes": structured_data.get("attributes", {}),
-            "generated_at": firestore.SERVER_TIMESTAMP,
-            "model": model_name,
-            "variant_images": {
-                "base": found_images
-            },
-            "grounding_sources": source_urls,
-            "grounding_text": generated_text # Store raw text for debugging
-        }
-        
-        # Update Firestore
-        product_ref.update({
-            "status": "PENDING_METADATA_REVIEW",
-            "ai_data": ai_data,
-            "enrichment_message": f"Enrichment Complete. Found {len(found_images)} images."
-        })
+            
+            structured_data = json.loads(structure_response.text)
+            
+            ai_data = {
+                "title_el": structured_data.get("title_el", ""),
+                "description_el": structured_data.get("description_el", ""),
+                "description": structured_data.get("description", ""),
+                "tags": structured_data.get("tags", []),
+                "category": structured_data.get("category", ""),
+                "variants": structured_data.get("variants", []),
+                "attributes": structured_data.get("attributes", {}),
+                "technical_specs": structured_data.get("technical_specs", {}),
+                "generated_at": firestore.SERVER_TIMESTAMP,
+                "model": model_name,
+                "variant_images": {
+                    "base": found_images
+                },
+                "grounding_sources": source_urls,
+                "grounding_text": generated_text # Store raw text for debugging
+            }
+            
+            # Update Firestore
+            product_ref.update({
+                "status": "PENDING_METADATA_REVIEW",
+                "ai_data": ai_data,
+                "enrichment_message": f"Enrichment Complete. Found {len(found_images)} images."
+            })
         logger.info(f"Enrichment successful for {sku}")
 
     except Exception as e:
         logger.error(f"Enrichment Failed for {sku}: {e}", exc_info=True)
         product_ref.update({
-            "status": "NEEDS_REVIEW", 
+            "status": "ENRICHMENT_FAILED", 
             "enrichment_message": f"AI Error: {str(e)}"
         })
 
@@ -354,9 +363,14 @@ def handle_image_sourcing_phase(product_ref, data, db):
     sku = data.get("sku", "")
     ai_data = data.get("ai_data", {})
     existing_images = ai_data.get("variant_images", {}).get("base", [])
-    
-    if existing_images:
-        logger.info(f"Images already present for {sku}, skipping search.")
+    has_custom_query = "search_query" in data
+
+    # If it's a batch "Start Sourcing" and we already have images, we can skip.
+    # But if there's a custom query or it's a manual "Refine", we should proceed.
+    if existing_images and not has_custom_query:
+        # Check if we were just triggered by a mass update. 
+        # If it's a manual Refine, we likely won't have changed anything but the status.
+        logger.info(f"Images already present for {sku} and no custom query. Advancing to selection.")
         product_ref.update({
             "status": "PENDING_IMAGE_SELECTION",
             "enrichment_message": "Images ready for selection."
@@ -370,34 +384,54 @@ def handle_image_sourcing_phase(product_ref, data, db):
 
 
 def handle_nano_banana_phase(doc_ref, sku, name, ai_data):
-    logger.info(f"Phase 3: Nano Banana Studio for {sku}")
+    logger.info(f"Phase 3: Studio Generation for {sku}")
     
-    # Import requests locally if not available globally
     import requests
+    import base64
+    
+    generation_model = ai_data.get("generation_model", "gemini") # "gemini" or "imagen"
+    environment = ai_data.get("environment", "clean")
     
     # Environment-specific prompts matching batch_processor.py
     NANO_PROMPTS = {
-        "clean": """Edit this product image to create a professional e-commerce studio shot.
-1.  **Subject Isolation**: EXTRACT A SINGLE ITEM. If the source image shows multiple items (e.g., a set of markers), identify the main product unit and generate ONLY ONE single item. Do not show a group or bundle.
-2.  **Accuracy**: PRESERVE THE EXACT APPEARANCE of the product. Retain all text, labels, logos, colors, and textures from the source. Do not hallucinate new details or text.
-3.  **Composition & Angle**: Show the product from a straight-on, front-facing eye-level angle. Center the product vertically and horizontally. The product should occupy approximately 75-80% of the canvas height. Ensure the entire product is visible (not cut off).
-4.  **Background**: Use a pure white (#FFFFFF) background with NO texture or horizon line.
-5.  **Lighting & Style**: Use soft, even, high-key studio lighting to minimize harsh shadows. Create a clean, minimal, commercial look suitable for a premium catalog. High resolution, sharp focus.""",
+        "clean": """Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
+1.  **COMMAND**: Ignore the camera angle, perspective, and lighting of the source image. Re-render the product from scratch, resting on an **invisible, seamless pure white studio floor**.
+2.  **NEGATIVE INSTRUCTIONS**: DO NOT inherit the tilt, depth of field, or shadow placement from the original photo. **Wipe out all original specular highlights.** No visible pedestals or platforms.
+3.  **Composition & Angle**: Show the product from a straight-on, front-facing eye-level angle. Center it vertically/horizontally. The product should occupy 75-80% of the canvas height. Full visibility (not cut off).
+4.  **Lighting & style**: Use soft, even, high-key studio lighting. **The floor and background must be identical pure white (#FFFFFF), with only a realistic soft shadow at the base to indicate the surface.** Generate new, clean geometric highlights from studio softboxes on the product.
+5.  **Subject Isolation**: EXTRACT A SINGLE ITEM. If the source shows multiple items, generate ONLY ONE single item. Do not show a group.
+6.  **Identity Accuracy**: PRESERVE THE IDENTITY (text, labels, logos, colors). Ensure all text on the label is legible and identical to the source, but allow the product's physical orientation to be corrected to the straight-on angle defined in Point 3.
+7.  **Background**: Pure white (#FFFFFF) background with NO texture.""",
 
-        "realistic": """Edit this product image.
-Replace the background with a clean, light-grey polished concrete surface.
-Background is a softly blurred, minimalist workshop setting with neutral earth tones.
-Keep the product EXACTLY as it appears in the source image — preserve all labels, text, branding, colors, shape, and proportions.
-Do NOT modify, redraw, translate, or reimagine the product itself in any way.
-Lighting is soft, natural daylight from the side, creating realistic soft shadows.
-Authentic aesthetic, premium yet practical."""
+        "realistic": """Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
+1.  **COMMAND**: Ignore the camera angle, perspective, and lighting of the source image. Re-render the product from scratch.
+2.  **NEGATIVE INSTRUCTIONS**: DO NOT inherit the lighting direction or camera tilt from the source.
+3.  **Composition & Lighting**: Side-on natural daylight creating realistic soft shadows. Show the product from a straight-on, eye-level angle.
+4.  **Atmosphere**: Clean, light-grey polished concrete surface. Background is a softly blurred, minimalist workshop setting.
+5.  **Identity Accuracy**: Keep the branding and labels EXACTLY as they appear — preserve all text and logos, but render them from the new straight-on perspective.
+6.  **Aesthetic**: Authentic, premium yet practical workshop vibe.""",
+
+        "modern": """Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
+1.  **COMMAND**: Ignore the camera angle, perspective, and lighting of the source image. Re-render the product from scratch, resting on an **invisible, seamless pure white studio floor**.
+2.  **NEGATIVE INSTRUCTIONS**: DO NOT follow the orientation or perspective of the original image. **Completely discard original lighting and reflections.** No visible pedestals or platforms.
+3.  **Composition & Camera**: Straight-on, front-facing eye-level angle. Center vertically/horizontally. Product occupies 75-80% of canvas height.
+4.  **Vibrant Lighting**: Professional multi-point studio lighting with subtle colored rim lighting (teal and purple) on the product edges. **The product surface must actively capture sharp reflections from the surrounding liquid splashes.**
+5.  **Explosive Visuals**: SURROUND the product with a mild, artistic crown of dynamic high-viscosity liquid splashes and droplets in dark teal and deep purple. 
+6.  **Identity Accuracy**: Extract the main product unit. PRESERVE THE BRANDING AND TEXT Identity, but re-render the physical position to be straight-on.
+7.  **Background**: Pure white (#FFFFFF) background; the floor and background are the same color, differentiated only by the splashes and the product's soft contact shadow.
+8.  **Aesthetic**: Tech-premium, sharp focus, high contrast with vibrant decorative accents."""
+    }
+
+    IMAGEN_PROMPTS = {
+        "clean": "Ultra-sharp professional studio product photography. The product is center-framed and resting on a seamless, invisible pure white studio floor in a high-key, pure white setting. Lighting: **Recalibrated** clean 5500K daylight spectrum softbox lighting; the floor and background merge perfectly into #FFFFFF, with only a **soft, realistic ambient occlusion shadow at the base**. No pedestals. New geometric highlights override the original image lighting.",
+        "realistic": "Professional cinematic product photography. The product sits on a high-texture, dark-grey polished concrete surface with realistic micro-reflections. Environment: A minimalist, high-end design workshop with soft, volumetric natural daylight streaming from a side window. Lighting: Warm 4000K sunlight with subtle lens bloom and soft, elongated natural shadows. Camera: 50mm f/1.8 depth of field, sharp focus on the product label with a creamy background blur.",
+        "modern": "High-end commercial avant-garde photography. The product rests on an invisible white studio floor and is surrounded by a mild decorative crown of high-viscosity glossy liquid splashes in deep teal and vibrant neon purple. Lighting: **Environment-driven** tech-premium setup; the floor and background merge into pure #FFFFFF. The product surface must **reflect the vibrant teal and magenta colors from the splashes**, replacing original specular highlights. Shadow: Soft, subtle contact shadow at the base."
     }
     
     try:
         client = LLMConfig.get_client()
         selected_images = ai_data.get("selected_images", {})
         generated_images = {}
-        environment = ai_data.get("environment", "clean")
         
         # Select a single source image (prioritize 'base', else take the first one)
         source_url = selected_images.get("base")
@@ -408,8 +442,6 @@ Authentic aesthetic, premium yet practical."""
             source_url = selected_images[first_key]
         
         if source_url:
-            prompt = NANO_PROMPTS.get(environment, NANO_PROMPTS["clean"])
-            
             try:
                 # Download image to bypass robots.txt restriction on Vertex AI
                 logger.info(f"Downloading source image for {sku} from {source_url}...")
@@ -419,82 +451,186 @@ Authentic aesthetic, premium yet practical."""
                 logger.info(f"Downloaded {len(image_data)} bytes of image data for {sku}")
                 mime_type = img_resp.headers.get('Content-Type', 'image/jpeg')
                 
-                logger.info(f"Calling Gemini to generate studio image for {sku} (env={environment})...")
-                response = generate_with_retry(
-                    client=client,
-                    model=LLMConfig.get_image_model_name(),
-                    contents=[
-                        types.Content(
-                            role="user",
-                            parts=[
-                                types.Part.from_bytes(data=image_data, mime_type=mime_type),
-                                types.Part.from_text(text=prompt)
-                            ]
-                        )
-                    ],
-                    config=types.GenerateContentConfig(
-                        temperature=0.2,
-                    ),
-                    retries=4,
-                    initial_delay=2
-                )
+                # Normalize product sizing and centering
+                doc_ref.update({"enrichment_message": "Optimizing frame & perspective..."})
+                image_data = normalize_product_image(image_data)
+                mime_type = "image/jpeg" # Explicitly JPEG after normalization
                 
-                # Handle response
                 image_url = None
-                
-                # Case 1: Standard generated_image (Imagen models)
-                if hasattr(response, 'generated_image') and response.generated_image:
-                    image_url = response.generated_image.url
-                
-                # Case 2: Raw data in candidates (Gemini Flash Image)
-                elif response.candidates and response.candidates[0].content.parts:
-                    for part in response.candidates[0].content.parts:
-                        if part.inline_data:
-                            import base64
-                            img_bytes = part.inline_data.data
+
+                if generation_model == "imagen":
+                    logger.info(f"Calling Imagen Recontext for {sku} (env={environment})...")
+                    prompt = IMAGEN_PROMPTS.get(environment, IMAGEN_PROMPTS["clean"])
+                    doc_ref.update({"enrichment_message": "Re-contextualizing with Imagen..."})
+                    
+                    # For Imagen Recontext, we use predict call as it's a specific API
+                    # Using the raw prediction endpoint if genai doesn't support it directly
+                    try:
+                        # europe-west1 has EXTREMELY low Imagen quotas (often 1 QPM).
+                        # We force a polite 60s delay to avoid triggering the backoff logic.
+                        logger.info(f"Sleeping 60s before Imagen request for {sku} to respect quotas...")
+                        time.sleep(60)
+                        
+                        from google.auth import default, transport
+                        creds, project = default()
+                        auth_req = transport.requests.Request()
+                        creds.refresh(auth_req)
+                        
+                        region = LLMConfig.REGION
+                        project_id = LLMConfig.PROJECT_ID
+                        model_id = ModelName.IMAGE_RECONTEXT.value
+                        
+                        endpoint = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{region}/publishers/google/models/{model_id}:predict"
+                        
+                        payload = {
+                            "instances": [
+                                {
+                                    "prompt": prompt,
+                                    "productImages": [
+                                        {
+                                            "image": {
+                                                "bytesBase64Encoded": base64.b64encode(image_data).decode("utf-8")
+                                            }
+                                        }
+                                    ]
+                                }
+                            ],
+                            "parameters": {
+                                "sampleCount": 1,
+                                "addWatermark": False,
+                                "seed": 42,
+                                "enhancePrompt": False
+                            }
+                        }
+                        
+                        headers = {
+                            "Authorization": f"Bearer {creds.token}",
+                            "Content-Type": "application/json"
+                        }
+                        
+                        response = requests.post(endpoint, json=payload, headers=headers, timeout=60)
+                        response.raise_for_status()
+                        resp_json = response.json()
+                        
+                        if "predictions" in resp_json and len(resp_json["predictions"]) > 0:
+                            pred = resp_json["predictions"][0]
+                            if "bytesBase64Encoded" in pred:
+                                img_bytes = base64.b64decode(pred["bytesBase64Encoded"])
+                                image_url = upload_image_to_storage(img_bytes, "image/jpeg", sku)
+                            elif "gcsUri" in pred:
+                                # Handle GCS URI if provided
+                                logger.info(f"Imagen returned GCS URI: {pred['gcsUri']}")
+                                # For now we assume base64 is returned as per typical predict output
+                        
+                    except Exception as ie:
+                        logger.error(f"Imagen Recontext API call failed: {ie}")
+                        raise ie
+
+                else: # Default to Gemini
+                    logger.info(f"Calling Gemini to generate studio image for {sku} (env={environment})...")
+                    prompt = NANO_PROMPTS.get(environment, NANO_PROMPTS["clean"])
+                    doc_ref.update({"enrichment_message": "Synthesizing studio lighting..."})
+                    response = generate_with_retry(
+                        client=client,
+                        model=LLMConfig.get_image_model_name(),
+                        contents=[
+                            types.Content(
+                                role="user",
+                                parts=[
+                                    types.Part.from_bytes(data=image_data, mime_type=mime_type),
+                                    types.Part.from_text(text=prompt)
+                                ]
+                            )
+                        ],
+                        config=types.GenerateContentConfig(
+                            temperature=0.3,
+                            seed=42,
+                        ),
+                        retries=4,
+                        initial_delay=2
+                    )
+                    
+                    # Case 1: Standard generated_image (Imagen models)
+                    if hasattr(response, 'generated_image') and response.generated_image:
+                        image_url = response.generated_image.url
+                    
+                    # Case 2: Raw data in candidates (Gemini Flash Image)
+                    elif response.candidates and response.candidates[0].content.parts:
+                        # Extract image
+                        doc_ref.update({"enrichment_message": "Generating high-fidelity visual..."})
+                        
+                        img_bytes = None
+                        for part in response.candidates[0].content.parts:
+                            if part.inline_data:
+                                img_bytes = part.inline_data.data
+                                break
+                        
+                        if img_bytes:
+                            # UI Visibility: Brief pause
+                            import time
+                            time.sleep(1)
+                            doc_ref.update({"enrichment_message": "Finalizing render..."})
+                            time.sleep(0.5)
+                            # Upload to Firebase Storage
                             image_url = upload_image_to_storage(img_bytes, "image/jpeg", sku)
-                            break
-                        elif part.file_data:
-                             image_url = part.file_data.file_uri
-                             break
 
                 if image_url:
                     generated_images["base"] = image_url
+                else:
+                    raise Exception("Failed to generate any image")
                     
             except Exception as e:
-                logger.warning(f"Failed to generate single image from {source_url}: {e}")
+                logger.warning(f"Failed to generate image for {sku}: {e}")
+                raise e
         
         doc_ref.update({
             "ai_data.generated_images": generated_images,
+            "ai_data.images": firestore.DELETE_FIELD, # Atomic Reset: purge derived assets on re-render
             "status": "PENDING_STUDIO_REVIEW",
             "enrichment_message": "Ready for Studio Review"
         })
         
     except Exception as e:
-        logger.error(f"Nano Banana phase failed for {sku}: {e}")
-        doc_ref.update({"status": "ENRICHMENT_FAILED", "enrichment_message": f"Nano Banana error: {str(e)}"})
+        logger.error(f"Generation phase failed for {sku}: {e}")
+        doc_ref.update({"status": "ENRICHMENT_FAILED", "enrichment_message": f"Generation error: {str(e)}"})
 
 
-def handle_bg_removal_phase(doc_ref, sku, ai_data):
-    logger.info(f"Phase 4: Bulk BG Removal for {sku}")
-    # doc_ref.update({"enrichment_message": "Final background removal for uniform transparency..."})
+def handle_bg_removal_phase(doc_ref, sku, ai_data, mode="generated"):
+    logger.info(f"Phase 4: BG Removal for {sku} (mode={mode})")
     
     import requests
     import os
     
     service_url = os.environ.get("REMBG_SERVICE_URL")
-    generated_images = ai_data.get("generated_images", {})
+    
+    # Select target images based on mode
+    if mode == "source":
+        # Target the manual/downloaded source image
+        source_img = ai_data.get("selected_images", {}).get("base")
+        if not source_img:
+            logger.error(f"No source image to remove background for {sku}")
+            doc_ref.update({"status": "READY_FOR_STUDIO", "enrichment_message": "BG removal skipped: No source image"})
+            return
+        targets = {"base": source_img}
+    else:
+        # Target the AI generated images
+        targets = ai_data.get("generated_images", {})
+
+    if not targets:
+        logger.warning(f"No images to process for BG removal for {sku}")
+        doc_ref.update({"status": "READY_FOR_STUDIO" if mode == "source" else "APPROVED"})
+        return
+
     final_images = {}
     
     try:
-        # Use a simplistic retry mechanism
-        for suffix, img_url in generated_images.items():
+        for suffix, img_url in targets.items():
             success = False
             for attempt in range(3):
                 try:
                     resp = requests.post(
                         f"{service_url}/remove-bg",
-                        json={"image_url": img_url, "sku": f"{sku}_{suffix}"},
+                        json={"image_url": img_url, "sku": f"{sku}_{suffix}_{mode}"},
                         timeout=60
                     )
                     if resp.ok:
@@ -507,21 +643,26 @@ def handle_bg_removal_phase(doc_ref, sku, ai_data):
                     logger.warning(f"BG removal attempt {attempt+1} error for {sku}: {e}")
             
             if not success:
-                logger.error(f"Failed to remove background for {sku} after 3 attempts")
+                logger.error(f"Failed to remove background for {sku} suffix {suffix} after 3 attempts")
 
-        # Final transition to APPROVED
-        if final_images:
+        # Update Firestore based on mode
+        if mode == "source" and "base" in final_images:
+            doc_ref.update({
+                "ai_data.selected_images.base": final_images["base"],
+                "status": "READY_FOR_STUDIO",
+                "enrichment_message": "Source background removed successfully"
+            })
+        elif mode == "generated" and final_images:
             doc_ref.update({
                 "ai_data.images": [ {"url": url, "suffix": s} for s, url in final_images.items()],
                 "status": "APPROVED",
                 "enrichment_message": "Ready to sync to Shopify"
             })
         else:
+            # Fallback
             doc_ref.update({
-                "enrichment_message": "BG removal failed. Retaining original images.",
-                "status": "APPROVED", # Fallback to approved with original? Or stay in pending?
-                # User probably prefers to move forward. 
-                # Let's keep it simple: If detailed failure, we update message but maybe not images.
+                "enrichment_message": f"BG removal completed with mixed results ({len(final_images)}/{len(targets)})",
+                "status": "READY_FOR_STUDIO" if mode == "source" else "APPROVED", 
             })
             
     except Exception as e:

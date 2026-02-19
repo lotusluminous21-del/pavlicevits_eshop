@@ -23,6 +23,7 @@ interface ShopifyProductInput {
         name: string;
         values: string[];
     }>;
+    id?: number | string;
 }
 
 export async function createShopifyProduct(productData: ShopifyProductInput) {
@@ -50,6 +51,77 @@ export async function createShopifyProduct(productData: ShopifyProductInput) {
     if (!response.ok) {
         console.error("Shopify Create Error:", data);
         throw new Error(data.errors ? JSON.stringify(data.errors) : "Failed to create product");
+    }
+
+    return data.product;
+}
+
+export async function updateShopifyProduct(productId: string | number, productData: Partial<ShopifyProductInput>) {
+    if (!ACCESS_TOKEN) throw new Error("Missing Admin Token");
+
+    const url = `https://${SHOPIFY_DOMAIN}/admin/api/${SHOPIFY_ADMIN_API_VERSION}/products/${productId}.json`;
+
+    const payload = {
+        product: productData
+    };
+
+    const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Shopify-Access-Token': ACCESS_TOKEN
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        console.error("Shopify Update Error:", data);
+        throw new Error(data.errors ? JSON.stringify(data.errors) : "Failed to update product");
+    }
+
+    return data.product;
+}
+
+export async function deleteShopifyProduct(productId: string | number) {
+    if (!ACCESS_TOKEN) throw new Error("Missing Admin Token");
+
+    const url = `https://${SHOPIFY_DOMAIN}/admin/api/${SHOPIFY_ADMIN_API_VERSION}/products/${productId}.json`;
+
+    const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'X-Shopify-Access-Token': ACCESS_TOKEN
+        }
+    });
+
+    if (!response.ok) {
+        const data = await response.json();
+        console.error("Shopify Delete Error:", data);
+        throw new Error("Failed to delete product");
+    }
+
+    return true;
+}
+
+export async function getShopifyProduct(productId: string | number) {
+    if (!ACCESS_TOKEN) throw new Error("Missing Admin Token");
+
+    const url = `https://${SHOPIFY_DOMAIN}/admin/api/${SHOPIFY_ADMIN_API_VERSION}/products/${productId}.json`;
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'X-Shopify-Access-Token': ACCESS_TOKEN
+        }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        console.error("Shopify Get Error:", data);
+        throw new Error("Failed to fetch product from Shopify");
     }
 
     return data.product;

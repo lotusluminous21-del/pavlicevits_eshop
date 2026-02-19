@@ -46,6 +46,14 @@ export type ProductVariant = {
     image?: Image;
 };
 
+export type Metafield = {
+    id: string;
+    key: string;
+    namespace: string;
+    value: string;
+    type: string;
+};
+
 export type Product = {
     id: string;
     handle: string;
@@ -53,6 +61,7 @@ export type Product = {
     description: string;
     descriptionHtml: string;
     featuredImage: Image;
+    images: Connection<Image>;
     priceRange: {
         minVariantPrice: Money;
         maxVariantPrice: Money;
@@ -62,6 +71,7 @@ export type Product = {
     seo: SEO;
     tags: string[];
     updatedAt: string;
+    metafields: (Metafield | null)[];
 };
 
 export type Collection = {
@@ -104,6 +114,9 @@ export type Cart = {
 export type CartLine = {
     id: string;
     quantity: number;
+    cost: {
+        totalAmount: Money;
+    };
     merchandise: {
         id: string;
         title: string;

@@ -27,15 +27,16 @@ class DiscoveryService:
             google_search=types.GoogleSearch()
         )
 
-    def search_and_enrich(self, product_name: str) -> Dict[str, Any]:
+    def search_and_enrich(self, product_name: str, search_query: Optional[str] = None) -> Dict[str, Any]:
         """
         Performs a Grounded Search for a product.
         Returns a dictionary with:
         - text: The generated description/specs.
         - source_urls: A list of unique URLs used for grounding.
         """
+        query_to_use = search_query if search_query else product_name
         prompt = f"""
-        Search for the official specifications, description, and details for the product: '{product_name}'.
+        Search for the official specifications, description, and details for the product: '{query_to_use}'.
         
         Please provide:
         1. A detailed, professional product description in Greek.

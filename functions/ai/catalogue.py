@@ -164,25 +164,27 @@ def process_catalogue_upload(event: storage_fn.CloudEvent[storage_fn.StorageObje
     # 2. Ingest into 'staging_products'
     update_job(message=f"Ingesting {len(products_data)} products...")
     
-    batch = db.batch()
-    total = len(products_data)
-    processed = 0
-    
-    for product in products_data:
-        sku = product.get("sku")
-        if not sku: continue
-        
-        doc_ref = db.collection("staging_products").document(sku)
-        batch.set(doc_ref, product, merge=True)
-        
-        processed += 1
-        if processed % 50 == 0:
+    try:
+        from pylon.ingest import ingest_products_to_firestore
+        # Our helper handles chunking, batching, and status preservation
+        stats = ingest_products_to_firestore(products_data, db)
+        processed = stats.get("total", len(products_data))
+    except Exception as e:
+        print(f"Ingestion helper failed, falling back to basic loop: {e}")
+        # Fallback if helper fails for some reason
+        batch = db.batch()
+        processed = 0
+        for product in products_data:
+            sku = product.get("sku")
+            if not sku: continue
+            doc_ref = db.collection("staging_products").document(sku)
+            batch.set(doc_ref, product, merge=True)
+            processed += 1
+            if processed % 50 == 0:
+                batch.commit()
+                batch = db.batch()
+        if processed % 50 != 0:
             batch.commit()
-            batch = db.batch()
-            update_job(progress=int((processed / total) * 100), message=f"Ingested {processed}/{total}...")
-
-    if processed % 50 != 0:
-        batch.commit()
 
     update_job(
         status="completed", 

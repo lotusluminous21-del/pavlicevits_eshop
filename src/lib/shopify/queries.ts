@@ -9,7 +9,18 @@ const productFragment = `
     url
     altText
     width
+    width
     height
+  }
+  images(first: 20) {
+    edges {
+      node {
+        url
+        altText
+        width
+        height
+      }
+    }
   }
   priceRange {
     minVariantPrice {
@@ -55,6 +66,21 @@ const productFragment = `
       }
     }
   }
+  metafields(identifiers: [
+    {namespace: "custom", key: "finish"},
+    {namespace: "custom", key: "coverage"},
+    {namespace: "custom", key: "drying_time"},
+    {namespace: "custom", key: "environment"},
+    {namespace: "custom", key: "surfaces"},
+    {namespace: "custom", key: "application"},
+    {namespace: "custom", key: "features"}
+  ]) {
+    id
+    key
+    namespace
+    value
+    type
+  }
 `;
 
 export const cartFragment = `
@@ -67,6 +93,12 @@ export const cartFragment = `
         node {
           id
           quantity
+          cost {
+            totalAmount {
+              amount
+              currencyCode
+            }
+          }
           merchandise {
             ... on ProductVariant {
               id
