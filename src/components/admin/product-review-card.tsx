@@ -35,10 +35,13 @@ export function DraftReviewCard({ draft }: DraftReviewCardProps) {
     const handlePublish = async () => {
         setIsPublishing(true);
 
-        const result = await publishProductAction(draft.id, formData);
+        // Sanitize for Server Action
+        const sanitizedData = JSON.parse(JSON.stringify(formData));
+        const result = await publishProductAction(draft.id, sanitizedData);
 
         if (result.success) {
             const db = getFirestore(app);
+            if (!result.shopifyId) throw new Error("Missing Shopify ID in response");
             try {
                 await setDoc(doc(db, 'products_live', result.shopifyId), {
                     ...formData,

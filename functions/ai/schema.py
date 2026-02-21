@@ -4,10 +4,14 @@ from pydantic import BaseModel, Field
 
 # --- Pydantic Models for Structured Output ---
 class ProductVariant(BaseModel):
-    sku_suffix: str
-    variant_name: str
-    option_name: str
-    option_value: str
+    sku_suffix: str = Field(description="A unique suffix for this variant (e.g., -RED, -400ML)")
+    variant_name: str = Field(description="The full name of the variant")
+    option1_name: Optional[str] = Field(description="Name of the first dynamic option (e.g., 'Χρώμα', 'Όγκος / Συσκευασία')", default=None)
+    option1_value: Optional[str] = Field(description="Value for the first option (e.g., 'Κόκκινο', '400ml')", default=None)
+    option2_name: Optional[str] = Field(description="Name of the second dynamic option, if applicable", default=None)
+    option2_value: Optional[str] = Field(description="Value for the second option, if applicable", default=None)
+    option3_name: Optional[str] = Field(description="Name of the third dynamic option, if applicable", default=None)
+    option3_value: Optional[str] = Field(description="Value for the third option, if applicable", default=None)
     pylon_sku: Optional[str] = None
 
 class ProductImage(BaseModel):
@@ -15,22 +19,45 @@ class ProductImage(BaseModel):
     description: Optional[str] = None
 
 class PaintTechnicalSpecs(BaseModel):
-    surface_suitability: List[Literal["Wood", "Metal", "Concrete", "Plaster", "Drywall", "Plastic", "Glass", "Multisurface"]] = Field(description="List of suitable surfaces")
-    finish: Literal["Matte", "Satin", "Gloss", "Eggshell", "Semi-gloss", "High-gloss", "Metallic", "Textured"] = Field(description="Finish type")
-    application: List[Literal["Brush", "Roller", "Spray", "Sponge"]] = Field(description="Application methods")
-    coverage: str = Field(description="Coverage area per liter or unit (e.g., 10-12m²/L)")
-    drying_time: str = Field(description="Drying time (e.g., 1-2 hours)")
-    durability_features: List[str] = Field(description="Durability features (e.g., Rust-proof, Washable, UV-resistant)")
-    environment: Literal["Indoor", "Outdoor", "Both"] = Field(description="Recommended environment")
+    chemical_base: Literal["Ακρυλικό", "Σμάλτο", "Λάκα", "Ουρεθάνη", "Εποξικό", "Νερού", "Διαλύτου", "Άλλο"] = Field(description="Ο χημικός τύπος/βάση του προϊόντος (Chemical base)")
+    sequence_step: Literal["Προετοιμασία/Καθαριστικό", "Αστάρι", "Ενισχυτικό Πρόσφυσης", "Βασικό Χρώμα", "Βερνίκι", "Γυαλιστικό", "Άλλο"] = Field(description="Σε ποιο στάδιο της βαφής χρησιμοποιείται (Sequence step)")
+    surface_suitability: List[Literal["Γυμνό Μέταλλο", "Πλαστικό", "Ξύλο", "Fiberglass", "Υπάρχον Χρώμα", "Σκουριά", "Αλουμίνιο", "Γαλβανιζέ", "Άλλο"]] = Field(description="Λίστα με κατάλληλες επιφάνειες (Surface suitability)")
+    finish: Literal["Ματ", "Σατινέ", "Γυαλιστερό", "Υψηλής Γυαλάδας", "Σαγρέ/Ανάγλυφο", "Μεταλλικό", "Πέρλα", "Άλλο"] = Field(description="Το τελικό φινίρισμα (Finish)")
+    special_properties: List[Literal["Υψηλής Θερμοκρασίας", "Ανθεκτικό σε UV", "Αντισκωριακό", "2 Συστατικών", "1 Συστατικού"]] = Field(description="Ειδικές ιδιότητες (Special properties)", default=[])
+    
+    # Application & Timeline
+    drying_time_touch: Optional[str] = Field(description="Χρόνος στεγνώματος στην αφή", default=None)
+    recoat_window: Optional[str] = Field(description="Χρόνος επαναβαφής", default=None)
+    full_cure: Optional[str] = Field(description="Πλήρης σκλήρυνση", default=None)
+    application_method: List[Literal["Σπρέι", "Πιστόλι Βαφής", "Πινέλο", "Ρολό", "Άλλο"]] = Field(description="Μέθοδοι εφαρμογής", default=[])
+    
+    # Deep Technical Attributes
+    weight_per_volume: Optional[str] = Field(description="Ειδικό Βάρος (π.χ. kg/L)", default=None)
+    dry_film_thickness: Optional[str] = Field(description="Συνιστώμενο πάχος στεγνού φιλμ (μm)", default=None)
+    mixing_ratio: Optional[str] = Field(description="Αναλογία μίξης (κυρίως για 2K)", default=None)
+    pot_life: Optional[str] = Field(description="Χρόνος ζωής μίγματος (pot life)", default=None)
+    voc_level: Optional[str] = Field(description="Επίπεδο ΠΟΕ (VOC)", default=None)
+    spray_nozzle_type: Optional[str] = Field(description="Τύπος μπεκ (π.χ. Βεντάλια, Κυκλικό)", default=None)
+
+ProductCategory = Literal[
+    "Σπρέι Βαφής", 
+    "Χρώματα", 
+    "Ρητίνες", 
+    "Στόκοι", 
+    "Πινέλα & Ρολά", 
+    "Εργαλεία & Αξεσουάρ", 
+    "Διαλυτικά", 
+    "Καθαριστικά", 
+    "Άλλο"
+]
 
 class ProductEnrichmentData(BaseModel):
-    title_el: str = Field(description="Customer-friendly product title in Greek")
-    description_el: str = Field(description="SEO-optimized product description in Greek")
-    description: str = Field(description="Product description in English")
-    short_description: str = Field(description="Brief summary for collections")
-    tags: List[str] = Field(description="List of relevant tags")
-    category: str = Field(description="Main product category")
-    variants: List[ProductVariant] = Field(description="Discovered product variants", default=[])
+    title: str = Field(description="Semantic, neat, and brief title in Greek. MUST clearly display any identification/model numbers or primary brand identifiers.")
+    description: str = Field(description="Comprehensive and customer-friendly summary in Greek.")
+    short_description: str = Field(description="Brief summary for collections (in Greek).", default="")
+    tags: List[str] = Field(description="List of relevant tags (in Greek)")
+    category: ProductCategory = Field(description="Main product category (in Greek)")
+    variants: List[ProductVariant] = Field(description="Discovered dynamic variants based on the available options (e.g. Colors, Sizes, Types)", default=[])
     attributes: Dict[str, Any] = Field(description="Key-value product attributes", default={})
-    technical_specs: Optional[PaintTechnicalSpecs] = Field(description="Technical specifications for paint products", default=None)
+    technical_specs: Optional[PaintTechnicalSpecs] = Field(description="Technical specifications for paint/spray products, structured strictly in Greek", default=None)
     confidence_score: float = Field(description="Confidence score 0.0-1.0")

@@ -36,15 +36,18 @@ class DiscoveryService:
         """
         query_to_use = search_query if search_query else product_name
         prompt = f"""
-        Search for the official specifications, description, and details for the product: '{query_to_use}'.
+        Conduct a deep web search for the official Technical Data Sheets (TDS), specifications, and details for the product: '{query_to_use}'.
         
-        Please provide:
-        1. A detailed, professional product description in Greek.
-        2. A list of technical specifications.
+        CRITICAL SEARCH INSTRUCTION: 
+        You MUST search for and synthesize information from BOTH English and Greek sources. English sources often contain the most accurate deep technical specifications (like mixing ratios, pot life, nozzle types, VOCs), while Greek sources will help with local naming conventions.
+        
+        Please provide a comprehensive summary of the product based on your search:
+        1. A detailed, professional product description translated/synthesized into Greek.
+        2. A complete list of deep technical specifications (chemical base, sequence step, drying times, coverages, etc.).
         3. A list of relevant tags for an e-commerce store.
-        4. Any available variants (colors, sizes, codes).
+        4. ALL available variants mentioned in any catalogs (colors, sizes, specific codes).
         
-        Format the output as a clean, structured text.
+        Format the output as clean, structured text.
         """
         
         # print(f"DEBUG: Searching for '{product_name}'...")

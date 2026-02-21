@@ -1,4 +1,6 @@
-import { createShopifyProduct, updateShopifyProduct, deleteShopifyProduct, getShopifyProduct } from '@/lib/shopify/admin';
+"use server";
+
+import { createShopifyProduct, updateShopifyProduct, deleteShopifyProduct, getShopifyProduct, findProductBySku, publishProductToChannel } from '@/lib/shopify/admin';
 
 /**
  * Publishes or Updates a product from Staging (Firestore) to Shopify Production.
@@ -9,12 +11,30 @@ export async function publishProductAction(sku: string, productData: any) {
 
     // 1. Fetch current remote state if product is already live
     let remoteProduct: any = null;
+    let isStaleId = false;
     if (productData.shopify_product_id) {
         try {
             remoteProduct = await getShopifyProduct(productData.shopify_product_id);
             console.log("Fetched remote Shopify state for merge");
         } catch (e) {
-            console.error("Could not fetch remote product, proceeding with local data baseline", e);
+            console.warn(`Could not fetch remote product (${productData.shopify_product_id}). It may have been deleted in Shopify. Checking by SKU...`, e);
+            isStaleId = true;
+        }
+    }
+
+    // 1b. Fallback to SKU lookup if no ID or stale ID
+    if (!remoteProduct || isStaleId) {
+        console.log(`Searching for product by SKU: ${sku}`);
+        const found = await findProductBySku(sku);
+        if (found) {
+            console.log(`Found product by SKU: ${sku} -> ID: ${found.id}`);
+            try {
+                remoteProduct = await getShopifyProduct(found.id);
+                productData.shopify_product_id = found.id; // Update local reference for the rest of the action
+                isStaleId = false; // We found the real one
+            } catch (e) {
+                console.error(`Found SKU ${sku} but could not fetch product ${found.id}`, e);
+            }
         }
     }
 
@@ -51,7 +71,7 @@ export async function publishProductAction(sku: string, productData: any) {
     const basePrice = remoteProduct?.variants?.[0]?.price || String(productData.pylon_data?.price_retail || "0.00");
     const baseInventory = remoteProduct?.variants?.[0]?.inventory_quantity;
 
-    const variants = productData.ai_data?.variants && productData.ai_data.variants.length > 0
+    const variantsRaw = productData.ai_data?.variants && productData.ai_data.variants.length > 0
         ? productData.ai_data.variants.map((v: any, index: number) => ({
             price: remoteProduct?.variants?.[index]?.price || basePrice,
             sku: `${sku}-${v.sku_suffix}`,
@@ -64,9 +84,23 @@ export async function publishProductAction(sku: string, productData: any) {
                 price: basePrice,
                 sku: productData.sku,
                 inventory_quantity: baseInventory !== undefined ? baseInventory : (productData.pylon_data?.stock_quantity || 0),
+                inventory_management: null, // Ensure inventory is NOT tracked
+                inventory_policy: 'continue', // Allow orders even if (hypothetically) tracked and at 0
                 requires_shipping: true
             }
         ];
+
+    // Deduplicate variants based on option1 (Shopify requirement)
+    const seenOptions = new Set();
+    const variants = variantsRaw.filter((v: any) => {
+        if (!v.option1) return true; // Single variant
+        if (seenOptions.has(v.option1)) {
+            console.warn(`[DEDUPLICATE] Skipping duplicate variant option: ${v.option1} for SKU: ${sku}`);
+            return false;
+        }
+        seenOptions.add(v.option1);
+        return true;
+    });
 
     // 4. Prepare Final Payload (Remote-First Merge)
     const shopifyPayload: any = {
@@ -77,6 +111,8 @@ export async function publishProductAction(sku: string, productData: any) {
         tags: remoteProduct?.tags
             ? Array.from(new Set([...remoteProduct.tags.split(', '), ...(productData.ai_data?.tags || []), "StagingApproved", "NanoLab"])).join(', ')
             : [...(productData.ai_data?.tags || []), "StagingApproved", "NanoLab"],
+        status: 'active',
+        published: true,
         variants: variants,
         options: productData.ai_data?.variants && productData.ai_data.variants.length > 0
             ? [{ name: productData.ai_data.variants[0].option_name, values: productData.ai_data.variants.map((v: any) => v.option_value) }]
@@ -84,21 +120,48 @@ export async function publishProductAction(sku: string, productData: any) {
     };
 
     // Images: If remote has images and Lab doesn't provide new ones, keep remote; otherwise prefer Lab (Mirror Storefront design)
+    let imagesToSync: { url: string; suffix?: string }[] = [];
+
     if (productData.ai_data?.images?.length > 0) {
-        shopifyPayload.images = productData.ai_data.images.map((img: any) => ({
-            src: img.url,
-            altText: productData.ai_data?.title_el || productData.sku
-        }));
+        imagesToSync = productData.ai_data.images;
+    } else if (productData.ai_data?.generated_images?.base) {
+        console.log(`[SYNC] Using AI generated base image for SKU: ${sku}`);
+        imagesToSync = [{ url: productData.ai_data.generated_images.base, suffix: 'base' }];
+    } else if (productData.ai_data?.selected_images?.base) {
+        console.log(`[SYNC] Using selected source base image for SKU: ${sku}`);
+        imagesToSync = [{ url: productData.ai_data.selected_images.base, suffix: 'base' }];
+    }
+
+    if (imagesToSync.length > 0) {
+        console.log(`Syncing ${imagesToSync.length} images for SKU: ${sku}`);
+        shopifyPayload.images = imagesToSync.map((img: any, i: number) => {
+            if (!img.url) console.warn(`Image ${i} for SKU ${sku} has no URL!`);
+            return {
+                src: img.url,
+                altText: productData.ai_data?.title_el || productData.sku
+            };
+        });
+    } else {
+        console.log(`No images to sync for SKU: ${sku} (Lab check)`);
+        console.log(`[DEBUG_IMAGES] ai_data keys:`, Object.keys(productData.ai_data || {}));
     }
 
     try {
         let shopifyProduct;
-        if (productData.shopify_product_id) {
+        if (productData.shopify_product_id && !isStaleId) {
             console.log("Updating existing Shopify product with remote-first merge:", productData.shopify_product_id);
             shopifyProduct = await updateShopifyProduct(productData.shopify_product_id, shopifyPayload);
         } else {
-            console.log("Creating new Shopify product");
+            console.log(isStaleId ? "Re-creating product because previous ID was missing in Shopify." : "Creating new Shopify product");
             shopifyProduct = await createShopifyProduct(shopifyPayload);
+        }
+
+        // Automated Publication to pavlicevits_eshop
+        try {
+            console.log(`[SYNC] Automatically publishing to pavlicevits_eshop...`);
+            await publishProductToChannel(shopifyProduct.id, "gid://shopify/Publication/187894169768");
+        } catch (pubError) {
+            console.error("Automatic publication failed but product was synced:", pubError);
         }
 
         return {

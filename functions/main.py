@@ -37,7 +37,7 @@ def process_catalogue_upload(event: storage_fn.CloudEvent[storage_fn.StorageObje
     region="europe-west1",
     memory=options.MemoryOption.GB_2,
     timeout_sec=540,
-    secrets=["SERPER_API_KEY"]
+    secrets=["SERPER_API_KEY", "FAL_KEY"]
 )
 def enrich_product(event: firestore_fn.Event[firestore_fn.Change[firestore_fn.DocumentSnapshot]]) -> None:
     try:

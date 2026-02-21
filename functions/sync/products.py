@@ -62,34 +62,66 @@ async def sync_products_job():
         else:
             tags_str = ", ".join(tags_list)
 
-        # Prepare Metafields for localization (e.g. English)
+        # Prepare Metafields (Skipping English translation per Greek-only rule)
         metafields = []
-        if ai.get("description"):
-            metafields.append({
-                "namespace": "custom",
-                "key": "description_en",
-                "value": ai.get("description"),
-                "type": "multi_line_text_field"
-            })
+        
+        # Build dynamic options and variants
+        options = []
+        variants_data = []
+        ai_variants = ai.get("variants", [])
+        
+        if ai_variants:
+            option_names = []
+            for v in ai_variants:
+                for i in range(1, 4):
+                    opt_name = v.get(f"option{i}_name")
+                    if opt_name and opt_name not in option_names:
+                        option_names.append(opt_name)
+                        
+            for name in option_names:
+                options.append({"name": name})
+                
+            for v in ai_variants:
+                var_payload = {
+                    "sku": f"{sku}{v.get('sku_suffix', '')}",
+                    "price": str(pylon.get("price_retail", "0")),
+                    "inventory_management": None  # DO NOT TRACK INVENTORY
+                }
+                for i in range(1, 4):
+                    opt_name = v.get(f"option{i}_name")
+                    opt_value = v.get(f"option{i}_value")
+                    if opt_name and opt_value:
+                        try:
+                            # Shopify uses option1, option2, option3 matching the order in the options array
+                            opt_index = option_names.index(opt_name) + 1
+                            var_payload[f"option{opt_index}"] = opt_value
+                        except ValueError:
+                            pass
+                variants_data.append(var_payload)
+        else:
+            # Default single variant
+            variants_data = [
+                {
+                    "price": str(pylon.get("price_retail", "0")),
+                    "sku": sku,
+                    "inventory_management": None  # DO NOT TRACK INVENTORY
+                }
+            ]
 
         new_product_payload = {
-            "title": ai.get("title_el") or pylon.get("name"),
-            "body_html": f"<p>{ai.get('description_el', '')}</p>",
+            "title": ai.get("title") or pylon.get("name"),
+            "body_html": f"<p>{ai.get('description', '')}</p>",
             "vendor": "Pylon Import",
             "product_type": "Hardware",
             "status": "draft", 
             "tags": tags_str,
             "images": images,
             "metafields": metafields,
-            "variants": [
-                {
-                    "price": str(pylon.get("price_retail", "0")),
-                    "sku": sku,
-                    "inventory_management": "shopify",
-                    "inventory_quantity": int(pylon.get("stock_quantity", 0))
-                }
-            ]
+            "variants": variants_data
         }
+        
+        if options:
+            new_product_payload["options"] = options
         
         # Call Shopify
         try:

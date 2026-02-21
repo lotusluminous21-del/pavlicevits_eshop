@@ -295,17 +295,22 @@ def handle_metadata_phase(product_ref, data, db, force_metadata=False):
             client = LLMConfig.get_client()
             model_name = LLMConfig.get_model_name(complex=True)
             
-            structure_prompt = f"""You are a Shopify Data Expert for a Paint Shop. 
-            Extract product information into a valid JSON structure based on the text below.
-            
+            structure_prompt = f"""Είσαι ένας Ειδικός Δεδομένων Shopify για ένα Κατάστημα Χρωμάτων, Σπρέι και Εργαλείων.
+            Εξήγαγε τις πληροφορίες του προϊόντος σε μια έγκυρη δομή JSON βάσει του παρακάτω κειμένου.
+
             SOURCE TEXT:
             {generated_text}
-            
-            REQUIREMENTS:
-            - Description must be in Greek, professional, and SEO-friendly.
-            - Create a catchy Greek Title.
-            - Identify variants if mentioned in the text.
-            - EXTRACT TECHNICAL SPECS: Look specifically for finish (Matte/Gloss), surfaces (Wood/Metal), coverage, drying time, etc.
+
+            REQUIREMENTS (STRICTLY IN GREEK):
+            - Δημιούργησε έναν σημασιολογικό (semantic), καθαρό και συνοπτικό τίτλο (title). ΠΡΕΠΕΙ να περιέχει εμφανώς κωδικούς μοντέλων, νούμερα ταυτοποίησης ή την κύρια μάρκα, ώστε να ξεχωρίζει από παρόμοια προϊόντα.
+            - Γράψε μια περιγραφή (description) που είναι διαβαστερή, φιλική προς τον πελάτη και συνοψίζει τα τεχνικά χαρακτηριστικά τονίζοντας την κύρια χρήση και τα οφέλη.
+            - Σύντομη περιγραφή (short_description) για συλλογές.
+            - ΚΑΤΗΓΟΡΙΑ: Επίλεξε ΑΥΣΤΗΡΑ μία από τις παρακάτω κατηγορίες: "Σπρέι Βαφής", "Χρώματα", "Ρητίνες", "Στόκοι", "Πινέλα & Ρολά", "Εργαλεία & Αξεσουάρ", "Διαλυτικά", "Καθαριστικά", "Άλλο".
+            - DYNAMIC VARIANTS: Αναζήτησε άξονες παραλλαγών στο κείμενο (π.χ. διαθέσιμα χρώματα στο χρωματολόγιο, συσκευασίες/όγκοι (400ml, 1L), μεγέθη, διαμέτρους μπεκ). Δημιούργησε δυναμικά Options (π.χ. option1_name="Χρώμα", option1_value="Λευκό", option2_name="Όγκος / Συσκευασία", option2_value="400ml") και χτίσε τον πίνακα `variants`.
+            - TECHNICAL SPECS: Κατηγοριοποίησε αυστηρά το προϊόν βάσει της χημικής του βάσης (Ακρυλικό, Σμάλτο κλπ), το στάδιο της εφαρμογής (Αστάρι, Βερνίκι κλπ), κατάλληλες επιφάνειες και φινίρισμα. 
+            - Βαθύτερα Τεχνικά Χαρακτηριστικά (όπου υπάρχουν): Ειδικό βάρος, πάχος στεγνού φιλμ, αναλογία μίξης (για 2K), voc.
+
+            ΠΡΟΣΟΧΗ: Όλα τα δεδομένα, enum values, tags και categories ΠΡΕΠΕΙ να επιστραφούν ΑΥΣΤΗΡΑ στα Ελληνικά.
             """
             
             structure_response = client.models.generate_content(
@@ -321,9 +326,9 @@ def handle_metadata_phase(product_ref, data, db, force_metadata=False):
             structured_data = json.loads(structure_response.text)
             
             ai_data = {
-                "title_el": structured_data.get("title_el", ""),
-                "description_el": structured_data.get("description_el", ""),
+                "title": structured_data.get("title", ""),
                 "description": structured_data.get("description", ""),
+                "short_description": structured_data.get("short_description", ""),
                 "tags": structured_data.get("tags", []),
                 "category": structured_data.get("category", ""),
                 "variants": structured_data.get("variants", []),
@@ -388,48 +393,97 @@ def handle_nano_banana_phase(doc_ref, sku, name, ai_data):
     
     import requests
     import base64
+    import random
     
     generation_model = ai_data.get("generation_model", "gemini") # "gemini" or "imagen"
     environment = ai_data.get("environment", "clean")
     
-    # Environment-specific prompts matching batch_processor.py
+    category = ai_data.get("category", "Άλλο")
+    variants = ai_data.get("variants", [])
+    technical_specs = ai_data.get("technical_specs", {})
+    finish_raw = technical_specs.get("finish", "")
+    
+    # Translate finish into aesthetic directions
+    finish_instruction = ""
+    if finish_raw in ["Ματ", "Σατινέ", "Σαγρέ/Ανάγλυφο"]:
+        finish_instruction = "The liquid splashes and decorative elements MUST have a smooth, matte, light-absorbing finish with completely diffused, non-reflective highlights."
+    elif finish_raw in ["Γυαλιστερό", "Υψηλής Γυαλάδας"]:
+        finish_instruction = "The liquid splashes and decorative elements MUST possess a highly glossy, wet, and deeply reflective finish with sharp specular highlights."
+    elif finish_raw in ["Μεταλλικό", "Πέρλα"]:
+        finish_instruction = "The liquid splashes and decorative elements MUST feature a sparkling, metallic finish infused with micro-reflective pearlescent flakes that catch the light dynamically."
+    
+    # We strategically base the initial color on the brand/label. We will recolor later for variants.
+    color_instruction = "Sample and directly replicate the product's dominant brand label colors into the visual accents. "
+    if finish_instruction:
+        color_instruction += finish_instruction
+    
+    decorative_effect = "mild decorative crown of high-viscosity glossy liquid splashes"
+    if category == "Σπρέι Βαφής":
+        decorative_effect = "mild decorative crown of high-velocity, fine aerosol-like mist and dynamic glossy droplets"
+    elif category == "Χρώματα":
+        decorative_effect = "mild decorative crown of high-viscosity, thick liquid paint splashes and bold waves"
+    elif category == "Ρητίνες":
+        decorative_effect = "mild decorative crown of smooth, crystalline, semi-transparent liquid resin waves"
+    elif category == "Στόκοι":
+        decorative_effect = "subtle, thick matte textured material crests and smooth paste-like ripples"
+    elif category == "Πινέλα & Ρολά":
+        decorative_effect = "dynamic, sweeping artistic paint brush-strokes playfully wrapping around the base"
+    elif category == "Εργαλεία & Αξεσουάρ":
+        decorative_effect = "subtle, dynamic ambient light-sweeps and minimal high-viscosity droplet accents"
+    elif category == "Διαλυτικά":
+        decorative_effect = "mild decorative crown of crisp, clear, volatile liquid ripples and sharp translucent splashes"
+    elif category == "Καθαριστικά":
+        decorative_effect = "gentle decorative crown of fresh, sparkling micro-bubbles and clear fluid sweeps"
+
+    sizing_instruction = "The product must be tightly center-framed, occupying exactly 80% of the vertical canvas height."
+    
     NANO_PROMPTS = {
-        "clean": """Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
+        "clean": f"""Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
 1.  **COMMAND**: Ignore the camera angle, perspective, and lighting of the source image. Re-render the product from scratch, resting on an **invisible, seamless pure white studio floor**.
 2.  **NEGATIVE INSTRUCTIONS**: DO NOT inherit the tilt, depth of field, or shadow placement from the original photo. **Wipe out all original specular highlights.** No visible pedestals or platforms.
-3.  **Composition & Angle**: Show the product from a straight-on, front-facing eye-level angle. Center it vertically/horizontally. The product should occupy 75-80% of the canvas height. Full visibility (not cut off).
+3.  **Composition & Angle**: Show the product from a straight-on, front-facing eye-level angle. Center it vertically/horizontally. {sizing_instruction} Full visibility (not cut off).
 4.  **Lighting & style**: Use soft, even, high-key studio lighting. **The floor and background must be identical pure white (#FFFFFF), with only a realistic soft shadow at the base to indicate the surface.** Generate new, clean geometric highlights from studio softboxes on the product.
 5.  **Subject Isolation**: EXTRACT A SINGLE ITEM. If the source shows multiple items, generate ONLY ONE single item. Do not show a group.
 6.  **Identity Accuracy**: PRESERVE THE IDENTITY (text, labels, logos, colors). Ensure all text on the label is legible and identical to the source, but allow the product's physical orientation to be corrected to the straight-on angle defined in Point 3.
 7.  **Background**: Pure white (#FFFFFF) background with NO texture.""",
 
-        "realistic": """Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
+        "realistic": f"""Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
 1.  **COMMAND**: Ignore the camera angle, perspective, and lighting of the source image. Re-render the product from scratch.
 2.  **NEGATIVE INSTRUCTIONS**: DO NOT inherit the lighting direction or camera tilt from the source.
-3.  **Composition & Lighting**: Side-on natural daylight creating realistic soft shadows. Show the product from a straight-on, eye-level angle.
+3.  **Composition & Lighting**: Side-on natural daylight creating realistic soft shadows. Show the product from a straight-on, eye-level angle. {sizing_instruction}
 4.  **Atmosphere**: Clean, light-grey polished concrete surface. Background is a softly blurred, minimalist workshop setting.
 5.  **Identity Accuracy**: Keep the branding and labels EXACTLY as they appear — preserve all text and logos, but render them from the new straight-on perspective.
 6.  **Aesthetic**: Authentic, premium yet practical workshop vibe.""",
 
-        "modern": """Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
+        "modern": f"""Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
 1.  **COMMAND**: Ignore the camera angle, perspective, and lighting of the source image. Re-render the product from scratch, resting on an **invisible, seamless pure white studio floor**.
 2.  **NEGATIVE INSTRUCTIONS**: DO NOT follow the orientation or perspective of the original image. **Completely discard original lighting and reflections.** No visible pedestals or platforms.
-3.  **Composition & Camera**: Straight-on, front-facing eye-level angle. Center vertically/horizontally. Product occupies 75-80% of canvas height.
-4.  **Vibrant Lighting**: Professional multi-point studio lighting with subtle colored rim lighting (teal and purple) on the product edges. **The product surface must actively capture sharp reflections from the surrounding liquid splashes.**
-5.  **Explosive Visuals**: SURROUND the product with a mild, artistic crown of dynamic high-viscosity liquid splashes and droplets in dark teal and deep purple. 
+3.  **Composition & Camera**: Straight-on, front-facing eye-level angle. Center vertically/horizontally. {sizing_instruction}
+4.  **Vibrant Lighting**: Professional multi-point studio lighting with subtle rim lighting. **The product surface must actively capture sharp reflections from the surrounding visual elements.**
+5.  **Explosive Visuals**: SURROUND the product with a {decorative_effect}. {color_instruction}
 6.  **Identity Accuracy**: Extract the main product unit. PRESERVE THE BRANDING AND TEXT Identity, but re-render the physical position to be straight-on.
-7.  **Background**: Pure white (#FFFFFF) background; the floor and background are the same color, differentiated only by the splashes and the product's soft contact shadow.
+7.  **Background**: Pure white (#FFFFFF) background; the floor and background are the same color, differentiated only by the product's soft contact shadow and the decorative accents.
 8.  **Aesthetic**: Tech-premium, sharp focus, high contrast with vibrant decorative accents."""
     }
 
     IMAGEN_PROMPTS = {
-        "clean": "Ultra-sharp professional studio product photography. The product is center-framed and resting on a seamless, invisible pure white studio floor in a high-key, pure white setting. Lighting: **Recalibrated** clean 5500K daylight spectrum softbox lighting; the floor and background merge perfectly into #FFFFFF, with only a **soft, realistic ambient occlusion shadow at the base**. No pedestals. New geometric highlights override the original image lighting.",
-        "realistic": "Professional cinematic product photography. The product sits on a high-texture, dark-grey polished concrete surface with realistic micro-reflections. Environment: A minimalist, high-end design workshop with soft, volumetric natural daylight streaming from a side window. Lighting: Warm 4000K sunlight with subtle lens bloom and soft, elongated natural shadows. Camera: 50mm f/1.8 depth of field, sharp focus on the product label with a creamy background blur.",
-        "modern": "High-end commercial avant-garde photography. The product rests on an invisible white studio floor and is surrounded by a mild decorative crown of high-viscosity glossy liquid splashes in deep teal and vibrant neon purple. Lighting: **Environment-driven** tech-premium setup; the floor and background merge into pure #FFFFFF. The product surface must **reflect the vibrant teal and magenta colors from the splashes**, replacing original specular highlights. Shadow: Soft, subtle contact shadow at the base."
+        "clean": f"Ultra-sharp professional studio product photography. The product is center-framed and resting on a seamless, invisible pure white studio floor in a high-key, pure white setting. {sizing_instruction} Lighting: **Recalibrated** clean 5500K daylight spectrum softbox lighting; the floor and background merge perfectly into #FFFFFF, with only a **soft, realistic ambient occlusion shadow at the base**. No pedestals. New geometric highlights override the original image lighting.",
+        "realistic": f"Professional cinematic product photography. The product sits on a high-texture, dark-grey polished concrete surface with realistic micro-reflections. {sizing_instruction} Environment: A minimalist, high-end design workshop with soft, volumetric natural daylight streaming from a side window. Lighting: Warm 4000K sunlight with subtle lens bloom and soft, elongated natural shadows. Camera: 50mm f/1.8 depth of field, sharp focus on the product label with a creamy background blur.",
+        "modern": f"High-end commercial avant-garde photography. The product rests on an invisible white studio floor and is surrounded by a {decorative_effect}. {color_instruction} {sizing_instruction} Lighting: **Environment-driven** tech-premium setup; the floor and background merge into pure #FFFFFF. The product surface must **reflect the colors from the surrounding elements**, replacing original specular highlights. Shadow: Soft, subtle contact shadow at the base."
     }
     
+    # Identify unique variant colors that need dedicated images
+    unique_colors = set()
+    for v in variants:
+        color = v.get("option1_value") if v.get("option1_name") == "Χρώμα" else None
+        if not color:
+            color = v.get("option2_value") if v.get("option2_name") == "Χρώμα" else None
+        if color:
+            unique_colors.add(color)
+            
     try:
-        client = LLMConfig.get_client()
+        # Use US Central specifically for image/Imagen models
+        client = LLMConfig.get_image_client()
         selected_images = ai_data.get("selected_images", {})
         generated_images = {}
         
@@ -498,7 +552,7 @@ def handle_nano_banana_phase(doc_ref, sku, name, ai_data):
                             "parameters": {
                                 "sampleCount": 1,
                                 "addWatermark": False,
-                                "seed": 42,
+                                "seed": random.randint(1, 1000000),
                                 "enhancePrompt": False
                             }
                         }
@@ -544,7 +598,7 @@ def handle_nano_banana_phase(doc_ref, sku, name, ai_data):
                         ],
                         config=types.GenerateContentConfig(
                             temperature=0.3,
-                            seed=42,
+                            seed=random.randint(1, 1000000),
                         ),
                         retries=4,
                         initial_delay=2
@@ -571,14 +625,64 @@ def handle_nano_banana_phase(doc_ref, sku, name, ai_data):
                             time.sleep(1)
                             doc_ref.update({"enrichment_message": "Finalizing render..."})
                             time.sleep(0.5)
-                            # Upload to Firebase Storage
-                            image_url = upload_image_to_storage(img_bytes, "image/jpeg", sku)
+                            # Upload BASE to Firebase Storage
+                            image_url = upload_image_to_storage(img_bytes, "image/jpeg", f"{sku}_base")
 
                 if image_url:
                     generated_images["base"] = image_url
+                    base_image_bytes = img_bytes if img_bytes else requests.get(image_url).content
                 else:
-                    raise Exception("Failed to generate any image")
+                    raise Exception("Failed to generate Base Studio image")
+                
+                # --- PHASE 3.B: Variant Recoloring using Gemini 2.5 Flash Image ---
+                if unique_colors and base_image_bytes:
+                    doc_ref.update({"enrichment_message": f"Rendering {len(unique_colors)} variant colors..."})
+                    logger.info(f"Starting semantic recoloring for {len(unique_colors)} variants of {sku}")
                     
+                    for color_name in unique_colors:
+                        try:
+                            # Map the color directly to the relevant variant object for tracking/suffix
+                            variant_match = next((v for v in variants if v.get("option1_value") == color_name or v.get("option2_value") == color_name), None)
+                            if not variant_match: continue
+                            suffix_key = variant_match.get("sku_suffix", color_name).replace("-", "").lower()
+                            
+                            recolor_prompt = f"Accurately recolor ONLY the decorative fluid splashes and liquid accents to exactly {color_name}. DO NOT change the background, floor, or the central product itself. Preserve the exact geometry, reflections, shadows, and lighting perfectly."
+                            
+                            recolor_resp = generate_with_retry(
+                                client=client,
+                                model=ModelName.IMAGE_GEN.value,
+                                contents=[
+                                    types.Content(
+                                        role="user",
+                                        parts=[
+                                            types.Part.from_bytes(data=base_image_bytes, mime_type="image/jpeg"),
+                                            types.Part.from_text(text=recolor_prompt)
+                                        ]
+                                    )
+                                ],
+                                config=types.GenerateContentConfig(temperature=0.0),
+                                retries=2,
+                                initial_delay=1
+                            )
+                            
+                            variant_img_bytes = None
+                            if hasattr(recolor_resp, 'generated_image') and recolor_resp.generated_image:
+                                # Standard payload
+                                pass
+                            elif recolor_resp.candidates and recolor_resp.candidates[0].content.parts:
+                                for part in recolor_resp.candidates[0].content.parts:
+                                    if part.inline_data:
+                                        variant_img_bytes = part.inline_data.data
+                                        break
+                                        
+                            if variant_img_bytes:
+                                var_url = upload_image_to_storage(variant_img_bytes, "image/jpeg", f"{sku}_{suffix_key}")
+                                generated_images[suffix_key] = var_url
+                                logger.info(f"Successfully recolored {sku} variant: {color_name}")
+                        except Exception as ve:
+                            logger.error(f"Semantic Recolor failed for {sku} color {color_name}: {ve}")
+                            # Keep going even if one variant fails
+                            
             except Exception as e:
                 logger.warning(f"Failed to generate image for {sku}: {e}")
                 raise e
@@ -600,8 +704,15 @@ def handle_bg_removal_phase(doc_ref, sku, ai_data, mode="generated"):
     
     import requests
     import os
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     
-    service_url = os.environ.get("REMBG_SERVICE_URL")
+    fal_key = os.environ.get("FAL_KEY")
+    if not fal_key:
+        logger.error(f"Missing FAL_KEY for {sku}")
+        doc_ref.update({"status": "ENRICHMENT_FAILED", "enrichment_message": "Missing FAL_KEY for Background Removal"})
+        return
+        
+    service_url = "https://fal.run/fal-ai/bria/background/remove"
     
     # Select target images based on mode
     if mode == "source":
@@ -623,27 +734,43 @@ def handle_bg_removal_phase(doc_ref, sku, ai_data, mode="generated"):
 
     final_images = {}
     
-    try:
-        for suffix, img_url in targets.items():
-            success = False
-            for attempt in range(3):
-                try:
-                    resp = requests.post(
-                        f"{service_url}/remove-bg",
-                        json={"image_url": img_url, "sku": f"{sku}_{suffix}_{mode}"},
-                        timeout=60
-                    )
-                    if resp.ok:
-                        final_images[suffix] = resp.json().get("result_url")
-                        success = True
-                        break
+    def process_image(suffix, img_url):
+        for attempt in range(3):
+            try:
+                resp = requests.post(
+                    service_url,
+                    headers={
+                        "Authorization": f"Key {fal_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={"image_url": img_url},
+                    timeout=30
+                )
+                if resp.ok:
+                    result = resp.json()
+                    result_url = result.get("image", {}).get("url")
+                    if result_url:
+                        return suffix, result_url
                     else:
-                        logger.warning(f"BG removal attempt {attempt+1} failed for {sku}: {resp.status_code} {resp.text}")
-                except Exception as e:
-                    logger.warning(f"BG removal attempt {attempt+1} error for {sku}: {e}")
+                        logger.warning(f"BG removal unexpected response for {sku} suffix {suffix}: {result}")
+                else:
+                    logger.warning(f"BG removal attempt {attempt+1} failed for {sku} suffix {suffix}: {resp.status_code} {resp.text}")
+            except Exception as e:
+                logger.warning(f"BG removal attempt {attempt+1} error for {sku} suffix {suffix}: {e}")
+        return suffix, None
+
+    try:
+        # We can safely run up to 5 concurrent requests to Fal.ai
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_suffix = {executor.submit(process_image, s, url): s for s, url in targets.items()}
             
-            if not success:
-                logger.error(f"Failed to remove background for {sku} suffix {suffix} after 3 attempts")
+            for future in as_completed(future_to_suffix):
+                suffix = future_to_suffix[future]
+                result_url = future.result()
+                if result_url:
+                    final_images[suffix] = result_url
+                else:
+                    logger.error(f"Failed to remove background for {sku} suffix {suffix} after 3 attempts")
 
         # Update Firestore based on mode
         if mode == "source" and "base" in final_images:

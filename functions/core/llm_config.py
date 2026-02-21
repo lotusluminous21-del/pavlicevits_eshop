@@ -12,6 +12,7 @@ class LLMConfig:
     # Explicitly use pavlicevits-9a889 to override any environment mismatch
     PROJECT_ID = "pavlicevits-9a889"
     REGION = os.getenv("GCP_REGION", "europe-west1")
+    REGION_IMAGEN = "us-central1"  # Dedicated region for higher Imagen quotas
 
     # GCS Configuration for Batch Processing
     BATCH_INPUT_GCS_PATH = f"gs://{PROJECT_ID}-batch-inputs"
@@ -28,11 +29,16 @@ class LLMConfig:
         return ModelName.IMAGE_GEN.value
 
     @classmethod
-    def get_client(cls):
+    def get_client(cls, force_region: str = None):
         """Returns a google-genai Client configured for Vertex AI."""
         from google import genai
         return genai.Client(
             vertexai=True,
             project=cls.PROJECT_ID,
-            location=cls.REGION
+            location=force_region if force_region else cls.REGION
         )
+        
+    @classmethod
+    def get_image_client(cls):
+        """Returns a google-genai Client explicitly routed to the high-quota image processing region."""
+        return cls.get_client(force_region=cls.REGION_IMAGEN)

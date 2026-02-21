@@ -64,7 +64,13 @@ type Environment = "clean" | "realistic" | "modern";
 
 export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio, onRegenerate, onRegenerateAll, onAbort, onComplete }: NanoStepProps) {
     const [activeIndex, setActiveIndex] = useState(0);
+    const [timestamp] = useState(() => Date.now());
+    const [activeVariantSuffix, setActiveVariantSuffix] = useState<string>("base");
     const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+    useEffect(() => {
+        setActiveVariantSuffix("base");
+    }, [activeIndex]);
     const [environment, setEnvironment] = useState<Environment>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('nano_banana_env');
@@ -91,22 +97,40 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
 
     const activeProduct = products[activeIndex];
 
-    // Helper to get the best display image (BG removed > Generated) with cache buster
-    const getDisplayImage = (product: ProductData) => {
-        if (!product?.ai_data) return null;
+    const getProductOutputImages = (product: ProductData) => {
+        if (!product?.ai_data) return [];
 
-        // Check for final BG removed image first
-        const finalImage = product.ai_data.images?.find(img => img.suffix === 'base')?.url;
-        const url = finalImage || product.ai_data.generated_images?.base;
+        let imageList: { suffix: string, url: string }[] = [];
 
-        if (!url) return null;
+        if (product.ai_data.images && product.ai_data.images.length > 0) {
+            imageList = product.ai_data.images.map(img => ({ suffix: img.suffix, url: img.url }));
+        } else if (product.ai_data.generated_images) {
+            imageList = Object.entries(product.ai_data.generated_images).map(([k, v]) => ({ suffix: k, url: v as string }));
+        }
 
-        // Add cache buster if it's a studio image that might have been overwritten
-        const buster = `?t=${Date.now()}`;
-        return url.includes('studio_base.jpg') ? `${url}${buster}` : url;
+        return imageList.map(img => {
+            const buster = `?t=${timestamp}`;
+            return {
+                suffix: img.suffix,
+                url: img.url.includes('studio_') ? `${img.url}${buster}` : img.url
+            };
+        }).sort((a, b) => a.suffix === 'base' ? -1 : b.suffix === 'base' ? 1 : a.suffix.localeCompare(b.suffix));
     };
 
-    const displayImage = activeProduct ? getDisplayImage(activeProduct) : null;
+    const outputImages = activeProduct ? getProductOutputImages(activeProduct) : [];
+
+    let displayImage = null;
+    if (outputImages.length > 0) {
+        const found = outputImages.find(img => img.suffix === activeVariantSuffix);
+        if (found) {
+            displayImage = found.url;
+        } else {
+            displayImage = outputImages[0].url;
+            if (activeVariantSuffix !== outputImages[0].suffix) {
+                setActiveVariantSuffix(outputImages[0].suffix);
+            }
+        }
+    }
 
     // Calculate overall progress
     const totalItems = products.length; // 1 image per product
@@ -132,8 +156,8 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
 
     const sidebarTitle = (
         <div className="space-y-4">
-            <h3 className="font-bold text-gray-900 flex items-center gap-2 text-[11px] uppercase tracking-wider px-1">
-                <Wand2 className="w-3.5 h-3.5 text-indigo-600" />
+            <h3 className="font-bold text-zinc-900 flex items-center gap-2 text-[11px] uppercase tracking-wider px-1">
+                <Wand2 className="w-3.5 h-3.5 text-zinc-600" />
                 Studio Config
             </h3>
 
@@ -141,18 +165,18 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
             <div className="space-y-3 px-1">
                 {/* Model Selector - Horizontal */}
                 <div className="space-y-1.5">
-                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">Engine</span>
-                    <div className="grid grid-cols-2 gap-1 bg-gray-100/50 p-1 rounded-lg border border-gray-100">
+                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Engine</span>
+                    <div className="grid grid-cols-2 gap-1 bg-zinc-100/50 p-1 rounded-sm border border-zinc-100">
                         <button
                             onClick={() => setGenerationModel("gemini")}
                             className={cn(
                                 "py-1.5 px-2 rounded-md text-[10px] font-bold transition-all text-center flex items-center justify-center gap-1.5",
                                 generationModel === "gemini"
-                                    ? "bg-white text-indigo-700 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                    ? "bg-white text-zinc-700 shadow-sm"
+                                    : "text-zinc-500 hover:text-zinc-700 hover:bg-white/50"
                             )}
                         >
-                            <div className={cn("w-1.5 h-1.5 rounded-full", generationModel === "gemini" ? "bg-indigo-500" : "bg-gray-400")} />
+                            <div className={cn("w-1.5 h-1.5 rounded-none", generationModel === "gemini" ? "bg-zinc-500" : "bg-zinc-400")} />
                             Gemini
                         </button>
                         <button
@@ -160,11 +184,11 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             className={cn(
                                 "py-1.5 px-2 rounded-md text-[10px] font-bold transition-all text-center flex items-center justify-center gap-1.5",
                                 generationModel === "imagen"
-                                    ? "bg-white text-indigo-700 shadow-sm"
-                                    : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
+                                    ? "bg-white text-zinc-700 shadow-sm"
+                                    : "text-zinc-500 hover:text-zinc-700 hover:bg-white/50"
                             )}
                         >
-                            <div className={cn("w-1.5 h-1.5 rounded-full", generationModel === "imagen" ? "bg-purple-500" : "bg-gray-400")} />
+                            <div className={cn("w-1.5 h-1.5 rounded-none", generationModel === "imagen" ? "bg-purple-500" : "bg-zinc-400")} />
                             Imagen
                         </button>
                     </div>
@@ -172,18 +196,18 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
 
                 {/* Environment Selector - 3-column grid */}
                 <div className="space-y-1.5">
-                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1">Style</span>
-                    <div className="grid grid-cols-3 gap-1 bg-gray-100/50 p-1 rounded-lg border border-gray-100">
+                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Style</span>
+                    <div className="grid grid-cols-3 gap-1 bg-zinc-100/50 p-1 rounded-sm border border-zinc-100">
                         <button
                             onClick={() => setEnvironment("clean")}
                             className={cn(
                                 "py-2 rounded-md text-[9px] font-bold transition-all flex flex-col items-center gap-1",
                                 environment === "clean"
-                                    ? "bg-white text-indigo-700 shadow-sm"
-                                    : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
+                                    ? "bg-white text-zinc-700 shadow-sm"
+                                    : "text-zinc-400 hover:text-zinc-600 hover:bg-white/50"
                             )}
                         >
-                            <div className={cn("w-1 h-1 rounded-full", environment === "clean" ? "bg-indigo-500" : "bg-gray-300")} />
+                            <div className={cn("w-1 h-1 rounded-none", environment === "clean" ? "bg-zinc-500" : "bg-zinc-300")} />
                             Clean
                         </button>
                         <button
@@ -191,11 +215,11 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             className={cn(
                                 "py-2 rounded-md text-[9px] font-bold transition-all flex flex-col items-center gap-1",
                                 environment === "realistic"
-                                    ? "bg-white text-indigo-700 shadow-sm"
-                                    : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
+                                    ? "bg-white text-zinc-700 shadow-sm"
+                                    : "text-zinc-400 hover:text-zinc-600 hover:bg-white/50"
                             )}
                         >
-                            <div className={cn("w-1 h-1 rounded-full", environment === "realistic" ? "bg-amber-500" : "bg-gray-300")} />
+                            <div className={cn("w-1 h-1 rounded-none", environment === "realistic" ? "bg-amber-500" : "bg-zinc-300")} />
                             Real
                         </button>
                         <button
@@ -203,11 +227,11 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             className={cn(
                                 "py-2 rounded-md text-[9px] font-bold transition-all flex flex-col items-center gap-1",
                                 environment === "modern"
-                                    ? "bg-white text-indigo-700 shadow-sm"
-                                    : "text-gray-400 hover:text-gray-600 hover:bg-white/50"
+                                    ? "bg-white text-zinc-700 shadow-sm"
+                                    : "text-zinc-400 hover:text-zinc-600 hover:bg-white/50"
                             )}
                         >
-                            <div className={cn("w-1 h-1 rounded-full", environment === "modern" ? "bg-teal-500" : "bg-gray-300")} />
+                            <div className={cn("w-1 h-1 rounded-none", environment === "modern" ? "bg-teal-500" : "bg-zinc-300")} />
                             Modern
                         </button>
                     </div>
@@ -233,9 +257,9 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             onClick={() => setActiveIndex(idx)}
                             statusIndicator={
                                 status === 'BATCH_GENERATING' ? (
-                                    <><Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-400" /> Batch Processing...</>
+                                    <><Loader2 className="w-2.5 h-2.5 animate-spin text-zinc-400" /> Batch Processing...</>
                                 ) : isEnriching ? (
-                                    <><Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-400" /> {p.enrichment_message?.replace("...", "") || "Rendering"}</>
+                                    <><Loader2 className="w-2.5 h-2.5 animate-spin text-zinc-400" /> {p.enrichment_message?.replace("...", "") || "Rendering"}</>
                                 ) : isBgRemoving ? (
                                     <><Loader2 className="w-2.5 h-2.5 animate-spin text-cyan-500" /> Removing BG...</>
                                 ) : isFailed ? (
@@ -245,7 +269,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                 ) : status === 'PENDING_STUDIO_REVIEW' ? (
                                     <><Sparkles className="w-2.5 h-2.5 text-amber-500" /> Ready for Review</>
                                 ) : status === 'READY_FOR_STUDIO' ? (
-                                    <span className="text-gray-300">Ready</span>
+                                    <span className="text-zinc-300">Ready</span>
                                 ) : "Queued"
                             }
                         />
@@ -259,31 +283,31 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
 
     const mainContent = isReady ? (
         <div className="flex-1 flex flex-col items-center justify-center p-12 text-center h-full animate-in fade-in zoom-in duration-300">
-            <div className="w-24 h-24 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-3xl flex items-center justify-center mb-8 shadow-inner ring-1 ring-inset ring-white/50">
-                <Wand2 className="w-12 h-12 text-indigo-600" />
+            <div className="w-24 h-24 bg-gradient-to-br from-zinc-50 to-purple-50 rounded-none flex items-center justify-center mb-8 shadow-inner   ring-white/50">
+                <Wand2 className="w-12 h-12 text-zinc-600" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Nano Banana Studio</h2>
-            <p className="text-gray-500 max-w-md mb-8 text-lg font-medium leading-relaxed">
+            <h2 className="text-3xl font-bold text-zinc-900 mb-4 tracking-tight">Nano Banana Studio</h2>
+            <p className="text-zinc-500 max-w-md mb-8 text-lg font-medium leading-relaxed">
                 Generate professional product photography automatically.
             </p>
 
             <Button
                 onClick={() => onStartStudio(environment, generationModel)}
                 size="lg"
-                className="bg-indigo-600 hover:bg-indigo-700 text-white h-12 px-8 rounded-full font-bold text-sm shadow-xl shadow-indigo-200 transition-all transform hover:scale-105"
+                className="bg-zinc-600 hover:bg-zinc-700 text-white h-12 px-8 rounded-none font-bold text-sm shadow-xl shadow-sm transition-all transform hover:scale-105"
             >
                 <Wand2 className="w-4 h-4 mr-2" />
                 Start Generation
             </Button>
         </div>
     ) : activeProduct ? (
-        <div className="flex-1 flex flex-col h-full bg-gray-50/30">
+        <div className="flex-1 flex flex-col h-full bg-zinc-50/30">
             {/* Live progress banner moved to footer */}
 
             {/* Product comparison view — always visible */}
             <div className="p-8 space-y-12 max-w-7xl mx-auto flex-1 w-full flex flex-col justify-center">
                 <div className="space-y-6">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 justify-center">
+                    <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2 justify-center">
                         <PenTool className="w-3 h-3" />
                         Studio Transformation
                     </h4>
@@ -291,28 +315,28 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                     <div className="grid grid-cols-2 gap-8 items-center max-w-5xl mx-auto w-full">
                         {/* Source */}
                         <div className="space-y-3 group relative">
-                            <div className="relative aspect-square rounded-3xl overflow-hidden border-4 border-white bg-white shadow-xl shadow-gray-200/50 transition-all group-hover:shadow-2xl group-hover:scale-[1.02]">
+                            <div className="relative aspect-square rounded-none overflow-hidden border-4 border-white bg-white shadow-xl shadow-sm transition-all group-hover:shadow-2xl group-hover:scale-[1.02]">
                                 {activeProduct.ai_data?.selected_images?.base ? (
                                     <img
-                                        src={`${activeProduct.ai_data.selected_images.base}${activeProduct.ai_data.selected_images.base.includes('studio_base.jpg') ? `?t=${Date.now()}` : ''}`}
+                                        src={`${activeProduct.ai_data.selected_images.base}${activeProduct.ai_data.selected_images.base.includes('studio_base.jpg') ? `?t=${timestamp}` : ''}`}
                                         alt="Source"
                                         className="w-full h-full object-cover cursor-pointer grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500"
-                                        onClick={() => setLightboxImage(activeProduct.ai_data?.selected_images?.base ? `${activeProduct.ai_data.selected_images.base}?t=${Date.now()}` : null)}
+                                        onClick={() => setLightboxImage(activeProduct.ai_data?.selected_images?.base ? `${activeProduct.ai_data.selected_images.base}?t=${timestamp}` : null)}
                                     />
                                 ) : (
-                                    <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                                        <ImageIcon className="w-12 h-12 text-gray-300" />
+                                    <div className="w-full h-full bg-zinc-100 flex items-center justify-center">
+                                        <ImageIcon className="w-12 h-12 text-zinc-300" />
                                     </div>
                                 )}
-                                <div className="absolute top-4 left-4 bg-white/90 text-gray-900 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase backdrop-blur-md shadow-sm flex items-center gap-2">
+                                <div className="absolute top-4 left-4 bg-white/90 text-zinc-900 text-[10px] font-bold px-3 py-1.5 rounded-none uppercase backdrop-blur-md shadow-sm flex items-center gap-2">
                                     Original Input
-                                    {activeProduct.status === 'PENDING_SOURCE_BG_REMOVAL' && <Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-600" />}
+                                    {activeProduct.status === 'PENDING_SOURCE_BG_REMOVAL' && <Loader2 className="w-2.5 h-2.5 animate-spin text-zinc-600" />}
                                 </div>
 
                                 {activeProduct.status === 'PENDING_SOURCE_BG_REMOVAL' && (
                                     <div className="absolute inset-0 z-40 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                                        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-3" />
-                                        <Badge variant="secondary" className="bg-white/80 backdrop-blur-md text-indigo-900 shadow-sm animate-pulse">
+                                        <Loader2 className="w-10 h-10 text-zinc-600 animate-spin mb-3" />
+                                        <Badge variant="secondary" className="bg-white/80 backdrop-blur-md text-zinc-900 shadow-sm animate-pulse">
                                             Removing Background...
                                         </Badge>
                                     </div>
@@ -328,7 +352,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                                 e.stopPropagation();
                                                 onRemoveBg(activeProduct.sku, "source");
                                             }}
-                                            className="w-full bg-white/90 hover:bg-white text-gray-900 border-0 text-[10px] font-bold uppercase"
+                                            className="w-full bg-white/90 hover:bg-white text-zinc-900 border-0 text-[10px] font-bold uppercase"
                                         >
                                             <Layers className="w-3 h-3 mr-2" />
                                             Remove Background
@@ -339,18 +363,22 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                         </div>
 
                         {/* Result */}
-                        <div className="space-y-3 relative group">
-                            <div className="absolute -left-4 top-1/2 -translate-y-1/2 z-10 bg-white shadow-lg shadow-indigo-100 rounded-full p-2 border border-gray-100 text-indigo-600">
-                                <ArrowRight className="w-5 h-5" />
+                        <div className="space-y-4 relative group">
+                            <h5 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center flex items-center justify-center gap-2">
+                                Final Output <Badge className="rounded-none bg-zinc-100 text-zinc-600 px-1 border-0">{outputImages.length}</Badge>
+                            </h5>
+
+                            <div className="absolute -left-6 top-[calc(50%+1rem)] -translate-y-1/2 z-10 bg-white shadow-sm rounded-none p-1.5 border border-zinc-200 text-zinc-400">
+                                <ArrowRight className="w-4 h-4" />
                             </div>
 
                             <div className={cn(
-                                "relative aspect-square rounded-3xl overflow-hidden border-4 bg-white transition-all shadow-2xl",
+                                "relative aspect-square rounded-sm overflow-hidden border-2 bg-white transition-all shadow-md",
                                 displayImage
-                                    ? "border-white shadow-green-200/50 ring-4 ring-green-50/30"
+                                    ? "border-white shadow-sm  ring-green-50/30"
                                     : activeProduct.status === 'ENRICHMENT_FAILED'
-                                        ? "border-red-100 shadow-red-100/50"
-                                        : "border-white shadow-indigo-200/50 ring-4 ring-indigo-50/30 animate-pulse"
+                                        ? "border-red-100 shadow-sm"
+                                        : "border-white shadow-sm   animate-pulse"
                             )}>
                                 {displayImage ? (
                                     <>
@@ -361,11 +389,17 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                             onClick={() => setLightboxImage(displayImage)}
                                         />
 
+                                        {activeVariantSuffix !== "base" && (
+                                            <div className="absolute top-3 left-3 bg-zinc-900/90 text-white shadow-sm border border-zinc-700 backdrop-blur-sm px-2 py-0.5 z-20 flex items-center gap-1.5">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">#{activeVariantSuffix}</span>
+                                            </div>
+                                        )}
+
                                         {/* BG Removal Loading Overlay */}
                                         {activeProduct.status === 'PENDING_BG_REMOVAL' && (
                                             <div className="absolute inset-0 z-40 bg-white/60 backdrop-blur-[2px] flex flex-col items-center justify-center">
-                                                <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-3" />
-                                                <Badge variant="secondary" className="bg-white/80 backdrop-blur-md text-indigo-900 shadow-sm animate-pulse">
+                                                <Loader2 className="w-10 h-10 text-zinc-600 animate-spin mb-3" />
+                                                <Badge variant="secondary" className="bg-white/80 backdrop-blur-md text-zinc-900 shadow-sm animate-pulse">
                                                     Removing Background...
                                                 </Badge>
                                             </div>
@@ -378,7 +412,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                                 e.stopPropagation();
                                                 setLightboxImage(displayImage);
                                             }}
-                                            className="absolute top-4 right-4 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 text-white border-0 z-20"
+                                            className="absolute top-4 right-4 rounded-none opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 hover:bg-black/70 text-white border-0 z-20"
                                         >
                                             <ImageIcon className="w-4 h-4" />
                                         </Button>
@@ -388,7 +422,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                                 <Button
                                                     size="sm"
                                                     onClick={() => onRegenerate(activeProduct.sku, environment, generationModel)}
-                                                    className="col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white border-0 text-[10px] font-bold uppercase"
+                                                    className="col-span-1 bg-zinc-600 hover:bg-zinc-700 text-white border-0 text-[10px] font-bold uppercase"
                                                 >
                                                     <RotateCcw className="w-3 h-3 mr-2" />
                                                     Retry
@@ -397,7 +431,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                                     size="sm"
                                                     variant="secondary"
                                                     onClick={() => onRemoveBg(activeProduct.sku)}
-                                                    className="col-span-1 bg-white/90 hover:bg-white text-gray-900 border-0 text-[10px] font-bold uppercase"
+                                                    className="col-span-1 bg-white/90 hover:bg-white text-zinc-900 border-0 text-[10px] font-bold uppercase"
                                                 >
                                                     <Layers className="w-3 h-3 mr-2" />
                                                     Remove BG
@@ -406,7 +440,9 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                         )}
                                     </>
                                 ) : activeProduct.status === 'ENRICHMENT_FAILED' ? (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-red-500 p-8 text-center bg-red-50/50">
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-red-500 p-8 text-center bg-red-50/20">
+                                        <XCircle className="w-10 h-10 mb-4" />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest mb-2 text-red-500">Generation Failed</span>
                                         <XCircle className="w-12 h-12 mb-4 drop-shadow-sm" />
                                         <span className="text-xs font-bold uppercase tracking-widest mb-2">Generation Failed</span>
                                         <p className="text-xs text-red-400 mb-6 max-w-[200px] leading-relaxed">{activeProduct.enrichment_message}</p>
@@ -414,7 +450,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                             size="sm"
                                             variant="destructive"
                                             onClick={() => onRetry(activeProduct.sku)}
-                                            className="rounded-full font-bold"
+                                            className="rounded-none font-bold"
                                         >
                                             <RotateCcw className="w-3.5 h-3.5 mr-2" /> Retry Generation
                                         </Button>
@@ -424,20 +460,20 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                         <div className="relative">
                                             {isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING') ? (
                                                 <>
-                                                    <div className="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full animate-pulse" />
-                                                    <Loader2 className="w-12 h-12 text-indigo-500 animate-[spin_3s_linear_infinite] relative z-10" />
+                                                    <div className="absolute inset-0 bg-zinc-500/20 blur-2xl rounded-none animate-pulse" />
+                                                    <Loader2 className="w-12 h-12 text-zinc-500 animate-[spin_3s_linear_infinite] relative z-10" />
                                                 </>
                                             ) : (
-                                                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-inner">
-                                                    <Wand2 className="w-8 h-8 text-gray-300" />
+                                                <div className="w-16 h-16 bg-zinc-50 rounded-none flex items-center justify-center border border-zinc-100 shadow-inner">
+                                                    <Wand2 className="w-8 h-8 text-zinc-300" />
                                                 </div>
                                             )}
                                         </div>
 
                                         <div className="space-y-4">
                                             <div className="space-y-1">
-                                                <h4 className="font-bold text-gray-900 uppercase tracking-tight text-sm">Studio Transformation</h4>
-                                                <p className="text-[10px] text-gray-400 font-medium">
+                                                <h4 className="font-bold text-zinc-900 uppercase tracking-tight text-sm">Studio Transformation</h4>
+                                                <p className="text-[10px] text-zinc-400 font-medium">
                                                     {isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING')
                                                         ? "AI is synthesizing your studio shot..."
                                                         : "Product ready for studio synthesis."}
@@ -461,14 +497,14 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                                         return (
                                                             <div key={phase.label} className="flex items-center gap-3">
                                                                 <div className={cn(
-                                                                    "w-1.5 h-1.5 rounded-full transition-all duration-500",
-                                                                    isActive ? "bg-indigo-500 ring-4 ring-indigo-100 animate-pulse" :
-                                                                        isDone ? "bg-green-500" : "bg-gray-200"
+                                                                    "w-1.5 h-1.5 rounded-none transition-all duration-500",
+                                                                    isActive ? "bg-zinc-500   animate-pulse" :
+                                                                        isDone ? "bg-green-500" : "bg-zinc-200"
                                                                 )} />
                                                                 <span className={cn(
                                                                     "text-[10px] font-bold uppercase tracking-wider transition-colors",
-                                                                    isActive ? "text-indigo-600" :
-                                                                        isDone ? "text-green-600/60" : "text-gray-300"
+                                                                    isActive ? "text-zinc-600" :
+                                                                        isDone ? "text-green-600/60" : "text-zinc-300"
                                                                 )}>
                                                                     {phase.label}
                                                                 </span>
@@ -481,7 +517,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                                     onClick={() => onRegenerate(activeProduct.sku, environment, generationModel)}
                                                     size="sm"
                                                     disabled={isBatchGenerating}
-                                                    className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-bold text-[10px]"
+                                                    className="bg-zinc-600 hover:bg-zinc-700 text-white rounded-none font-bold text-[10px]"
                                                 >
                                                     <Sparkles className="w-3 h-3 mr-2" /> Start Generation
                                                 </Button>
@@ -489,7 +525,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                         </div>
 
                                         {(activeProduct.status === 'ENRICHMENT_FAILED' || isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING')) && activeProduct.enrichment_message && (
-                                            <span className="text-[9px] text-indigo-400/60 font-medium mt-6 italic bg-white/50 px-3 py-1 rounded-full border border-indigo-50">
+                                            <span className="text-[9px] text-zinc-400/60 font-medium mt-6 italic bg-white/50 px-3 py-1 rounded-none border border-zinc-50">
                                                 {activeProduct.enrichment_message}
                                             </span>
                                         )}
@@ -501,7 +537,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                         "absolute top-4 left-4 text-[10px] font-bold px-3 py-1 uppercase backdrop-blur-md shadow-sm border-0",
                                         displayImage ? "bg-green-500/90 hover:bg-green-600/90" :
                                             activeProduct.status === 'ENRICHMENT_FAILED' ? "bg-red-500/90" :
-                                                (isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING')) ? "bg-indigo-500/90" : "bg-gray-400/90"
+                                                (isBatchGenerating || activeProduct.status === 'PENDING_NANO_BANANA' || activeProduct.status.includes('GENERATING')) ? "bg-zinc-500/90" : "bg-zinc-400/90"
                                     )}
                                 >
                                     {displayImage
@@ -514,6 +550,29 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                                 </Badge>
                             </div>
                         </div>
+
+                        {/* Multi-Variant Strip Selection */}
+                        {outputImages.length > 1 && (
+                            <div className="flex gap-2 overflow-x-auto pb-2 pt-1 w-full shrink-0">
+                                {outputImages.map(img => (
+                                    <button
+                                        key={img.suffix}
+                                        onClick={() => setActiveVariantSuffix(img.suffix)}
+                                        className={cn(
+                                            "relative flex-shrink-0 aspect-square w-16 h-16 border bg-white overflow-hidden transition-all group rounded-none",
+                                            activeVariantSuffix === img.suffix
+                                                ? "border-zinc-900 opacity-100 ring-2 ring-zinc-900 ring-offset-2"
+                                                : "border-zinc-200 opacity-60 hover:opacity-100 cursor-pointer"
+                                        )}
+                                    >
+                                        <img src={img.url} alt={img.suffix} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                        <div className="absolute inset-x-0 bottom-0 bg-zinc-900/80 p-0.5">
+                                            <p className="text-[8px] font-bold text-white text-center uppercase truncate">{img.suffix}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -529,17 +588,17 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                         <div className="animate-in fade-in slide-in-from-bottom-2">
                             <div className="flex justify-between items-center mb-1.5">
                                 <div className="flex items-center gap-2">
-                                    <Loader2 className="w-3 h-3 text-indigo-600 animate-spin" />
-                                    <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-tight">Studio Working...</span>
+                                    <Loader2 className="w-3 h-3 text-zinc-600 animate-spin" />
+                                    <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-tight">Studio Working...</span>
                                 </div>
-                                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md">
+                                <span className="text-[10px] font-bold text-zinc-600 bg-zinc-50 px-1.5 py-0.5 rounded-md">
                                     {completedItems + failedCount}/{totalItems}
                                 </span>
                             </div>
-                            <Progress value={((completedItems + failedCount) / totalItems) * 100} className="h-1 bg-indigo-50" />
+                            <Progress value={((completedItems + failedCount) / totalItems) * 100} className="h-1 bg-zinc-50" />
                             <div className="mt-1.5 flex justify-between">
-                                <span className="text-[9px] text-gray-400 font-medium">Estimated time:</span>
-                                <span className="text-[9px] text-indigo-500 font-bold uppercase">
+                                <span className="text-[9px] text-zinc-400 font-medium">Estimated time:</span>
+                                <span className="text-[9px] text-zinc-500 font-bold uppercase">
                                     {(() => {
                                         const totalSeconds = Math.max(1, (totalItems - completedItems) * 5);
                                         const mins = Math.ceil(totalSeconds / 60);
@@ -550,11 +609,11 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                         </div>
                     ) : (
                         <div className="flex flex-col gap-0.5 opacity-60">
-                            <span className="text-[10px] text-gray-400 font-medium flex items-center gap-1.5">
+                            <span className="text-[10px] text-zinc-400 font-medium flex items-center gap-1.5">
                                 <Sparkles className="w-3 h-3 text-amber-500" />
                                 Visuals generated at 4K resolution.
                             </span>
-                            <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Studio Idle</p>
+                            <p className="text-[9px] text-zinc-400 uppercase tracking-widest font-bold">Studio Idle</p>
                         </div>
                     )}
                 </div>
@@ -567,7 +626,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             <AlertDialogTrigger asChild>
                                 <Button
                                     variant="destructive"
-                                    className="h-10 px-5 rounded-full font-bold text-xs transition-all transform hover:scale-105 duration-200 shadow-lg shadow-red-100"
+                                    className="h-10 px-5 rounded-none font-bold text-xs transition-all transform hover:scale-105 duration-200 shadow-lg shadow-sm"
                                 >
                                     <XCircle className="w-3.5 h-3.5 mr-2" />
                                     Abort
@@ -597,7 +656,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             <Button
                                 variant="outline"
                                 disabled={isBatchGenerating}
-                                className="h-10 px-5 rounded-full border-indigo-100 text-indigo-700 hover:bg-indigo-100 hover:text-indigo-800 font-bold text-xs transition-all transform hover:scale-105 duration-200"
+                                className="h-10 px-5 rounded-none border-zinc-100 text-zinc-700 hover:bg-zinc-100 hover:text-zinc-800 font-bold text-xs transition-all transform hover:scale-105 duration-200"
                             >
                                 <RotateCcw className="w-3.5 h-3.5 mr-2" />
                                 Regenerate All
@@ -613,7 +672,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => onRegenerateAll(environment, generationModel)} className="bg-indigo-600 hover:bg-indigo-700">
+                                <AlertDialogAction onClick={() => onRegenerateAll(environment, generationModel)} className="bg-zinc-600 hover:bg-zinc-700">
                                     Regenerate All
                                 </AlertDialogAction>
                             </AlertDialogFooter>
@@ -626,7 +685,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                             <Button
                                 variant="outline"
                                 disabled={!hasAnyGenerated || isBatchGenerating}
-                                className="h-10 px-5 rounded-full border-cyan-100 text-cyan-700 hover:bg-cyan-100 hover:text-cyan-800 font-bold text-xs transition-all transform hover:scale-105 duration-200"
+                                className="h-10 px-5 rounded-none border-cyan-100 text-cyan-700 hover:bg-cyan-100 hover:text-cyan-800 font-bold text-xs transition-all transform hover:scale-105 duration-200"
                             >
                                 <Layers className="w-3.5 h-3.5 mr-2" />
                                 Bulk Remove BG
@@ -653,7 +712,7 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                         <AlertDialogTrigger asChild>
                             <Button
                                 disabled={isBatchGenerating}
-                                className="bg-green-600 hover:bg-green-700 h-10 px-6 text-white rounded-full font-bold shadow-lg shadow-green-100 transition-all transform hover:scale-105 disabled:opacity-30 disabled:scale-100 disabled:shadow-none text-xs"
+                                className="bg-green-600 hover:bg-green-700 h-10 px-6 text-white rounded-none font-bold shadow-lg shadow-sm transition-all transform hover:scale-105 disabled:opacity-30 disabled:scale-100 disabled:shadow-none text-xs"
                             >
                                 Send to Staging Area <CheckCircle2 className="w-4 h-4 ml-2" />
                             </Button>
@@ -710,13 +769,13 @@ export function NanoStep({ products, onBack, onRetry, onRemoveBg, onStartStudio,
                         <img
                             src={lightboxImage}
                             alt="Lightbox"
-                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                            className="max-w-full max-h-full object-contain rounded-sm shadow-2xl"
                         />
                         <Button
                             variant="secondary"
                             size="icon"
                             onClick={() => setLightboxImage(null)}
-                            className="absolute top-4 right-4 rounded-full bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-md"
+                            className="absolute top-4 right-4 rounded-none bg-white/10 hover:bg-white/20 text-white border-0 backdrop-blur-md"
                         >
                             <span className="sr-only">Close</span>
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

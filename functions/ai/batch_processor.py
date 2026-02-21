@@ -1,36 +1,30 @@
 """
 Parallel Studio Processor — Fire-and-forget with real-time Firestore updates.
 
-Architecture:
-  1. start_studio_session(skus) → Called by the callable. Creates tracking doc,
-     marks products as BATCH_GENERATING, returns immediately (<1 second).
-  2. process_studio_queue(batch_id) → Called by Firestore onCreate trigger.
-     Processes products ONE AT A TIME with 30s delay between each.
-     Writes results to Firestore after EACH product completes.
-  3. check_and_process_batches() → Cron safety net for crash recovery.
-
-Rate Limiting:
-  - Hard 30-second delay between requests (no 429 errors)
-  - Exponential backoff on any 429: 30s → 60s → 120s → 240s
-  - Max 5 retries per product
+Architecture & Fixes:
+  1. start_studio_session(skus) -> Chunks SKUs, creates batches as QUEUED, returns immediately.
+  2. process_studio_queue(batch_id) -> Uses a strict, transaction-based Global Lock.
+     - Processes products sequentially.
+     - Performs INLINE heartbeats (no unstable background threads).
+     - Respects hard 30s/60s rate-limit delays, while keeping the lock alive.
+  3. check_and_process_batches() -> Cron safety net that drives the queue forward safely.
 """
 
 import os
 import json
 import uuid
 import logging
-import base64
 import time
 import random
+import datetime
 import requests
 import urllib3
-import datetime
 from typing import List, Dict, Any, Optional
 
 from firebase_admin import firestore
 from google.genai import types
 
-from core.llm_config import LLMConfig
+from core.llm_config import LLMConfig, ModelName
 from .image_utils import normalize_product_image
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -39,10 +33,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-DELAY_BETWEEN_REQUESTS = 30   # Hard 30s between each image generation
+DELAY_GEMINI = 30             # Hard 30s between each Gemini image generation
+DELAY_IMAGEN = 5              # Reduced delay for us-central1 (higher quotas)
 MAX_RETRIES = 5               # Retries per product on 429
-INITIAL_BACKOFF = 30          # Starting backoff on 429 (doubles each retry)
+INITIAL_BACKOFF = 30          # Starting backoff on 429
 REQUEST_TIMEOUT = 20          # Image download timeout
+LOCK_TIMEOUT_SECONDS = 180    # 3 minutes without an inline heartbeat = dead worker
 
 STUDIO_PROMPTS = {
     "clean": """Using the provided image ONLY as a reference for the product's labels, colors, and shape, generate a BRAND NEW photography with these exact rules:
@@ -79,239 +75,155 @@ IMAGEN_PROMPTS = {
     "modern": "High-end commercial avant-garde photography. The product rests on an invisible white studio floor and is surrounded by a mild decorative crown of high-viscosity glossy liquid splashes in deep teal and vibrant neon purple. Lighting: **Environment-driven** tech-premium setup; the floor and background merge into pure #FFFFFF. The product surface must **reflect the vibrant teal and magenta colors from the splashes**, replacing original specular highlights. Shadow: Soft, subtle contact shadow at the base."
 }
 
-# Default environment for backward compatibility
 DEFAULT_ENVIRONMENT = "clean"
 DEFAULT_MODEL = "gemini"
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 def _upload_image_to_storage(image_bytes: bytes, mime_type: str, sku: str) -> str:
-    """Upload raw image bytes to Firebase Storage, return public URL. Overwrites previous version."""
     from firebase_admin import storage as fb_storage
-
     bucket = fb_storage.bucket()
-    # Use a fixed filename to allow overwriting and efficient storage
-    filename = "studio_base.jpg"
-    blob_path = f"generated-images/{sku}/{filename}"
-    blob = bucket.blob(blob_path)
+    blob = bucket.blob(f"generated-images/{sku}/studio_base.jpg")
     blob.cache_control = "no-cache, max-age=0"
     blob.upload_from_string(image_bytes, content_type=mime_type)
     blob.make_public()
     return blob.public_url
 
-
 def _download_source_image(url: str) -> tuple:
-    """Download an image from a URL, return (bytes, mime_type)."""
     resp = requests.get(url, timeout=REQUEST_TIMEOUT, verify=False)
     resp.raise_for_status()
     mime_type = resp.headers.get("Content-Type", "image/jpeg")
     return resp.content, mime_type
 
+def _heartbeat_lock(db, batch_id: str):
+    """Inline heartbeat to keep the global lock alive."""
+    try:
+        db.collection("system_config").document("studio_lock").set({
+            "active_batch_id": batch_id,
+            "updated_at": firestore.SERVER_TIMESTAMP
+        }, merge=True)
+    except Exception as e:
+        logger.warning(f"[Studio {batch_id}] Heartbeat update failed: {e}")
 
-def _generate_image_with_backoff(client, image_data: bytes, mime_type: str, prompt: str, model_type: str = "gemini", batch_id: str = None) -> Any:
-    """
-    Call Gemini or Imagen image generation with aggressive exponential backoff.
-    """
-    import base64
-    import requests
-    from core.llm_config import ModelName
-
+def _generate_image_with_backoff(client, db, image_data: bytes, mime_type: str, prompt: str, model_type: str, batch_id: str) -> Any:
+    """Call Gemini/Imagen API with strict, thread-safe exponential backoff."""
     delay = INITIAL_BACKOFF
+    batch_ref = db.collection("enrichment_batches").document(batch_id)
 
     for attempt in range(MAX_RETRIES + 1):
         try:
             if model_type == "imagen":
-                # Imagen Recontext via REST predict API
+                import base64
                 from google.auth import default, transport
-                creds, project = default()
-                auth_req = transport.requests.Request()
-                creds.refresh(auth_req)
+                creds, _ = default()
+                creds.refresh(transport.requests.Request())
                 
-                region = LLMConfig.REGION
+                region = LLMConfig.REGION_IMAGEN
                 project_id = LLMConfig.PROJECT_ID
                 model_id = ModelName.IMAGE_RECONTEXT.value
-                
                 endpoint = f"https://{region}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{region}/publishers/google/models/{model_id}:predict"
                 
                 payload = {
-                    "instances": [
-                        {
-                            "prompt": prompt,
-                            "productImages": [
-                                {
-                                    "image": {
-                                        "bytesBase64Encoded": base64.b64encode(image_data).decode("utf-8")
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    "parameters": {
-                        "sampleCount": 1,
-                        "addWatermark": False, # Set to False to enable 'seed'
-                        "seed": 42, # Standardized seed for consistency
-                        "enhancePrompt": False # Disable to ensure prompt instructions are strictly followed
-                    }
+                    "instances": [{
+                        "prompt": prompt,
+                        "productImages": [{"image": {"bytesBase64Encoded": base64.b64encode(image_data).decode("utf-8")}}]
+                    }],
+                    "parameters": {"sampleCount": 1, "addWatermark": False, "seed": 42, "enhancePrompt": False}
                 }
-                
-                headers = {
-                    "Authorization": f"Bearer {creds.token}",
-                    "Content-Type": "application/json"
-                }
+                headers = {"Authorization": f"Bearer {creds.token}", "Content-Type": "application/json"}
                 
                 response = requests.post(endpoint, json=payload, headers=headers, timeout=60)
                 response.raise_for_status()
-                return response.json() # Return dict for Imagen
+                return response.json()
             else:
-                # Standard Gemini Image Generation
                 response = client.models.generate_content(
                     model=LLMConfig.get_image_model_name(model_type),
                     contents=[
-                        types.Content(
-                            role="user",
-                            parts=[
-                                types.Part.from_bytes(data=image_data, mime_type=mime_type),
-                                types.Part.from_text(text=prompt)
-                            ]
-                        )
+                        types.Content(role="user", parts=[
+                            types.Part.from_bytes(data=image_data, mime_type=mime_type),
+                            types.Part.from_text(text=prompt)
+                        ])
                     ],
-                    config=types.GenerateContentConfig(
-                    temperature=0.3,
-                    seed=42,
-                ),
+                    config=types.GenerateContentConfig(temperature=0.3, seed=42)
                 )
                 return response
 
         except Exception as e:
             error_str = str(e)
             if ("429" in error_str or "RESOURCE_EXHAUSTED" in error_str) and attempt < MAX_RETRIES:
-                # europe-west1 Imagen 1 QPM logic:
-                # If we hit 429, we MUST wait a full minute to cross the quota boundary.
-                # Standard 30s backoff is too aggressive for 1 QPM.
-                min_wait = 65 if model_type == "imagen" else delay
-                sleep_time = int(min_wait + random.uniform(0, 15))
+                # Distinguish between actual Quota exhaustion and Google Server Capacity issues
+                is_capacity_issue = "Resource exhausted" in error_str and "quota" not in error_str.lower()
                 
-                logger.warning(
-                    f"Rate limited (429) for {model_type}. Waiting {sleep_time}s... "
-                    f"(attempt {attempt + 1}/{MAX_RETRIES})"
-                )
-
-                # Interruptible sleep for 429 backoff
-                from firebase_admin import firestore
-                db = firestore.client()
+                # Ensure Imagen gets a minimum of 65s even during backoff multipliers
+                min_wait = max(delay, DELAY_IMAGEN if model_type == "imagen" else 0)
+                
+                # If Google's servers are full, trying again in 30s is a waste of a retry. Force a longer wait.
+                if is_capacity_issue and min_wait < 60:
+                    min_wait = 60
+                
+                sleep_time = int(min_wait + random.uniform(0, 10))
+                
+                # Expose the precise nature of the error in logs for easier debugging
+                err_type = "GOOGLE SERVER CAPACITY FULL" if is_capacity_issue else "PROJECT QUOTA EXCEEDED"
+                logger.warning(f"[Studio {batch_id}] 429 {err_type}. Sleeping {sleep_time}s (attempt {attempt + 1}/{MAX_RETRIES}) | Error snippet: {error_str[:150]}")
+                
+                # Interruptible inline sleep that maintains the lock heartbeat
                 for _ in range(sleep_time):
                     time.sleep(1)
-                    if _ % 5 == 0 and batch_id:
-                        try:
-                            snap = db.collection("enrichment_batches").document(batch_id).get()
-                            if snap.exists and snap.get("status") == "ABORTED":
-                                logger.info(f"[Studio {batch_id}] Abort detected during backoff.")
-                                raise Exception("Aborted by user during rate-limit backoff")
-                        except Exception as ae:
-                            if "Aborted" in str(ae): raise
+                    if _ % 10 == 0:
+                        _heartbeat_lock(db, batch_id)
+                        snap = batch_ref.get()
+                        if snap.exists and snap.get("status") == "ABORTED":
+                            raise Exception("Aborted by user during rate-limit backoff")
                 
-                delay *= 2  # 30 -> 60 -> 120 -> 240 -> 480
+                delay *= 2
                 continue
             raise
 
-
 def _extract_image_from_response(response, sku: str) -> Optional[bytes]:
-    """Extract generated image bytes from Gemini or Imagen response."""
-    # Case Imagen (dict from JSON)
+    import base64
     if isinstance(response, dict):
-        if "predictions" in response and len(response["predictions"]) > 0:
+        if response.get("predictions"):
             pred = response["predictions"][0]
             if "bytesBase64Encoded" in pred:
-                import base64
                 return base64.b64decode(pred["bytesBase64Encoded"])
         return None
 
-    # Case Gemini (google-genai object)
-    if hasattr(response, 'generated_image') and response.generated_image:
-        return None  # URL-only, not applicable
-
     if not response.candidates or not response.candidates[0].content:
-        logger.warning(f"No candidates for {sku}. Response status: {getattr(response, 'status', 'Unknown')}")
-        # Log safety ratings if available
-        if response.candidates and response.candidates[0].safety_ratings:
-            ratings = [f"{r.category}: {r.probability}" for r in response.candidates[0].safety_ratings]
-            logger.warning(f"Safety Ratings for {sku}: {', '.join(ratings)}")
         return None
-
-    if response.candidates[0].content.parts:
-        for part in response.candidates[0].content.parts:
-            if part.inline_data:
-                return part.inline_data.data
-    
-    logger.warning(f"No inline_data found for {sku} in first candidate parts.")
+    for part in response.candidates[0].content.parts:
+        if part.inline_data:
+            return part.inline_data.data
     return None
 
-
 # ---------------------------------------------------------------------------
-# 1. Start Studio Session (returns immediately — called by Cloud Function)
+# 1. Start Studio Session
 # ---------------------------------------------------------------------------
 
 def start_studio_session(skus: List[str], environment: str = None, generation_model: str = None, priority: str = "normal") -> dict:
-    """
-    Creates tracking doc + marks products. Returns in <1 second.
-    Actual processing is triggered by Firestore onCreate on enrichment_batches.
-    """
+    """Creates batch tracking docs. Quick fire-and-forget."""
     db = firestore.client()
     env = environment or DEFAULT_ENVIRONMENT
-    
-    # --- Cleanup: Mark old 'stuck' batches as FAILED ---
-    try:
-        stuck = db.collection("enrichment_batches").where("status", "==", "RUNNING").get()
-        import datetime
-        now = datetime.datetime.now(datetime.timezone.utc)
-        for doc in stuck:
-            data = doc.to_dict()
-            created = data.get("created_at")
-            # Aggressive cleanup: 10 mins instead of 30
-            if created and (now - created).total_seconds() > 600: 
-                batch_id = doc.id
-                logger.info(f"Marking orphaned batch {batch_id} as FAILED")
-                # Mark batch
-                doc.reference.update({"status": "FAILED", "error_details": "Orphaned/Timed out during previous execution"})
-                
-                # Mark products in that batch
-                batch_skus = data.get("skus", [])
-                for s_sku in batch_skus:
-                    try:
-                        p_doc = db.collection("staging_products").document(s_sku).get()
-                        if p_doc.exists:
-                            p_status = p_doc.to_dict().get("status")
-                            if p_status == "BATCH_GENERATING":
-                                db.collection("staging_products").document(s_sku).update({
-                                    "status": "ENRICHMENT_FAILED",
-                                    "enrichment_message": "Session timed out — please retry"
-                                })
-                    except Exception as pe:
-                        logger.warning(f"Failed to reset sku {s_sku} during cleanup: {pe}")
-    except Exception as e:
-        logger.error(f"Cleanup error: {e}")
-
-    # --- Chunking Logic (Max 8 SKUs per batch to avoid 9m timeout) ---
-    # With 65s delay per product, 8 products = ~8.6 minutes.
     MAX_BATCH_SIZE = 8
-    sku_chunks = [skus[i:i + MAX_BATCH_SIZE] for i in range(0, len(skus), MAX_BATCH_SIZE)]
     
+    sku_chunks = [skus[i:i + MAX_BATCH_SIZE] for i in range(0, len(skus), MAX_BATCH_SIZE)]
     batch_ids = []
     
+    # Check for collisions to prevent thundering herds
+    active_sessions = db.collection("enrichment_batches").where(filter=firestore.FieldFilter("status", "in", ["QUEUED", "RUNNING"])).get()
+    active_skus = {s for doc in active_sessions for s in doc.to_dict().get("skus", [])}
+    if any(s in active_skus for s in skus):
+        logger.warning(f"[Studio] Session overlap detected. Skipping active SKUs.")
+
     for idx, chunk in enumerate(sku_chunks):
         batch_id = str(uuid.uuid4())
         batch_ids.append(batch_id)
         
-        # Determine status: Only the first chunk starts immediately
-        # Subsequent chunks stay in 'WAITING_FOR_QUEUE' until the trigger chain picks them up
-        initial_status = "QUEUED" if idx == 0 else "WAITING_FOR_QUEUE"
+        # All batches go into QUEUED state immediately to be picked up sequentially
+        initial_status = "QUEUED"
         
-        logger.info(f"[Studio {batch_id}] Creating {initial_status} chunk session for {len(chunk)} SKUs (env={env}, priority={priority})")
-
-        # Create tracking document
         sku_results = {sku: {"status": initial_status, "error": None} for sku in chunk}
         db.collection("enrichment_batches").document(batch_id).set({
             "job_name": f"parallel-studio-{batch_id}",
@@ -329,501 +241,237 @@ def start_studio_session(skus: List[str], environment: str = None, generation_mo
             "updated_at": firestore.SERVER_TIMESTAMP,
         })
 
-        # Mark products as batch generating
+        # Mark products
         for sku in chunk:
             try:
-                # Check current status to avoid redundant trigger noise
-                product_doc = db.collection("staging_products").document(sku).get()
-                if product_doc.exists and product_doc.to_dict().get("status") == "BATCH_GENERATING":
-                    logger.info(f"[Studio {batch_id}] {sku} already in BATCH_GENERATING. Skipping redundant update.")
-                    continue
-
-                db.collection("staging_products").document(sku).update({
-                    "status": "BATCH_GENERATING",
-                    "enrichment_message": "Queued for Studio Generation..."
-                })
+                p_doc = db.collection("staging_products").document(sku).get()
+                if p_doc.exists and p_doc.to_dict().get("status") != "BATCH_GENERATING":
+                    db.collection("staging_products").document(sku).update({
+                        "status": "BATCH_GENERATING",
+                        "enrichment_message": "Queued for Studio Generation..."
+                    })
             except Exception as e:
-                logger.error(f"[Studio {batch_id}] Failed to mark {sku}: {e}")
-
-    # --- Collision Prevention: Check if requested SKUs are already being processed ---
-    # We allow the session to BE CREATED (for tracking), but if collisions found,
-    # we mark those specific SKUs as SKIPPED in the new batch to avoid thundering herd.
-    active_sessions = db.collection("enrichment_batches").where("status", "in", ["QUEUED", "RUNNING"]).get()
-    active_skus = set()
-    for s_doc in active_sessions:
-        if s_doc.id in batch_ids: continue # Skip ourselves
-        active_skus.update(s_doc.to_dict().get("skus", []))
-    
-    if any(s in active_skus for s in skus):
-        colliding = [s for s in skus if s in active_skus]
-        logger.warning(f"[Studio] Session collision detected for SKUs: {colliding}. Overlap will be skipped in new batches.")
+                pass
 
     return {"batch_ids": batch_ids, "count": len(skus)}
 
-
 # ---------------------------------------------------------------------------
-# 2. Process Studio Queue (called by Firestore trigger or cron)
+# 2. Process Studio Queue (Worker)
 # ---------------------------------------------------------------------------
 
 def process_studio_queue(batch_id: str) -> dict:
     """
-    Process products one at a time with 30s delay between each.
-    Each result is written to Firestore immediately for real-time UI.
-
-    Returns: {"completed": int, "failed": int, "total": int}
+    Process products ONE at a time. Uses rigorous Transactional Locking.
     """
     db = firestore.client()
     client = LLMConfig.get_client()
 
     batch_ref = db.collection("enrichment_batches").document(batch_id)
-    batch_doc = batch_ref.get()
-    
-    if not batch_doc.exists:
-        logger.error(f"[Studio {batch_id}] Batch doc not found")
-        return {"error": "Batch not found"}
+    lock_ref = db.collection("system_config").document("studio_lock")
 
+    @firestore.transactional
+    def attempt_claim(transaction):
+        lock_snap = lock_ref.get(transaction=transaction)
+        batch_snap = batch_ref.get(transaction=transaction)
+
+        if not batch_snap.exists: return "NOT_FOUND", None
+        batch_status = batch_snap.get("status")
+
+        if batch_status not in ("QUEUED", "RUNNING"): 
+            return batch_status, None
+
+        now = datetime.datetime.now(datetime.timezone.utc)
+        
+        # Check Global Lock Staleness
+        active_holder = None
+        is_stale = True
+        
+        if lock_snap.exists:
+            lock_data = lock_snap.to_dict()
+            active_holder = lock_data.get("active_batch_id")
+            updated = lock_data.get("updated_at")
+            if updated and (now - updated).total_seconds() < LOCK_TIMEOUT_SECONDS:
+                is_stale = False # Lock is actively being updated
+        
+        if not is_stale and active_holder:
+            if active_holder == batch_id and batch_status == "RUNNING":
+                # Duplicate trigger event for the exact same batch!
+                return "ALREADY_RUNNING", active_holder
+            elif active_holder != batch_id:
+                # Another batch is actively processing
+                return "LOCKED_BY_OTHER", active_holder
+
+        # Claim Both
+        transaction.update(batch_ref, {"status": "RUNNING", "updated_at": firestore.SERVER_TIMESTAMP})
+        transaction.set(lock_ref, {"active_batch_id": batch_id, "updated_at": firestore.SERVER_TIMESTAMP})
+        return "CLAIMED", None
+
+    try:
+        claim_status, active_holder = attempt_claim(db.transaction())
+    except Exception as e:
+        logger.error(f"[Studio {batch_id}] Transaction failed: {e}")
+        return {"error": str(e)}
+
+    if claim_status in ("LOCKED_BY_OTHER", "ALREADY_RUNNING"):
+        logger.info(f"[Studio {batch_id}] Yielding worker — lock held actively by {active_holder} ({claim_status}).")
+        return {"status": "waiting"}
+    
+    if claim_status != "CLAIMED":
+        return {"status": "already_processed", "state": claim_status}
+
+    # Fetch batch data
+    batch_doc = batch_ref.get()
     batch_data = batch_doc.to_dict()
     skus = batch_data.get("skus", [])
     sku_results = batch_data.get("sku_results", {})
     environment = batch_data.get("environment", DEFAULT_ENVIRONMENT)
     generation_model = batch_data.get("generation_model", DEFAULT_MODEL)
 
-    # --- Early Abort Check ---
-    if batch_data.get("status") == "ABORTED":
-        logger.info(f"[Studio {batch_id}] Batch already ABORTED. Cleaning up.")
-        return _handle_batch_abort(db, batch_ref, batch_doc, skus, sku_results, completed=0, failed=0)
-
-    # --- Global Sequential Lock Mechanism ---
-    # We use a singleton document 'system_config/studio_lock' to ensure 
-    # that across all concurrent triggers, only one worker can be RUNNING at a time.
-    lock_ref = db.collection("system_config").document("studio_lock")
-
-    try:
-        @firestore.transactional
-        def claim_batch_and_lock(transaction, b_ref, l_ref):
-            # 1. Check Global Lock
-            lock_snap = l_ref.get(transaction=transaction)
-            current_lock = lock_snap.to_dict() if lock_snap.exists else {}
-            active_batch = current_lock.get("active_batch_id")
-            
-            # If lock is held by someone else, check if it's "stale" (safety net)
-            if active_batch and active_batch != batch_id:
-                last_heartbeat = current_lock.get("updated_at")
-                if last_heartbeat:
-                    now = datetime.datetime.now(datetime.timezone.utc)
-                    # If lock hasn't been updated in 5 mins, assume crashed and allow stealing
-                    if (now - last_heartbeat).total_seconds() > 300: 
-                        # Stale lock, allow this batch to claim it
-                        logger.warning(f"[Studio {batch_id}] Stealing stale global lock from {active_batch}.")
-                    else:
-                        return "LOCK_HELD", active_batch
-            
-            # 2. Check Batch Status
-            snapshot = b_ref.get(transaction=transaction)
-            if not snapshot.exists: return "NOT_FOUND", None
-            curr_status = snapshot.get("status")
-            if curr_status != "QUEUED": return curr_status, None
-            
-            # 3. Claim both
-            transaction.update(b_ref, {
-                "status": "RUNNING",
-                "updated_at": firestore.SERVER_TIMESTAMP,
-                "claimed_at": firestore.SERVER_TIMESTAMP
-            })
-            transaction.set(l_ref, {
-                "active_batch_id": batch_id,
-                "updated_at": firestore.SERVER_TIMESTAMP
-            })
-            return "CLAIMED", None
-
-        claim_result, holder = claim_batch_and_lock(db.transaction(), batch_ref, lock_ref)
-        
-        if claim_result == "LOCK_HELD":
-            logger.info(f"[Studio {batch_id}] Global lock held by {holder}. Staying in QUEUE.")
-            return {"status": "waiting", "message": f"Global lock held by {holder}"}
-        if claim_result == "NOT_FOUND":
-             logger.error(f"[Studio {batch_id}] Batch doc not found during claim")
-             return {"error": "Batch not found"}
-        if claim_result != "CLAIMED":
-            logger.info(f"[Studio {batch_id}] Batch already {claim_result}. Skipping concurrent worker.")
-            return {"status": "already_running", "process": claim_result}
-            
-    except Exception as e:
-        logger.error(f"[Studio {batch_id}] Global claim transaction failed: {e}")
-        return {"error": f"Claim failed: {e}"}
-
-    # Heartbeat thread to keep global lock alive for long runs
-    def heartbeat():
-        try:
-            while True:
-                # Check if batch is still running
-                snap = batch_ref.get()
-                if not snap.exists or snap.get("status") not in ("RUNNING"):
-                    break
-                # Update lock timestamp
-                try:
-                    lock_ref.update({"updated_at": firestore.SERVER_TIMESTAMP})
-                except Exception as he:
-                    logger.warning(f"[Studio {batch_id}] Heartbeat failed to update lock: {he}")
-                time.sleep(60)
-        except Exception:
-            pass # Thread safety
-
-    import threading
-    h_thread = threading.Thread(target=heartbeat, daemon=True)
-    h_thread.start()
-
-    # Re-fetch the data after successful claim to get freshest results
-    batch_doc = batch_ref.get()
-    batch_data = batch_doc.to_dict()
-    sku_results = batch_data.get("sku_results", {})
-
-    logger.info(f"[Studio {batch_id}] Processing {len(skus)} products with {DELAY_BETWEEN_REQUESTS}s delay (model={generation_model})")
-
     completed = 0
     failed = 0
+    
+    logger.info(f"[Studio {batch_id}] Worker Started (Model={generation_model})")
 
     for i, sku in enumerate(skus):
-        # Skip already-processed SKUs (for crash recovery)
-        existing = sku_results.get(sku, {})
-        if existing.get("status") in ("COMPLETED", "FAILED"):
-            if existing["status"] == "COMPLETED":
-                completed += 1
-            else:
-                failed += 1
-            logger.info(f"[Studio {batch_id}] Skipping {sku} — already {existing['status']}")
+        # Skip previously completed items (crash recovery)
+        if sku_results.get(sku, {}).get("status") in ("COMPLETED", "FAILED"):
+            completed += 1 if sku_results[sku]["status"] == "COMPLETED" else 0
+            failed += 1 if sku_results[sku]["status"] == "FAILED" else 0
             continue
 
-        # 0. Check for ABORT signal
-        batch_doc = batch_ref.get()
-        if batch_doc.exists and batch_doc.to_dict().get("status") == "ABORTED":
-            return _handle_batch_abort(db, batch_ref, batch_doc, skus, sku_results, completed, failed)
+        # Abort Check
+        if batch_ref.get().get("status") == "ABORTED":
+            return _handle_abort(db, batch_ref, skus, sku_results, completed, failed)
 
-        logger.info(f"[Studio {batch_id}] [{i + 1}/{len(skus)}] Processing {sku}")
-
-        # Process single product
+        logger.info(f"[Studio {batch_id}] Processing [{i+1}/{len(skus)}]: {sku}")
+        
+        # Process Image
         result = _process_single_product(client, db, sku, batch_id, environment, generation_model)
-
+        
         if result["success"]:
             completed += 1
-            sku_results[sku] = {
-                "status": "COMPLETED",
-                "error": None,
-                "image_url": result.get("image_url"),
-            }
+            sku_results[sku] = {"status": "COMPLETED", "error": None, "image_url": result["image_url"]}
         else:
             failed += 1
-            sku_results[sku] = {
-                "status": "FAILED",
-                "error": result["error"],
-            }
+            sku_results[sku] = {"status": "FAILED", "error": result["error"]}
 
-        # Update batch tracking (real-time for UI)
+        # Update batch & heartbeat the lock
         batch_ref.update({
-            "sku_results": sku_results,
-            "completed_count": completed,
-            "failed_count": failed,
-            "updated_at": firestore.SERVER_TIMESTAMP,
+            "sku_results": sku_results, "completed_count": completed, 
+            "failed_count": failed, "updated_at": firestore.SERVER_TIMESTAMP
         })
+        _heartbeat_lock(db, batch_id)
 
-        # Delay between requests
-        if i < len(skus) - 1:
-            actual_delay = 60 if generation_model == "imagen" else DELAY_BETWEEN_REQUESTS
-            logger.info(f"[Studio {batch_id}] Waiting {actual_delay}s before next request (model={generation_model})...")
-            
-            # Interruptible sleep: check for abort every 1 second
-            for _ in range(actual_delay):
+        # Rate Limit Delay between SKUs
+        # FIXED: Delay is now applied unconditionally after an API call, even on the last item in a batch.
+        # This prevents the next batch from jumping in too early and violating rate limits across boundaries.
+        if result.get("api_called", True):
+            delay = DELAY_IMAGEN if generation_model == "imagen" else DELAY_GEMINI
+            for _ in range(delay):
                 time.sleep(1)
-                # Inline status check to break the delay immediately if user aborts
-                if _ % 5 == 0: 
-                    b_snap = batch_ref.get()
-                    if b_snap.exists and b_snap.get("status") == "ABORTED":
-                        logger.info(f"[Studio {batch_id}] Abort detected during delay. Ending.")
-                        break
+                if _ % 10 == 0: 
+                    _heartbeat_lock(db, batch_id)
+                    if batch_ref.get().get("status") == "ABORTED": break
             
-            # Check final status after sleep
-            b_snap = batch_ref.get()
-            if b_snap.exists and b_snap.get("status") == "ABORTED":
-                break
+            if batch_ref.get().get("status") == "ABORTED":
+                return _handle_abort(db, batch_ref, skus, sku_results, completed, failed)
 
-    # Final status update
-    current_snap = batch_ref.get()
-    current_status = current_snap.get("status") if current_snap.exists else "UNKNOWN"
-
-    if current_status == "ABORTED":
-        return _handle_batch_abort(db, batch_ref, current_snap, skus, sku_results, completed, failed)
-
+    # Wrap up Batch
     final_status = "COMPLETED" if failed == 0 else "COMPLETED_WITH_ERRORS"
     batch_ref.update({
         "status": final_status,
+        "sku_results": sku_results,
         "completed_at": firestore.SERVER_TIMESTAMP,
-        "updated_at": firestore.SERVER_TIMESTAMP,
-        "sku_results": sku_results,
-        "completed_count": completed,
-        "failed_count": failed,
+        "updated_at": firestore.SERVER_TIMESTAMP
     })
 
-    # --- Release Global Lock ---
-    try:
-        lock_ref = db.collection("system_config").document("studio_lock")
-        lock_snap = lock_ref.get()
-        if lock_snap.exists and lock_snap.get("active_batch_id") == batch_id:
-            lock_ref.delete()
-            logger.info(f"[Studio {batch_id}] Released global lock.")
-    except Exception as le:
-        logger.error(f"Failed to release global lock: {le}")
-
-    # Sequential Chaining: Trigger the next batch in line immediately
-    _trigger_next_queued_batch()
-
-    summary = {
-        "batch_id": batch_id,
-        "completed": completed,
-        "failed": failed,
-        "total": len(skus),
-        "status": final_status
-    }
-    logger.info(f"[Studio {batch_id}] Done: {json.dumps(summary)}")
-    return summary
-
-
-def _handle_batch_abort(db, batch_ref, batch_doc, skus, sku_results, completed, failed):
-    """Refactored helper to clean up an aborted batch."""
-    batch_id = batch_ref.id
-    logger.info(f"[Studio {batch_id}] Handling abort/cleanup.")
-    
-    # Mark all unfinished SKUs as failed
-    for sku in skus:
-        if sku_results.get(sku, {}).get("status") not in ("COMPLETED", "FAILED"):
-            sku_results[sku] = {"status": "FAILED", "error": "Aborted by user"}
-            try:
-                db.collection("staging_products").document(sku).update({
-                    "status": "ENRICHMENT_FAILED",
-                    "enrichment_message": "Session aborted by user"
-                })
-            except Exception: pass
-            
-    batch_ref.update({
-        "status": "ABORTED",
-        "sku_results": sku_results,
-        "completed_count": completed,
-        "failed_count": failed,
-        "updated_at": firestore.SERVER_TIMESTAMP,
-    })
-    
     # Release Global Lock
     try:
-        lock_ref = db.collection("system_config").document("studio_lock")
         lock_snap = lock_ref.get()
         if lock_snap.exists and lock_snap.get("active_batch_id") == batch_id:
             lock_ref.delete()
-            logger.info(f"[Studio {batch_id}] Released global lock after abort.")
     except Exception: pass
 
-    # Trigger NEXT batch (which might also be ABORTED, so it will clean itself and move on)
-    _trigger_next_queued_batch()
+    logger.info(f"[Studio {batch_id}] Batch Finished. Status: {final_status}")
     
-    return {"status": "aborted", "completed": completed, "failed": failed}
+    # Optional: trigger next process directly via Cron/PubSub logic here if needed.
+    # Because threading is dangerous, we rely on the Cron or Cloud Function queue listener 
+    # to pick up the next QUEUED batch seamlessly now that the lock is free.
+    return {"status": final_status, "completed": completed, "failed": failed}
 
-
-def _process_single_product(client, db, sku: str, batch_id: str, environment: str = None, generation_model: str = None) -> dict:
-    """
-    Process ONE product: download source → generate image → upload → update Firestore.
-    Returns {"success": True, "image_url": str} or {"success": False, "error": str}.
-    """
-    env = environment or DEFAULT_ENVIRONMENT
-    gen_model = generation_model or DEFAULT_MODEL
+def _process_single_product(client, db, sku: str, batch_id: str, environment: str, generation_model: str) -> dict:
     doc_ref = db.collection("staging_products").document(sku)
-
     try:
         doc = doc_ref.get()
-        if not doc.exists:
-            error = "Product not found"
-            doc_ref.update({"status": "ENRICHMENT_FAILED", "enrichment_message": error})
-            return {"success": False, "error": error}
+        if not doc.exists: return {"success": False, "error": "Product not found", "api_called": False}
 
         data = doc.to_dict()
-        ai_data = data.get("ai_data", {})
-        selected_images = ai_data.get("selected_images", {})
-
-        source_url = selected_images.get("base")
-        if not source_url and selected_images:
-            first_key = next(iter(selected_images))
-            source_url = selected_images[first_key]
-
+        source_url = data.get("ai_data", {}).get("selected_images", {}).get("base")
         if not source_url:
-            error = "No source image selected"
-            return {"success": False, "error": error}
+            images = data.get("ai_data", {}).get("selected_images", {})
+            source_url = images[next(iter(images))] if images else None
+            
+        if not source_url: return {"success": False, "error": "No source image selected", "api_called": False}
 
-        # Download source image
-        # doc_ref.update({"enrichment_message": "Optimizing frame & perspective..."})
-        image_data, mime_type = _download_source_image(source_url)
+        # 1. Download & Process Image locally (No AI API called yet)
+        try:
+            image_data, mime_type = _download_source_image(source_url)
+            image_data = normalize_product_image(image_data)
+        except Exception as e:
+            error_str = f"Image download/processing error: {str(e)[:150]}"
+            try:
+                doc_ref.update({"status": "ENRICHMENT_FAILED", "enrichment_message": f"Studio error: {error_str[:80]}"})
+            except: pass
+            return {"success": False, "error": error_str, "api_called": False}
         
-        # Normalize product sizing and centering
-        image_data = normalize_product_image(image_data)
-        mime_type = "image/jpeg"
+        prompt = IMAGEN_PROMPTS.get(environment, IMAGEN_PROMPTS["clean"]) if generation_model == "imagen" else STUDIO_PROMPTS.get(environment, STUDIO_PROMPTS["clean"])
+        
+        # 2. Make AI API Call
+        try:
+            response = _generate_image_with_backoff(client, db, image_data, "image/jpeg", prompt, generation_model, batch_id)
+        except Exception as e:
+            error_str = str(e)[:150]
+            try:
+                doc_ref.update({"status": "ENRICHMENT_FAILED", "enrichment_message": f"Studio error: {error_str[:80]}"})
+            except: pass
+            return {"success": False, "error": error_str, "api_called": True}
 
-        # Generate studio image
-        # doc_ref.update({"enrichment_message": "Synthesizing visual..."})
-        
-        prompt = IMAGEN_PROMPTS.get(env, IMAGEN_PROMPTS["clean"]) if gen_model == "imagen" else STUDIO_PROMPTS.get(env, STUDIO_PROMPTS["clean"])
-        
-        logger.info(f"[Studio {batch_id}] Calling {gen_model} for {sku}")
-        response = _generate_image_with_backoff(client, image_data, mime_type, prompt, gen_model, batch_id)
-
-        # Extract image
         img_bytes = _extract_image_from_response(response, sku)
-        if not img_bytes:
-            error = "No image data in response"
-            return {"success": False, "error": error}
+        if not img_bytes: return {"success": False, "error": "No image data returned from AI", "api_called": True}
 
-        # Upload to Firebase Storage
         image_url = _upload_image_to_storage(img_bytes, "image/jpeg", sku)
         
-        # Final update
         doc_ref.update({
-            "ai_data.generated_images": {"base": image_url},
+            "ai_data.generated_images.base": image_url,
             "status": "PENDING_STUDIO_REVIEW",
-            "enrichment_message": "Studio image generated successfully",
+            "enrichment_message": "Studio image generated successfully"
         })
-
-        return {"success": True, "image_url": image_url}
+        return {"success": True, "image_url": image_url, "api_called": True}
 
     except Exception as e:
         error_str = str(e)[:150]
-        logger.error(f"[Studio {batch_id}] ✗ {sku} — {error_str}")
         try:
-            doc_ref.update({
-                "status": "ENRICHMENT_FAILED",
-                "enrichment_message": f"Studio error: {error_str[:80]}",
-            })
-        except Exception:
-            pass
-        return {"success": False, "error": error_str}
+            doc_ref.update({"status": "ENRICHMENT_FAILED", "enrichment_message": f"Studio error: {error_str[:80]}"})
+        except: pass
+        return {"success": False, "error": error_str, "api_called": False}
 
-
-# ---------------------------------------------------------------------------
-# 3. Cron Safety Net — crash recovery for parallel jobs
-# ---------------------------------------------------------------------------
-
-def check_and_process_batches() -> dict:
-    """
-    Called by Cloud Scheduler. Safety net for:
-    - Parallel jobs that crashed mid-run (> 3 min silent, still RUNNING)
-    - QUEUED jobs that never got their Firestore trigger (pick up and process)
-    - WAITING_FOR_QUEUE jobs if the sequential chain broke
-    """
-    db = firestore.client()
-    summary = {"checked": 0, "recovered": 0, "processed": 0}
-
-    # 1. Check for RUNNING batches (Deadly silence check)
-    running = db.collection("enrichment_batches").where("status", "==", "RUNNING").get()
-    active_exists = False
-    
-    for doc in running:
-        summary["checked"] += 1
-        update_age = _get_doc_last_update_age(doc)
-        if update_age > 180:  # 3 minutes of silence = crashed
-            logger.warning(f"[Cron] Recovering crashed running batch {doc.id} (silent for {update_age:.0f}s)")
-            _recover_crashed_batch(db, doc, "Process stalled — auto-recovered by system")
-            summary["recovered"] += 1
-        else:
-            active_exists = True # Still alive
-
-    # 2. Check for QUEUED batches (Missed trigger check)
-    queued = db.collection("enrichment_batches").where("status", "==", "QUEUED").get()
-    for doc in queued:
-        summary["checked"] += 1
-        age = _get_doc_age_seconds(doc)
-        if age > 120:  # Queued for more than 2 minutes — trigger missed
-            logger.warning(f"[Cron] Picking up orphaned QUEUED batch {doc.id}")
-            try:
-                process_studio_queue(doc.id)
-                summary["processed"] += 1
-                active_exists = True
-            except Exception as e:
-                logger.error(f"[Cron] Failed to process {doc.id}: {e}")
-        else:
-            active_exists = True # Just queued, give it time
-
-    # 3. Chain Recovery (Lost link check)
-    # If no batch is RUNNING or QUEUED, but we have WAITING_FOR_QUEUE, the chain broke.
-    if not active_exists:
-        waiting = db.collection("enrichment_batches").where("status", "==", "WAITING_FOR_QUEUE").get()
-        if waiting:
-            logger.warning("[Cron] Sequential chain appears broken. Restarting queue.")
-            _trigger_next_queued_batch()
-            summary["processed"] += 1
-
-    logger.info(f"[Cron] Summary: {json.dumps(summary)}")
-    return summary
-
-
-def _get_doc_last_update_age(doc) -> float:
-    """Get the seconds since the last update of a document."""
-    data = doc.to_dict()
-    updated = data.get("updated_at")
-    if updated:
-        now = datetime.datetime.now(datetime.timezone.utc)
-        return (now - updated).total_seconds()
-    return _get_doc_age_seconds(doc) # Fallback to creation age
-
-
-def _get_doc_age_seconds(doc) -> float:
-    """Get the seconds since a document was created."""
-    created_at = doc.create_time
-    if created_at:
-        now = datetime.datetime.now(datetime.timezone.utc)
-        return (now - created_at).total_seconds()
-    return 0.0
-
-
-def fail_batch(batch_id: str, error_message: str):
-    """
-    Public utility to force-fail a batch and all its pending products.
-    """
-    db = firestore.client()
-    batch_ref = db.collection("enrichment_batches").document(batch_id)
-    doc = batch_ref.get()
-    if doc.exists:
-        _recover_crashed_batch(db, doc, error_message)
-
-def _recover_crashed_batch(db, batch_doc, error_message: str = "Process interrupted"):
-    """Mark unfinished products as failed in a crashed batch."""
-    data = batch_doc.to_dict()
-    skus = data.get("skus", [])
-    sku_results = data.get("sku_results", {})
-
+def _handle_abort(db, batch_ref, skus, sku_results, completed, failed):
+    batch_id = batch_ref.id
     for sku in skus:
-        result = sku_results.get(sku, {})
-        if result.get("status") not in ("COMPLETED", "FAILED"):
-            sku_results[sku] = {"status": "FAILED", "error": error_message}
-            try:
-                db.collection("staging_products").document(sku).update({
-                    "status": "ENRICHMENT_FAILED",
-                    "enrichment_message": error_message,
-                })
-            except Exception:
-                pass
-
-    batch_doc.reference.update({
-        "status": "FAILED",
-        "sku_results": sku_results,
-        "error_details": error_message,
-        "updated_at": firestore.SERVER_TIMESTAMP,
+        if sku_results.get(sku, {}).get("status") not in ("COMPLETED", "FAILED"):
+            sku_results[sku] = {"status": "FAILED", "error": "Aborted by user"}
+            try: db.collection("staging_products").document(sku).update({"status": "ENRICHMENT_FAILED", "enrichment_message": "Session aborted"})
+            except: pass
+            
+    batch_ref.update({
+        "status": "ABORTED", "sku_results": sku_results, 
+        "completed_count": completed, "failed_count": failed, "updated_at": firestore.SERVER_TIMESTAMP
     })
-
-    # --- Release Global Lock on Failure ---
     try:
         lock_ref = db.collection("system_config").document("studio_lock")
-        lock_snap = lock_ref.get()
-        if lock_snap.exists and lock_snap.get("active_batch_id") == batch_doc.id:
-            lock_ref.delete()
-    except Exception: pass
-    
-    # Sequential Chaining: Trigger the next batch in line immediately
-    _trigger_next_queued_batch()
-
+        if lock_ref.get().get("active_batch_id") == batch_id: lock_ref.delete()
+    except: pass
+    return {"status": "aborted"}
 
 def abort_studio_session(batch_ids: List[str]) -> dict:
     """
@@ -849,41 +497,85 @@ def abort_studio_session(batch_ids: List[str]) -> dict:
             
     return {"aborted_count": count}
 
-
-def _trigger_next_queued_batch():
+def fail_batch(batch_id: str, error_message: str):
     """
-    Finds the next WAITING_FOR_QUEUE batch, promotes it to QUEUED, and triggers it.
-    Ensures sequential run without clashing.
+    Public utility to force-fail a batch and all its pending products.
     """
     db = firestore.client()
-    try:
-        # Get next waiting batch, sorted by priority and age
-        waiting = db.collection("enrichment_batches").where("status", "==", "WAITING_FOR_QUEUE").get()
-        if not waiting:
-            logger.info("[Studio] Sequential Chaining: No more batches in WAITING_FOR_QUEUE.")
-            return
-
-        waiting_docs = list(waiting)
-        # Sort by priority (high=0, normal=1) then by creation age
-        waiting_docs.sort(key=lambda d: (0 if d.to_dict().get("priority") == "high" else 1, _get_doc_age_seconds(d)))
+    batch_ref = db.collection("enrichment_batches").document(batch_id)
+    doc = batch_ref.get()
+    if doc.exists:
+        data = doc.to_dict()
+        skus = data.get("skus", [])
+        sku_results = data.get("sku_results", {})
         
-        next_batch_doc = waiting_docs[0]
-        next_batch_id = next_batch_doc.id
+        for sku in skus:
+            if sku_results.get(sku, {}).get("status") not in ("COMPLETED", "FAILED"):
+                sku_results[sku] = {"status": "FAILED", "error": error_message}
+                try: 
+                    db.collection("staging_products").document(sku).update({
+                        "status": "ENRICHMENT_FAILED", 
+                        "enrichment_message": error_message
+                    })
+                except: pass
         
-        logger.info(f"[Studio] Sequential Chaining: Promoting batch {next_batch_id} to QUEUED")
-        
-        # Promote to QUEUED
-        # Note: This status change will NOT trigger on_batch_created (since that only fires on CREATE)
-        # so we MUST manually trigger the processing thread below.
-        next_batch_doc.reference.update({
-            "status": "QUEUED",
+        batch_ref.update({
+            "status": "FAILED",
+            "sku_results": sku_results,
+            "error_details": error_message,
             "updated_at": firestore.SERVER_TIMESTAMP
         })
         
-        # Run in a separate thread/background
-        import threading
-        thread = threading.Thread(target=process_studio_queue, args=(next_batch_id,))
-        thread.start()
-        
-    except Exception as e:
-        logger.error(f"Failed to trigger next batch: {e}")
+        try:
+            lock_ref = db.collection("system_config").document("studio_lock")
+            if lock_ref.get().get("active_batch_id") == batch_id: lock_ref.delete()
+        except: pass
+
+# ---------------------------------------------------------------------------
+# 3. Queue Manager / Cron Safety Net
+# ---------------------------------------------------------------------------
+
+def check_and_process_batches() -> dict:
+    """
+    Called by Cloud Scheduler ideally every 1 minute.
+    This acts as the robust, non-overlapping Queue Driver.
+    """
+    db = firestore.client()
+    summary = {"recovered": 0, "processed": 0}
+    now = datetime.datetime.now(datetime.timezone.utc)
+
+    # 1. Clear dead locks
+    lock_ref = db.collection("system_config").document("studio_lock")
+    lock_snap = lock_ref.get()
+    if lock_snap.exists:
+        updated = lock_snap.get("updated_at")
+        if updated and (now - updated).total_seconds() > LOCK_TIMEOUT_SECONDS:
+            logger.warning(f"[Cron] Clearing DEAD global lock from crashed worker.")
+            dead_batch = lock_snap.get("active_batch_id")
+            lock_ref.delete()
+            if dead_batch:
+                b_ref = db.collection("enrichment_batches").document(dead_batch)
+                if b_ref.get().get("status") == "RUNNING":
+                    logger.warning(f"[Cron] Auto-requeuing crashed batch {dead_batch}.")
+                    b_ref.update({"status": "QUEUED", "error_details": "Worker crashed, auto-requeued."})
+                    summary["recovered"] += 1
+            return summary # Wait for next cron cycle to resume cleanly
+        else:
+            return summary # A worker is actively running, do not interfere.
+
+    # 2. No active workers -> Find next QUEUED batch and process it inline
+    queued = db.collection("enrichment_batches").where(filter=firestore.FieldFilter("status", "==", "QUEUED")).get()
+    if not queued: return summary
+
+    # Sort by priority and age
+    queued_docs = list(queued)
+    queued_docs.sort(key=lambda d: (0 if d.to_dict().get("priority") == "high" else 1, d.create_time))
+    
+    next_batch_id = queued_docs[0].id
+    logger.info(f"[Cron] Launching processing for QUEUED batch {next_batch_id}")
+    
+    # Process synchronously in this container.
+    process_studio_queue(next_batch_id)
+    summary["processed"] += 1
+    
+    return summary

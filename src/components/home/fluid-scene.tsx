@@ -1,6 +1,7 @@
 import { useFrame, useThree } from "@react-three/fiber"
-import React, { useMemo, useRef, useEffect, memo } from "react"
+import React, { useMemo, useRef, useEffect, useLayoutEffect, memo } from "react"
 import * as THREE from "three"
+import { useFluidStore } from "./fluid-store"
 
 // ── Simulation scale (fraction of viewport resolution) ──────────────────────
 const SIM_SCALE = 0.35
@@ -414,6 +415,14 @@ const FluidSceneComponent = function FluidScene({
 }) {
     const { size, gl } = useThree()
     const frame = useRef(0)
+    const latestFBO = useRef<THREE.WebGLRenderTarget | null>(null)
+    const { width: stW, height: stH, frame: stFrame, pixels, isReady, saveState, loadFromStorage } = useFluidStore()
+
+    useEffect(() => {
+        if (!isReady) {
+            loadFromStorage()
+        }
+    }, [isReady, loadFromStorage])
 
     // Simulation resolution (simFullH includes margin for hidden generators)
     const simW = Math.max(64, Math.floor(size.width * SIM_SCALE))
@@ -443,16 +452,22 @@ const FluidSceneComponent = function FluidScene({
         }
     }, [simW, simFullH])
 
-    // Cleanup FBOs
+    // Cleanup FBOs and save state
     useEffect(() => {
         return () => {
+            if (latestFBO.current) {
+                const buffer = new Float32Array(simW * simFullH * 4)
+                gl.readRenderTargetPixels(latestFBO.current, 0, 0, simW, simFullH, buffer)
+                saveState(simW, simFullH, frame.current, buffer)
+            }
+
             fbos.A.dispose()
             fbos.B1.dispose()
             fbos.B2.dispose()
             fbos.C.dispose()
             fbos.D.dispose()
         }
-    }, [fbos])
+    }, [fbos, gl, simW, simFullH, saveState])
 
     // Shader Materials
     const matA = useMemo(() => new THREE.ShaderMaterial({
@@ -530,11 +545,55 @@ const FluidSceneComponent = function FluidScene({
         (scene.children[0] as THREE.Mesh).material = mat
     }
 
+    // Restore state if available
+    useLayoutEffect(() => {
+        if (pixels && stW === simW && stH === simFullH) {
+            const tex = new THREE.DataTexture(pixels, simW, simFullH, THREE.RGBAFormat, THREE.FloatType)
+            tex.needsUpdate = true
+
+            const copyMat = new THREE.ShaderMaterial({
+                glslVersion: THREE.GLSL3,
+                uniforms: { tDiffuse: { value: tex } },
+                vertexShader: /* glsl */`
+                    out vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: /* glsl */`
+                    uniform sampler2D tDiffuse;
+                    in vec2 vUv;
+                    out vec4 fragColor;
+                    void main() { fragColor = texture(tDiffuse, vUv); }
+                `
+            })
+
+            const mesh = scene.children[0] as THREE.Mesh
+            const oldMat = mesh.material
+            mesh.material = copyMat
+
+            gl.setRenderTarget(fbos.A)
+            gl.render(scene, cam)
+            gl.setRenderTarget(fbos.B1)
+            gl.render(scene, cam)
+            gl.setRenderTarget(fbos.B2)
+            gl.render(scene, cam)
+
+            mesh.material = oldMat
+            frame.current = stFrame
+        } else {
+            frame.current = 0
+        }
+    }, [simW, simFullH, pixels, stW, stH, stFrame, gl, fbos, scene, cam])
+
     // internal state for velocity calculation
     const lastMouseRef = useRef<{ x: number, y: number }>({ x: -1, y: -1 })
 
     // Render loop
     useFrame((state) => {
+        if (!isReady) return
+
         const baseT = state.clock.elapsedTime
 
         // ── Mouse Velocity Calculation ───────────────────────────────────────
@@ -633,6 +692,8 @@ const FluidSceneComponent = function FluidScene({
         matImage.uniforms.iTime.value = baseT
         gl.setRenderTarget(null)
         gl.render(scene, cam)
+
+        latestFBO.current = bWrite!
 
     }, 1)
 
