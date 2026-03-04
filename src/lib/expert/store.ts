@@ -3,20 +3,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { KnowledgeState, ExpertChatResponse } from './types';
-import { getFirebaseDb, getFirebaseAuth } from '../firebase/config';
-import { doc, setDoc } from 'firebase/firestore';
+import { getFirebaseDb, getFirebaseAuth, getFirebaseFunctions } from '../firebase/config';
+import { doc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { removeUndefined } from '../utils';
 import { onAuthStateChanged } from 'firebase/auth';
-import { callExpertChat } from './api';
+import { httpsCallable } from 'firebase/functions';
 
-// The default initial state matching python's KnowledgeState baseline
-const initialState: KnowledgeState = {
-    domain: 'unknown',
-    project_type: 'unknown',
-    confirmed_facts: {},
-    inferred_facts: {},
-    gaps: { critical: [], important: [], optional: [] }
-};
+// V3: No rigid knowledge state tracking locally
 
 export type MessageRole = 'user' | 'assistant';
 
@@ -36,23 +29,54 @@ export interface ChatMessage {
     safety_warnings?: string[];
 }
 
+// Sidebar state produced by context_analysis_trigger
+export interface SidebarRecommendedProduct {
+    handle: string;
+    variant_id: string;
+    title: string;
+    sequence_step: string;
+    reason: string;
+}
+
+export interface SidebarKnowledgeDimension {
+    id: string;
+    label: string;
+    status: 'identified' | 'pending' | 'unknown';
+    value: string | null;
+}
+
+export interface SidebarState {
+    overallPhase: 'initialization' | 'gathering_info' | 'product_matching' | 'solution_ready' | 'complete';
+    overallPhaseLabel: string;
+    domain: string;
+    showSolutionButton: boolean;
+    knowledgeDimensions: SidebarKnowledgeDimension[];
+    recommendedProducts: SidebarRecommendedProduct[];
+    logs: Array<{ type: string; message: string }>;
+}
+
 interface ExpertSystemState {
     sessionId: string;
     messages: ChatMessage[];
-    knowledgeState: KnowledgeState;
     isTyping: boolean;
     isSyncing: boolean;
+    agentStatus: string;
     solution: ExpertChatResponse['solution'] | null;
+    accumulatedProducts: Record<string, any>;
+    sidebarState: SidebarState | null;
+    _unsubscribeSnapshot?: Unsubscribe;
 
     // Actions
     addMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
-    sendMessage: (content: string, imageUrl?: string) => Promise<void>;
-    answerExpertQuestion: (value: any) => Promise<void>;
+    sendMessage: (content: string) => Promise<void>;
     setTyping: (typing: boolean) => void;
-    updateKnowledgeState: (newState: KnowledgeState) => void;
+    setAgentStatus: (status: string) => void;
     setSolution: (solution: ExpertChatResponse['solution']) => void;
     resetSession: () => void;
+    abortSession: () => Promise<void>;
+    generateSolution: () => Promise<void>;
     syncWithFirestore: () => Promise<void>;
+    initSessionListener: () => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(7);
@@ -62,11 +86,12 @@ export const useExpertStore = create<ExpertSystemState>()(
         (set, get) => ({
             sessionId: generateId(),
             messages: [],
-            knowledgeState: initialState,
             isTyping: false,
             isSyncing: false,
+            agentStatus: "",
             solution: null,
-
+            accumulatedProducts: {},
+            sidebarState: null,
             addMessage: (msgInput) => {
                 set((state) => ({
                     messages: [
@@ -81,143 +106,97 @@ export const useExpertStore = create<ExpertSystemState>()(
                 get().syncWithFirestore();
             },
 
-            sendMessage: async (content, imageUrl) => {
-                const { messages, knowledgeState, addMessage, setTyping } = get();
+            sendMessage: async (content) => {
+                const { addMessage } = get();
 
                 // Add user message locally
                 addMessage({
                     role: 'user',
                     content,
-                    // imageUrl
                 });
 
-                setTyping(true);
+                // Set initial status to give immediate feedback while function spins up
+                set({ isTyping: true, agentStatus: "Προετοιμασία..." });
 
-                try {
-                    const response = await callExpertChat({
-                        message: content,
-                        image_url: imageUrl,
-                        state: knowledgeState,
-                        history: messages.map(m => ({
-                            role: m.role === 'user' ? 'user' : 'model',
-                            content: m.content || ""
-                        }))
-                    });
-
-                    // Add assistant response
-                    addMessage({
-                        role: 'assistant',
-                        content: response.answer || "",
-                        understanding_summary: response.understanding_summary,
-                        question: response.question,
-                        clarification_needed: response.clarification_needed,
-                        ready_for_solution: response.ready_for_solution,
-                        solution: response.solution,
-                        suggested_products: response.suggested_products,
-                        safety_warnings: response.safety_warnings
-                    });
-
-                    // Update knowledge state from engine
-                    set((state) => ({
-                        knowledgeState: response.state || state.knowledgeState,
-                        solution: response.solution || state.solution || null
-                    }));
-
-                } catch (error) {
-                    console.error("Expert Chat Error:", error);
-                    addMessage({
-                        role: 'assistant',
-                        content: "Συγγνώμη, παρουσιάστηκε ένα σφάλμα κατά την επικοινωνία με τον ειδικό. Παρακαλώ δοκιμάστε ξανά σε λίγο.",
-                    });
-                } finally {
-                    setTyping(false);
-                }
-            },
-
-            answerExpertQuestion: async (value) => {
-                const { messages, knowledgeState, sendMessage, addMessage, setTyping } = get();
-
-                const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.question);
-                const question = lastAssistantMsg?.question;
-
-                if (!question) {
-                    console.warn("No active question to answer");
-                    return;
-                }
-
-                // Find the display label for the user bubble
-                let displayLabel = String(value);
-                if (question.options) {
-                    const option = question.options.find((o: any) => o.id === value || o.value === value);
-                    if (option) displayLabel = option.label;
-                }
-
-                // Optimistically pre-confirm this field in the local state
-                // This ensures the backend always sees it in confirmed_facts, not just inferred
-                const preConfirmedState = {
-                    ...knowledgeState,
-                    confirmed_facts: {
-                        ...knowledgeState.confirmed_facts,
-                        [question.id]: value,
-                    }
-                };
-
-                // Add user bubble showing what was selected
-                addMessage({ role: 'user', content: `Επέλεξα: ${displayLabel}` });
-                setTyping(true);
-
-                try {
-                    const { callExpertChat } = await import('./api');
-                    const response = await callExpertChat({
-                        message: String(value), // raw machine value — unambiguous for extractor
-                        state: preConfirmedState,
-                        history: messages.map(m => ({
-                            role: m.role === 'user' ? 'user' : 'model',
-                            content: m.content || ""
-                        }))
-                    });
-
-                    addMessage({
-                        role: 'assistant',
-                        content: response.answer || "",
-                        question: response.question,
-                        ready_for_solution: response.ready_for_solution,
-                        solution: response.solution,
-                        suggested_products: response.suggested_products,
-                        safety_warnings: response.safety_warnings,
-                    });
-
-                    set((state) => ({
-                        knowledgeState: response.state || preConfirmedState,
-                        solution: response.solution || state.solution || null
-                    }));
-                } catch (error) {
-                    console.error("answerExpertQuestion error:", error);
-                    addMessage({ role: 'assistant', content: "Συγγνώμη, παρουσιάστηκε σφάλμα. Παρακαλώ δοκιμάστε ξανά." });
-                } finally {
-                    setTyping(false);
-                }
+                // We NO LONGER AWAIT an http call.
+                // The addMessage above calls syncWithFirestore() which pushes the message to Firestore.
+                // Then, the Cloud Function triggers, processes the chat, and writes back.
+                // The `initSessionListener` will pick up all changes live.
             },
 
             setTyping: (typing) => set({ isTyping: typing }),
 
-            updateKnowledgeState: (newState) => {
-                set({ knowledgeState: newState });
-                get().syncWithFirestore();
-            },
+            setAgentStatus: (status) => set({ agentStatus: status }),
 
             setSolution: (solution) => {
                 set({ solution });
                 get().syncWithFirestore();
             },
 
-            resetSession: () => set({
-                sessionId: generateId(),
-                messages: [],
-                knowledgeState: initialState,
-                isTyping: false,
-                solution: null
-            }),
+            resetSession: () => {
+                const { _unsubscribeSnapshot } = get();
+                if (_unsubscribeSnapshot) {
+                    _unsubscribeSnapshot();
+                }
+
+                const newSessionId = generateId();
+                set({
+                    sessionId: newSessionId,
+                    messages: [],
+                    isTyping: false,
+                    agentStatus: "",
+                    solution: null,
+                    accumulatedProducts: {},
+                    sidebarState: null,
+                    _unsubscribeSnapshot: undefined
+                });
+
+                // Re-initialize listener for the new session ID
+                setTimeout(() => get().initSessionListener(), 0);
+            },
+
+            abortSession: async () => {
+                const state = get();
+                const auth = getFirebaseAuth();
+                const user = auth.currentUser;
+
+                if (user) {
+                    try {
+                        const db = getFirebaseDb();
+                        const sessionRef = doc(db, 'users', user.uid, 'expert_sessions', state.sessionId);
+
+                        // Set the abort signal for the backend to catch
+                        await setDoc(sessionRef, {
+                            status: 'aborting',
+                            agentStatus: 'Διακοπή...',
+                            updatedAt: new Date().toISOString()
+                        }, { merge: true });
+
+                        set({ isTyping: false });
+                    } catch (error) {
+                        console.error("Failed to abort expert session:", error);
+                    }
+                }
+            },
+
+            generateSolution: async () => {
+                const state = get();
+                const auth = getFirebaseAuth();
+                const user = auth.currentUser;
+
+                if (!user) return;
+
+                set({ isTyping: true, agentStatus: "Δημιουργία πλάνου..." });
+
+                try {
+                    const functions = getFirebaseFunctions();
+                    const generateFn = httpsCallable(functions, 'generate_expert_solution_v3');
+                    await generateFn({ sessionId: state.sessionId, userId: user.uid });
+                } catch (error) {
+                    console.error("Failed to generate solution:", error);
+                    set({ isTyping: false });
+                }
+            },
 
             syncWithFirestore: async () => {
                 const state = get();
@@ -235,7 +214,6 @@ export const useExpertStore = create<ExpertSystemState>()(
                         const payload = removeUndefined({
                             sessionId: state.sessionId,
                             messages: state.messages,
-                            knowledgeState: state.knowledgeState,
                             updatedAt: new Date().toISOString()
                         });
 
@@ -246,6 +224,62 @@ export const useExpertStore = create<ExpertSystemState>()(
                 } finally {
                     set({ isSyncing: false });
                 }
+            },
+
+            initSessionListener: () => {
+                const state = get();
+                // Clean up previous listener to prevent leaks
+                if (state._unsubscribeSnapshot) {
+                    state._unsubscribeSnapshot();
+                }
+
+                const auth = getFirebaseAuth();
+                const user = auth.currentUser;
+
+                if (user) {
+                    const db = getFirebaseDb();
+                    const sessionRef = doc(db, 'users', user.uid, 'expert_sessions', state.sessionId);
+
+                    const unsubscribe = onSnapshot(sessionRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+
+                            // 1. Update live typing and agent internal status updates
+                            if (data.status === 'processing') {
+                                set({ isTyping: true, agentStatus: data.agentStatus || "Επεξεργασία..." });
+                            } else {
+                                set({ isTyping: false, agentStatus: "" });
+                            }
+
+                            // 2. Sync incoming messages (only if there are new ones safely)
+                            if (data.messages && Array.isArray(data.messages)) {
+                                const currentMessages = get().messages;
+                                // Simple merge: if firestore has more messages, update local state
+                                if (data.messages.length > currentMessages.length) {
+                                    set({ messages: data.messages });
+
+                                    // 3. Auto-populate solution if it arrived in the last assistant message
+                                    const latestMsg = data.messages[data.messages.length - 1];
+                                    if (latestMsg.role === 'assistant' && latestMsg.solution) {
+                                        set({ solution: latestMsg.solution });
+                                    }
+                                }
+                            }
+
+                            // 4. Sync accumulated products (written by agent tool calls)
+                            if (data.accumulatedProducts && typeof data.accumulatedProducts === 'object') {
+                                set({ accumulatedProducts: data.accumulatedProducts });
+                            }
+
+                            // 5. Sync sidebar state (written by context_analysis_trigger)
+                            if (data.sidebarState && typeof data.sidebarState === 'object') {
+                                set({ sidebarState: data.sidebarState as SidebarState });
+                            }
+                        }
+                    });
+
+                    set({ _unsubscribeSnapshot: unsubscribe });
+                }
             }
         }),
         {
@@ -254,7 +288,7 @@ export const useExpertStore = create<ExpertSystemState>()(
             partialize: (state) => ({
                 sessionId: state.sessionId,
                 messages: state.messages,
-                knowledgeState: state.knowledgeState
+                accumulatedProducts: state.accumulatedProducts,
             }), // Only persist these
         }
     )
@@ -266,7 +300,11 @@ if (typeof window !== 'undefined') {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             const store = useExpertStore.getState();
-            store.syncWithFirestore();
+            // Sync messages and then immediately set up the real-time listener.
+            // This ensures the snapshot is active even if initSessionListener
+            // was called before auth resolved (mount-time race condition).
+            await store.syncWithFirestore();
+            store.initSessionListener();
         }
     });
 }

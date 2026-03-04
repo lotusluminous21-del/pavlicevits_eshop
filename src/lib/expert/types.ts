@@ -73,6 +73,19 @@ export interface SolutionStep {
     title: string;
     description: string;
     product_handles: string[]; // Shopify product handles (matches Python schema)
+    selected_products?: {
+        variant_id: string;
+        variant_title?: string;
+        product_title?: string;
+        handle: string;
+        is_custom_paint?: boolean;
+        custom_color_info?: {
+            color_system: string;
+            color_code: string;
+            notes?: string;
+        };
+        [key: string]: any;
+    }[];
     tips: string[];
     warnings?: string[];
 }
@@ -98,20 +111,12 @@ export interface SuggestedProduct {
 }
 
 export interface ExpertChatResponse {
-    answer: string;
-    understanding_summary?: string;
-    question?: ExpertQuestion;
-    clarification_needed?: string;
-    ready_for_solution: boolean;
-    solution?: Solution;
-    suggested_products: SuggestedProduct[];
-    safety_warnings: string[];
-    state: KnowledgeState; // The engine returns the modified state back
+    status: 'chat' | 'success' | 'error';
+    answer?: string; // Text response if status === 'chat' or 'error'
+    solution?: Solution; // The finalized plan if status === 'success'
 }
 
 export interface ExpertChatRequest {
-    message?: string;
-    image_url?: string;
-    state: KnowledgeState;
+    message: string;
     history: { role: 'user' | 'model'; content: string }[];
 }

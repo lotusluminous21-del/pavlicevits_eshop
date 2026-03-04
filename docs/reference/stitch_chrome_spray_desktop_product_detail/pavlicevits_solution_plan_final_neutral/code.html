@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0f172a",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#121212",
+                        "accent-purple": "#4c1d95",
+                        "accent-teal": "#134e4a",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 transition-colors duration-200">
+<!-- Main Layout Container -->
+<div class="relative flex min-h-screen flex-col overflow-x-hidden">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md px-6 lg:px-20 py-4">
+<div class="flex items-center justify-between max-w-7xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="p-1.5 rounded-lg text-white">
+<span class="material-symbols-outlined block">precision_manufacturing</span>
+</div>
+<h2 class="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white uppercase">Pavlicevits</h2>
+</div>
+<nav class="hidden md:flex items-center gap-10">
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Consultation</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Solutions</a>
+<a class="text-sm font-semibold hover:text-primary transition-colors" href="#">Products</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors relative">
+<span class="material-symbols-outlined">shopping_cart</span>
+<span class="absolute top-1 right-1 w-2 h-2 bg-accent-teal rounded-full"></span>
+</button>
+<button class="p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+<div class="h-10 w-10 rounded-full border-2 border-primary bg-slate-300 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of a project engineer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMvnkt76i3jT5kEzf88aSSWZ2rn-dRmk8Cx9XWdr5JHUANcoD5eF5Qb_TP9iTsQhOJ-sH2oFU3EDl1sZbUmRYInreiIAGbDWO_NfwZeRhN4XppKTNF7DCNkjYDuonxbo9jGWMXMt34FcNaZQpMr4K0YXotomhGw2D4o7kZSOEkrq3mnLjUIfh-u2X1Xx3sudSS-lzCIAED3mypgO-uCq9BpqrAZTRrBz_7ItvjYBDqcUgg3hqOCkI_8fxzyi3c3aHkhZPVKzL1zzU"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="flex-1 max-w-7xl mx-auto w-full px-6 lg:px-20 py-12">
+<!-- Hero Section -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 mb-16 items-end">
+<div class="lg:col-span-8">
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-purple/10 text-accent-purple dark:bg-accent-purple/30 dark:text-slate-100 mb-4 border border-accent-purple/20">
+<span class="material-symbols-outlined text-sm">auto_awesome</span>
+<span class="text-xs font-bold uppercase tracking-wider">AI Generated Strategy</span>
+</div>
+<h1 class="text-5xl lg:text-7xl font-black leading-none tracking-tighter text-slate-900 dark:text-white mb-6 uppercase">
+                        Industrial <br/><span class="">Solution Plan</span>
+</h1>
+<p class="text-xl text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed">
+                        Customized industrial coating protocol for high-corrosion environments. Engineered based on your facility's substrate analysis and environmental stressors.
+                    </p>
+</div>
+<div class="lg:col-span-4 flex justify-end gap-3">
+<button class="flex-1 lg:flex-none px-6 h-12 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-lg">download</span>
+                        Export PDF
+                    </button>
+<button class="px-4 h-12 rounded-xl border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined">share</span>
+</button>
+</div>
+</div>
+<!-- Dashboard Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Sidebar Info: Project Summary -->
+<aside class="lg:col-span-4 space-y-8">
+<section class="p-8 rounded-xl bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 shadow-sm">
+<h3 class="text-lg font-bold mb-6 flex items-center gap-2 uppercase tracking-tight">
+<span class="material-symbols-outlined">assignment</span>
+                            Project Summary
+                        </h3>
+<div class="space-y-4">
+<div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800/50">
+<span class="text-sm font-medium text-slate-500 dark:text-slate-400">Surface Type</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white">Galvanized Steel</span>
+</div>
+<div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800/50">
+<span class="text-sm font-medium text-slate-500 dark:text-slate-400">Total Area</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white">4,500 sq. ft.</span>
+</div>
+<div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800/50">
+<span class="text-sm font-medium text-slate-500 dark:text-slate-400">Atmosphere</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white">C5-I Industrial</span>
+</div>
+<div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800/50">
+<span class="text-sm font-medium text-slate-500 dark:text-slate-400">Primary Goal</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white">Corrosion Control</span>
+</div>
+<div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800/50">
+<span class="text-sm font-medium text-slate-500 dark:text-slate-400">Est. Duration</span>
+<span class="text-sm font-bold text-slate-900 dark:text-white">8-12 Days</span>
+</div>
+</div>
+</section>
+<section class="p-8 rounded-xl bg-accent-teal/5 dark:bg-accent-teal/10 border border-accent-teal/10 dark:border-accent-teal/20">
+<h3 class="text-lg font-bold mb-4 flex items-center gap-2 uppercase tracking-tight text-accent-teal dark:text-teal-400">
+<span class="material-symbols-outlined">health_and_safety</span>
+                            Safety Protocol
+                        </h3>
+<p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Respirators (N95/P100) are mandatory during surface prep. Ensure localized ventilation in confined spaces. No open flames within 50ft of application area.
+                        </p>
+</section>
+</aside>
+<!-- Process Guidelines -->
+<div class="lg:col-span-8 space-y-8">
+<div class="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+<div class="px-8 py-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+<h3 class="text-lg font-bold uppercase tracking-tight">Step-by-Step Guideline</h3>
+<span class="text-xs font-bold px-2 py-1 bg-primary/20 text-primary rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">3 PHASES</span>
+</div>
+<div class="p-8 space-y-12">
+<!-- Prep -->
+<div class="flex gap-6 relative">
+<div class="absolute left-6 top-10 bottom-0 w-px bg-slate-200 dark:border-slate-800"></div>
+<div class="relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-accent-purple text-white flex items-center justify-center font-black text-xl">1</div>
+<div class="pb-8">
+<h4 class="text-xl font-bold mb-3 text-slate-900 dark:text-white uppercase tracking-tight">Phase I: Preparation</h4>
+<p class="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">Abrasive blast cleaning to ISO 8501-1 Sa 2.5 standard. Ensure surface is free of oil, grease, and mill scale. Degrease with alkaline cleaners if necessary.</p>
+<ul class="grid grid-cols-1 md:grid-cols-2 gap-2">
+<li class="flex items-center gap-2 text-sm text-slate-500"><span class="material-symbols-outlined text-xs">check_circle</span> Chloride testing</li>
+<li class="flex items-center gap-2 text-sm text-slate-500"><span class="material-symbols-outlined text-xs">check_circle</span> Profile depth verification</li>
+</ul>
+</div>
+</div>
+<!-- Application -->
+<div class="flex gap-6 relative">
+<div class="absolute left-6 top-10 bottom-0 w-px bg-slate-200 dark:border-slate-800"></div>
+<div class="relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-accent-purple text-white flex items-center justify-center font-black text-xl">2</div>
+<div class="pb-8">
+<h4 class="text-xl font-bold mb-3 text-slate-900 dark:text-white uppercase tracking-tight">Phase II: Application</h4>
+<p class="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">Apply Epoxy Zinc-Rich Primer (DFT 60μm). Follow with High-Build MIO Epoxy Intermediate coat (DFT 150μm) within 24-hour recoat window.</p>
+<div class="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-lg border-l-4">
+<p class="text-xs font-bold text-slate-900 dark:text-white mb-1 uppercase">Tech Note</p>
+<p class="text-xs text-slate-500">Monitor dew point; ensure substrate temp is at least 3°C above dew point.</p>
+</div>
+</div>
+</div>
+<!-- Finishing -->
+<div class="flex gap-6">
+<div class="relative z-10 flex-shrink-0 w-12 h-12 rounded-full bg-accent-purple text-white flex items-center justify-center font-black text-xl">3</div>
+<div>
+<h4 class="text-xl font-bold mb-3 text-slate-900 dark:text-white uppercase tracking-tight">Phase III: Finishing</h4>
+<p class="text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">Final coat of Polyurethane Finish (DFT 50μm). Provides UV resistance and color retention. Full chemical cure reached after 7 days at 20°C.</p>
+<div class="flex gap-3">
+<span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 rounded uppercase">Glossy</span>
+<span class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 rounded uppercase">Anti-UV</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Recommended Products Section -->
+<div class="mt-20">
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
+<div>
+<h2 class="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-2">Recommended Products</h2>
+<p class="text-slate-500 dark:text-slate-400">Optimized inventory for your specific solution plan.</p>
+</div>
+<button class="text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform shadow-lg shadow-primary/25">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+                        Add All to Cart (12 items)
+                    </button>
+</div>
+<!-- Product Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Product 1 -->
+<div class="group bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:shadow-xl hover:-translate-y-1">
+<div class="aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg mb-6 flex items-center justify-center relative overflow-hidden">
+<img class="w-4/5 h-4/5 object-contain transition-transform group-hover:scale-110" data-alt="Industrial paint bucket with orange label" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcgDIqH-Gxy1-VomlRobMun4dfydakDo19SHXzdYv3Lzz9Ngs0ZlHOra1zcoaoW3SlxEi0PQGj2N3r2aHQcC9Bf1_uJmfQSHceCEYYN581aD3ryxGQUMdEMjFwmHLNw1YXqSDOJwLW9cMZROxURBwwxJX93YZ_lZGio5G2V02UCmjz05_J9VXShCRwdLt44xCj1UtvkApVLaZvR5Glo1a20UxGx_3wP77BPjWAN0SeeM-xRiCJzmQlpAamo6tASSaxPkDkO7Fvmdc"/>
+<span class="absolute top-3 left-3 px-2 py-1 bg-accent-teal text-white text-[10px] font-bold uppercase rounded">Primer</span>
+</div>
+<h4 class="font-bold text-slate-900 dark:text-white mb-1">Zinc-Master Pro 80</h4>
+<p class="text-xs text-slate-500 mb-4">Galvanic protection epoxy primer</p>
+<div class="flex items-center justify-between">
+<span class="text-lg font-black">$189.50</span>
+<button class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Product 2 -->
+<div class="group bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:shadow-xl hover:-translate-y-1">
+<div class="aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg mb-6 flex items-center justify-center relative overflow-hidden">
+<img class="w-4/5 h-4/5 object-contain transition-transform group-hover:scale-110" data-alt="Large industrial paint canister grey" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAYzgEkqce-iEsqRlm4IlGvO-5rpL4HlaLBd3ru50pAHeisyxbFn6tv-hTaVGeQ4q6jrFEn7H8WAzVll_3WryxiG0GYf82K1HXEr_1vg3rXfihH9aUfHQMa8KyNKlqb2mDwcMu7YK2fE6tH2lUSpWP94ei4T1DD1t5rumSRf6hDj3RNka29RRDAVsejxqzdRP8cKmR70TBJmWN4v9uEA6rs0JbYj4bwcMPWTfyxHnpyswM3_ZiZ1S8cwSfq7jDlaZFpqu1IgyDDss"/>
+<span class="absolute top-3 left-3 px-2 py-1 bg-accent-purple text-white text-[10px] font-bold uppercase rounded">Topcoat</span>
+</div>
+<h4 class="font-bold text-slate-900 dark:text-white mb-1">ArmorShield Urethane</h4>
+<p class="text-xs text-slate-500 mb-4">High-gloss UV resistant finish</p>
+<div class="flex items-center justify-between">
+<span class="text-lg font-black">$215.00</span>
+<button class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Product 3 -->
+<div class="group bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:shadow-xl hover:-translate-y-1">
+<div class="aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg mb-6 flex items-center justify-center relative overflow-hidden">
+<img class="w-4/5 h-4/5 object-contain transition-transform group-hover:scale-110" data-alt="Set of professional industrial paint brushes" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLceVMx77SKscjysAgIT5_5S2uhgBl5Ogx88S_fqWt9h5J-7_edMC26q9-myLVfFid5FR8JSdAzJeTKr-eZ3f_lk8N7sa43zcuN733IulHLCOA0quuvRd2f6siDrx8Pleo5jUSv8YORv_yPXBYje1IRHUvjGfpSFfqx2_m9xSf3snmPlEdUFeBvEmiHYzuvXo9-XpdOxHFmZ1wKL_oljdkozTVAXoyG4eefP5KlWi9FKVUz1MwOTVJbERx_PV_nuikvQxdIfVT7-A"/>
+<span class="absolute top-3 left-3 px-2 py-1 bg-slate-600 text-white text-[10px] font-bold uppercase rounded">Gear</span>
+</div>
+<h4 class="font-bold text-slate-900 dark:text-white mb-1">Precision-Flow Set</h4>
+<p class="text-xs text-slate-500 mb-4">Professional solvent-resistant kit</p>
+<div class="flex items-center justify-between">
+<span class="text-lg font-black">$45.99</span>
+<button class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+<!-- Product 4 -->
+<div class="group bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-6 transition-all hover:shadow-xl hover:-translate-y-1">
+<div class="aspect-square bg-slate-100 dark:bg-slate-800 rounded-lg mb-6 flex items-center justify-center relative overflow-hidden">
+<img class="w-4/5 h-4/5 object-contain transition-transform group-hover:scale-110" data-alt="Heavy duty masking tape roll" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJXmuYSRQVe69E0gHDlbzmv5TeS2i6BjgKYOFpQY2mVVTTOWmxzm09qiJ7LlPm-oXSyWUu6gRJdHN4ep-V4MHctF6xwwcXH2SCVUF-K7Zp-SR11631mJ2J5V4wQM7GLcKkATQPDZxAd-kEdXBQt7nBMNssABAN4ouSJ1b0xFE-DeE5u4JSmrvTeNAlkqHiFQC5ti59eq1EzS49EE-P5PDASYwCZynYg7KO5nJpvRwdCSuQeg-yZwj77KT8soPBiH6yLXw55ltqyzY"/>
+<span class="absolute top-3 left-3 px-2 py-1 bg-slate-600 text-white text-[10px] font-bold uppercase rounded">Prep</span>
+</div>
+<h4 class="font-bold text-slate-900 dark:text-white mb-1">Ultra-Seal Tape</h4>
+<p class="text-xs text-slate-500 mb-4">High-adhesion industrial masking</p>
+<div class="flex items-center justify-between">
+<span class="text-lg font-black">$12.50</span>
+<button class="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="mt-20 border-t border-slate-200 dark:border-slate-800 px-6 lg:px-20 py-12 bg-slate-50 dark:bg-slate-900">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-3 grayscale opacity-50">
+<div class="bg-slate-900 dark:bg-slate-100 p-1.5 rounded-lg text-white dark:text-slate-900">
+<span class="material-symbols-outlined block text-sm">precision_manufacturing</span>
+</div>
+<h2 class="text-sm font-bold tracking-tight uppercase">Pavlicevits Industrial</h2>
+</div>
+<div class="flex gap-8 text-xs font-bold text-slate-500 uppercase tracking-widest">
+<a class="hover:text-primary" href="#">Support</a>
+<a class="hover:text-primary" href="#">Documentation</a>
+<a class="hover:text-primary" href="#">Technical API</a>
+<a class="hover:text-primary" href="#">Privacy</a>
+</div>
+<div class="text-xs text-slate-400">
+                    © 2024 Pavlicevits Solutions. Engineered Excellence.
+                </div>
+</div>
+</footer>
+</div>
+</body></html>

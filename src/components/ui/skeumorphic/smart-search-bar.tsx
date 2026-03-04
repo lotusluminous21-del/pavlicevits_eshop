@@ -12,8 +12,8 @@ export const SmartSearchBar = React.forwardRef<HTMLInputElement, SmartSearchBarP
                 className={cn(
                     "relative w-full max-w-[500px] p-[4px] rounded-full",
                     // Outer Wall is RAISED to create the boundary, softer matte shadow + highlight rim
-                    "bg-[#F0F2F6]",
-                    "shadow-[5px_5px_10px_rgba(0,0,0,0.05),-5px_-5px_10px_rgba(255,255,255,0.8),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
+                    "bg-[#ffffff]",
+                    "shadow-sm",
                     className
                 )}
             >
@@ -21,8 +21,8 @@ export const SmartSearchBar = React.forwardRef<HTMLInputElement, SmartSearchBarP
                     className={cn(
                         "relative flex items-center w-full h-[56px] rounded-full",
                         // Inner Container is INSET (pressed in), matte + highlight inner rim
-                        "bg-[#F0F2F6]",
-                        "shadow-[inset_4px_4px_8px_rgba(0,0,0,0.06),inset_-4px_-4px_8px_rgba(255,255,255,0.7),inset_1px_1px_2px_rgba(0,0,0,0.05),inset_-1px_-1px_2px_rgba(255,255,255,0.9)]"
+                        "bg-[#ffffff]",
+                        "shadow-sm"
                     )}
                 >
                     <input
@@ -43,10 +43,10 @@ export const SmartSearchBar = React.forwardRef<HTMLInputElement, SmartSearchBarP
                             className={cn(
                                 "h-[48px] w-[48px] rounded-full flex items-center justify-center shrink-0 transition-all duration-300",
                                 // Button is RAISED (popping out), matte + highlight rim
-                                "bg-[#F0F2F6]",
-                                "shadow-[3px_3px_6px_rgba(0,0,0,0.07),-3px_-3px_6px_rgba(255,255,255,0.9),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
-                                "hover:bg-[#EAECEF] hover:shadow-[4px_4px_8px_rgba(0,0,0,0.08),-4px_-4px_8px_rgba(255,255,255,1),2px_2px_3px_rgba(0,0,0,0.03),-2px_-2px_3px_rgba(255,255,255,1)]",
-                                "active:scale-[0.97] active:shadow-[inset_2px_2px_5px_rgba(0,0,0,0.06),inset_-2px_-2px_5px_rgba(255,255,255,0.7),inset_1px_1px_2px_rgba(0,0,0,0.05),inset_-1px_-1px_2px_rgba(255,255,255,0.9)]",
+                                "bg-[#ffffff]",
+                                "shadow-sm",
+                                "hover:bg-[#EAECEF] hover:shadow-sm",
+                                "active:scale-[0.97] active:shadow-sm",
                                 "text-slate-600 hover:text-slate-800"
                             )}
                         >

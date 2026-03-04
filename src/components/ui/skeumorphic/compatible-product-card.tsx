@@ -11,10 +11,10 @@ export function CompatibleProductCard({ title, className, ...props }: Compatible
         <div
             className={cn(
                 "flex flex-col items-center justify-between p-3 pb-[14px] shrink-0 w-[124px] h-[156px] cursor-pointer",
-                "rounded-[24px] bg-[#F0F2F6] transition-all duration-300",
-                "shadow-[5px_5px_10px_rgba(0,0,0,0.05),-5px_-5px_10px_rgba(255,255,255,0.8),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
-                "hover:shadow-[7px_7px_14px_rgba(0,0,0,0.07),-7px_-7px_14px_rgba(255,255,255,0.9),2px_2px_3px_rgba(0,0,0,0.03),-2px_-2px_3px_rgba(255,255,255,1)]",
-                "active:scale-[0.97] active:shadow-[inset_4px_4px_8px_rgba(0,0,0,0.06),inset_-4px_-4px_8px_rgba(255,255,255,0.8),inset_1px_1px_2px_rgba(0,0,0,0.05),inset_-1px_-1px_2px_rgba(255,255,255,0.9)]",
+                "rounded-[24px] bg-[#ffffff] transition-all duration-300",
+                "shadow-sm",
+                "hover:shadow-sm",
+                "active:scale-[0.97] active:shadow-sm",
                 className
             )}
             {...props}

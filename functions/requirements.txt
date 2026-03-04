@@ -2,6 +2,7 @@ firebase-functions
 firebase-admin
 google-genai
 google-auth
+google-adk
 httpx
 pydantic
 requests

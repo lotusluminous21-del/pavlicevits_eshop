@@ -19,20 +19,20 @@ export function ProductCard({ product, variant = "standard", className }: Produc
         return (
             <div
                 className={cn(
-                    "group relative flex items-center gap-[18px] p-[16px] rounded-[28px] bg-[#F0F2F6] transition-all duration-300",
-                    "shadow-[6px_6px_12px_rgba(0,0,0,0.06),-6px_-6px_12px_rgba(255,255,255,0.8),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
-                    "hover:shadow-[8px_8px_16px_rgba(0,0,0,0.08),-8px_-8px_16px_rgba(255,255,255,0.9),2px_2px_4px_rgba(0,0,0,0.03),-2px_-2px_4px_rgba(255,255,255,1)]",
+                    "group relative flex items-center gap-[18px] p-[16px] rounded-[28px] bg-[#ffffff] transition-all duration-300",
+                    "shadow-sm",
+                    "hover:shadow-sm",
                     className
                 )}
             >
-                <div className="relative w-[60px] h-[60px] shrink-0 rounded-[18px] bg-[#F0F2F6] shadow-[4px_4px_10px_rgba(0,0,0,0.06),-4px_-4px_10px_rgba(255,255,255,0.9),inset_1px_1px_2px_rgba(255,255,255,0.8),inset_-1px_-1px_2px_rgba(0,0,0,0.02)] flex items-center justify-center p-[10px]">
+                <div className="relative w-[60px] h-[60px] shrink-0 rounded-[18px] bg-[#ffffff] shadow-sm flex items-center justify-center p-[10px]">
                     {featuredImage && (
                         <div className="relative w-full h-full">
                             <Image
                                 src={featuredImage.url}
                                 alt={featuredImage.altText || product.title}
                                 fill
-                                className="object-contain drop-shadow-[2px_2px_5px_rgba(0,0,0,0.1)]"
+                                className="object-contain drop-shadow-sm"
                             />
                         </div>
                     )}
@@ -66,9 +66,9 @@ export function ProductCard({ product, variant = "standard", className }: Produc
         return (
             <div
                 className={cn(
-                    "group relative flex flex-col items-center w-[160px] p-4 rounded-[24px] bg-[#F0F2F6] transition-all duration-300",
-                    "shadow-[6px_6px_12px_rgba(0,0,0,0.06),-6px_-6px_12px_rgba(255,255,255,0.8),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
-                    "hover:shadow-[8px_8px_16px_rgba(0,0,0,0.08),-8px_-8px_16px_rgba(255,255,255,0.9),2px_2px_4px_rgba(0,0,0,0.03),-2px_-2px_4px_rgba(255,255,255,1)]",
+                    "group relative flex flex-col items-center w-[160px] p-4 rounded-[24px] bg-[#ffffff] transition-all duration-300",
+                    "shadow-sm",
+                    "hover:shadow-sm",
                     className
                 )}
             >
@@ -78,7 +78,7 @@ export function ProductCard({ product, variant = "standard", className }: Produc
                             src={featuredImage.url}
                             alt={featuredImage.altText || product.title}
                             fill
-                            className="object-contain drop-shadow-[5px_5px_10px_rgba(0,0,0,0.15)] transition-transform duration-500 group-hover:scale-105"
+                            className="object-contain drop-shadow-sm transition-transform duration-500 group-hover:scale-105"
                         />
                     )}
                 </div>
@@ -101,9 +101,9 @@ export function ProductCard({ product, variant = "standard", className }: Produc
     return (
         <div
             className={cn(
-                "group relative flex flex-col w-[174px] p-[20px] rounded-[32px] bg-[#F0F2F6] transition-all duration-300",
-                "shadow-[6px_6px_12px_rgba(0,0,0,0.06),-6px_-6px_12px_rgba(255,255,255,0.8),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
-                "hover:shadow-[8px_8px_16px_rgba(0,0,0,0.08),-8px_-8px_16px_rgba(255,255,255,0.9),2px_2px_4px_rgba(0,0,0,0.03),-2px_-2px_4px_rgba(255,255,255,1)]",
+                "group relative flex flex-col w-[174px] p-[20px] rounded-[32px] bg-[#ffffff] transition-all duration-300",
+                "shadow-sm",
+                "hover:shadow-sm",
                 className
             )}
         >
@@ -113,7 +113,7 @@ export function ProductCard({ product, variant = "standard", className }: Produc
                         src={featuredImage.url}
                         alt={featuredImage.altText || product.title}
                         fill
-                        className="object-contain transition-transform duration-500 group-hover:scale-105 drop-shadow-[4px_4px_8px_rgba(0,0,0,0.1)] pt-[6px]"
+                        className="object-contain transition-transform duration-500 group-hover:scale-105 drop-shadow-sm pt-[6px]"
                     />
                 )}
             </div>
@@ -127,7 +127,7 @@ export function ProductCard({ product, variant = "standard", className }: Produc
                         {currency}{price}
                     </span>
                     <button
-                        className="w-[42px] h-[42px] rounded-[16px] flex items-center justify-center bg-[#00E5CC] text-slate-900 shadow-[4px_4px_8px_rgba(0,0,0,0.15),-4px_-4px_8px_rgba(255,255,255,0.9),inset_2px_2px_4px_rgba(255,255,255,0.5),inset_-2px_-2px_4px_rgba(0,229,204,0.8)] transition-all hover:scale-105 active:scale-95 shrink-0"
+                        className="w-[42px] h-[42px] rounded-[16px] flex items-center justify-center bg-[#00E5CC] text-slate-900 shadow-sm transition-all hover:scale-105 active:scale-95 shrink-0"
                     >
                         <Plus className="w-[22px] h-[22px]" strokeWidth={2.5} />
                     </button>

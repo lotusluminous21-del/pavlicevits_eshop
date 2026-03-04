@@ -115,6 +115,7 @@ export type Cart = {
 export type CartLine = {
     id: string;
     quantity: number;
+    attributes?: { key: string; value: string }[];
     cost: {
         totalAmount: Money;
     };

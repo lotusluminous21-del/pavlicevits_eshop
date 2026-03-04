@@ -29,6 +29,7 @@ class SolutionStep(BaseModel):
     tips: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
     product_handles: List[str] = Field(default_factory=list)
+    selected_products: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class Solution(BaseModel):

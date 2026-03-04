@@ -10,9 +10,11 @@ export interface ChatBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
     role: "user" | "assistant" | "ai";
     content: string;
     imageUrl?: string;
+    readyForSolution?: boolean;
+    onGenerateSolution?: () => void;
 }
 
-export function ChatBubble({ role, content, imageUrl, className, ...props }: ChatBubbleProps) {
+export function ChatBubble({ role, content, imageUrl, readyForSolution, onGenerateSolution, className, ...props }: ChatBubbleProps) {
     const isUser = role === "user";
 
     return (
@@ -20,7 +22,7 @@ export function ChatBubble({ role, content, imageUrl, className, ...props }: Cha
             {!isUser && (
                 <div className="flex-shrink-0 mt-1">
                     <div className="w-[42px] h-[42px] rounded-full bg-skeuo-bg flex items-center justify-center shadow-skeuo-raised">
-                        <Brain className="w-[22px] h-[22px] text-pink-600 drop-shadow-[0_2px_2px_rgba(219,39,119,0.3)]" strokeWidth={2.5} />
+                        <Brain className="w-[22px] h-[22px] text-pink-600 drop-shadow-sm" strokeWidth={2.5} />
                     </div>
                 </div>
             )}
@@ -28,7 +30,7 @@ export function ChatBubble({ role, content, imageUrl, className, ...props }: Cha
                 className={cn(
                     "max-w-[78%] px-[20px] py-[14px]",
                     isUser
-                        ? "bg-skeuo-accent rounded-[24px] rounded-tr-[8px] shadow-[0_4px_14px_rgba(0,212,202,0.35),inset_1px_1px_2px_rgba(255,255,255,0.4),inset_-1px_-1px_2px_rgba(0,0,0,0.05)] text-slate-800"
+                        ? "bg-skeuo-accent rounded-[24px] rounded-tr-[8px] shadow-sm text-slate-800"
                         : "bg-skeuo-bg rounded-[24px] rounded-tl-[8px] shadow-skeuo-raised text-slate-700"
                 )}
             >
@@ -45,6 +47,17 @@ export function ChatBubble({ role, content, imageUrl, className, ...props }: Cha
                 )}>
                     <ReactMarkdown>{content}</ReactMarkdown>
                 </div>
+                {readyForSolution && onGenerateSolution && (
+                    <div className="mt-4 pt-3 border-t border-slate-200">
+                        <button
+                            onClick={onGenerateSolution}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-skeuo-accent to-skeuo-accent-dark text-slate-900 font-bold rounded-xl shadow-skeuo-button hover:brightness-105 active:scale-[0.98] transition-all"
+                        >
+                            <span className="text-lg">✨</span>
+                            Δημιουργία Λύσης
+                        </button>
+                    </div>
+                )}
             </div>
             {isUser && (
                 <div className="flex-shrink-0 mt-1">

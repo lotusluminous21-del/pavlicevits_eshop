@@ -16,7 +16,7 @@ export async function createCart(): Promise<Cart> {
     return res.cartCreate.cart;
 }
 
-export async function addToCart(cartId: string, lines: { merchandiseId: string; quantity: number }[]): Promise<Cart> {
+export async function addToCart(cartId: string, lines: { merchandiseId: string; quantity: number; attributes?: { key: string; value: string }[] }[]): Promise<Cart> {
     const res = await shopifyFetch<{ cartLinesAdd: { cart: Cart } }>(addToCartMutation, {
         cartId,
         lines,

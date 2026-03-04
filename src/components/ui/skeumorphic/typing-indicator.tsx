@@ -8,7 +8,7 @@ export function TypingIndicator({ className }: { className?: string }) {
     return (
         <div className={cn("flex items-start gap-3", className)}>
             <div className="w-[42px] h-[42px] rounded-full bg-skeuo-bg flex items-center justify-center shadow-skeuo-raised">
-                <Brain className="w-[22px] h-[22px] text-pink-600 drop-shadow-[0_2px_2px_rgba(219,39,119,0.3)]" strokeWidth={2.5} />
+                <Brain className="w-[22px] h-[22px] text-pink-600 drop-shadow-sm" strokeWidth={2.5} />
             </div>
             <div className="skeuo-card px-5 py-4 rounded-[24px] rounded-tl-[8px]">
                 <div className="flex items-center gap-1.5">

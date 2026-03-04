@@ -22,7 +22,7 @@ export function SuggestedProductsStrip({ products, className, ...props }: Sugges
                 {products.map((product, i) => (
                     <Link
                         key={product.handle || i}
-                        href={`/product/${product.handle}`}
+                        href={`/products/${product.handle}`}
                         className="flex-shrink-0 w-[160px] skeuo-card p-3 flex flex-col gap-2 group hover:shadow-skeuo-raised transition-all"
                     >
                         {/* Product Image / Icon */}

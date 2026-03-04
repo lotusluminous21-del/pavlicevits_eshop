@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#312e81", // Dark indigo/purple accent
+                        "secondary": "#0d9488", // Dark teal accent
+                        "background-light": "#ffffff",
+                        "background-dark": "#0a0a0a",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0rem", "lg": "0rem", "xl": "0rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .grid-bg {
+            background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        .dark .grid-bg {
+            background-image: radial-gradient(circle, #1f2937 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen grid-bg">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-black/80 backdrop-blur-md px-4 md:px-12 py-4">
+<div class="max-w-7xl mx-auto flex items-center justify-between">
+<div class="flex items-center gap-12">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-slate-900 dark:text-white text-3xl">precision_manufacturing</span>
+<h2 class="text-xl font-black uppercase tracking-tighter italic">Pavlicevits</h2>
+</div>
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors" href="#">Solutions</a>
+<a class="text-xs font-bold uppercase tracking-widest text-primary border-b-2 border-primary" href="#">Products</a>
+<a class="text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors" href="#">Lab Services</a>
+<a class="text-xs font-bold uppercase tracking-widest hover:text-primary transition-colors" href="#">About</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="bg-slate-100 dark:bg-slate-900 border-none text-[10px] font-bold tracking-widest py-2 pl-10 pr-4 w-64 focus:ring-1 focus:ring-primary uppercase" placeholder="SKU OR PRODUCT NAME" type="text"/>
+</div>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-900">
+<span class="material-symbols-outlined">shopping_cart</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-900">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-4 md:px-12 py-8">
+<!-- Breadcrumbs -->
+<div class="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-slate-400 mb-8">
+<a class="hover:text-primary" href="#">Industrial</a>
+<span class="material-symbols-outlined text-xs">chevron_right</span>
+<span class="text-slate-900 dark:text-white">Coating Systems</span>
+</div>
+<div class="flex flex-col lg:flex-row gap-12">
+<!-- Sidebar Filters -->
+<aside class="w-full lg:w-64 shrink-0 space-y-10">
+<div>
+<h3 class="text-xs font-black uppercase tracking-[0.2em] mb-6 border-b border-slate-900 dark:border-white pb-2">Categories</h3>
+<ul class="space-y-3">
+<li><a class="flex items-center justify-between text-xs font-bold uppercase tracking-widest hover:text-secondary group" href="#"><span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">format_paint</span> Aerosol Systems</span> <span class="material-symbols-outlined text-xs opacity-0 group-hover:opacity-100">arrow_forward</span></a></li>
+<li><a class="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-primary border-r-4 border-primary pr-2" href="#"><span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">gradient</span> Powder Coatings</span></a></li>
+<li><a class="flex items-center justify-between text-xs font-bold uppercase tracking-widest hover:text-secondary group" href="#"><span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">cleaning_services</span> Surface Prep</span> <span class="material-symbols-outlined text-xs opacity-0 group-hover:opacity-100">arrow_forward</span></a></li>
+<li><a class="flex items-center justify-between text-xs font-bold uppercase tracking-widest hover:text-secondary group" href="#"><span class="flex items-center gap-2"><span class="material-symbols-outlined text-sm">biotech</span> Lab Services</span> <span class="material-symbols-outlined text-xs opacity-0 group-hover:opacity-100">arrow_forward</span></a></li>
+</ul>
+</div>
+<div class="space-y-8">
+<div>
+<h4 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">System Type</h4>
+<div class="flex flex-col gap-2">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="form-checkbox bg-transparent border-slate-300 dark:border-slate-700 text-primary focus:ring-0" type="checkbox"/>
+<span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-primary">Polyurethane</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="form-checkbox bg-transparent border-slate-300 dark:border-slate-700 text-primary focus:ring-0" type="checkbox"/>
+<span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-primary">Epoxy Resin</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="form-checkbox bg-transparent border-slate-300 dark:border-slate-700 text-primary focus:ring-0" type="checkbox"/>
+<span class="text-[10px] font-bold uppercase tracking-widest group-hover:text-primary">Acrylic Base</span>
+</label>
+</div>
+</div>
+<div>
+<h4 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Finish</h4>
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1 border border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-widest hover:border-primary transition-all">Matte</button>
+<button class="px-3 py-1 border border-primary text-[10px] font-bold uppercase tracking-widest bg-primary text-white">High Gloss</button>
+<button class="px-3 py-1 border border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-widest hover:border-primary transition-all">Satin</button>
+<button class="px-3 py-1 border border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-widest hover:border-primary transition-all">Textured</button>
+</div>
+</div>
+<div>
+<h4 class="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4">Application</h4>
+<select class="w-full bg-transparent border-slate-200 dark:border-slate-800 text-[10px] font-bold uppercase tracking-widest py-2 focus:ring-primary">
+<option>All Applications</option>
+<option>Automotive</option>
+<option>Aerospace</option>
+<option>Marine</option>
+</select>
+</div>
+</div>
+</aside>
+<!-- Product Grid Section -->
+<section class="flex-1">
+<div class="mb-12">
+<h1 class="text-6xl md:text-8xl font-black uppercase tracking-tighter leading-none mb-4">Powder<br/><span class="text-primary">Coatings</span></h1>
+<p class="text-sm font-medium text-slate-500 max-w-xl uppercase tracking-wider">Engineered for extreme durability and aesthetic precision. High-performance industrial solutions for professional applications.</p>
+</div>
+<div class="flex items-center justify-between border-y border-slate-200 dark:border-slate-800 py-4 mb-8">
+<p class="text-[10px] font-bold tracking-widest uppercase">Showing 24 of 142 Results</p>
+<div class="flex gap-4">
+<button class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest hover:text-primary transition-colors">
+                            Sort: Default <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-px bg-slate-200 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
+<!-- Product Card 1 -->
+<div class="bg-white dark:bg-background-dark p-6 group cursor-pointer relative overflow-hidden">
+<div class="aspect-square bg-white dark:bg-slate-900 mb-6 flex items-center justify-center relative">
+<img alt="Industrial paint bucket" class="w-4/5 h-4/5 object-contain grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Industrial metal paint bucket on pure white background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCisSfbCP9R61G5Lky0U3VRx0QAPLIldeelEZfqBdbqIrmeLVlfKUJ75GcvU6EdzM0Msqh6rufWr85HKZOxLpjrIrXoxsoPPjH2OJwgfI3UaxmfHpCVc8heb0jHfMFvzh7XvVdl_KXHvaUeGu6I7Zh-ApJhpMPyshU9KTiZCmTNsvArfSj2D6LB3ZivSzbX7QgoSKI316Bj3zYt-Jt57YJ_4MyI0pevjMOLNoRRlBJ39x99l5Y3ahTzfnMQhuxc5jGyUrgD88P7QMw"/>
+<span class="absolute top-0 right-0 bg-primary text-white text-[8px] font-black uppercase tracking-widest px-2 py-1">New Arrival</span>
+</div>
+<div class="space-y-1">
+<p class="text-[10px] font-bold text-secondary uppercase tracking-widest">Polymer Series</p>
+<h3 class="text-lg font-black uppercase tracking-tight group-hover:text-primary transition-colors">Ultra-Chrome X90</h3>
+<div class="flex items-baseline gap-2 pt-2">
+<span class="text-xl font-black">$289.00</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ 5 Gallon</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-primary opacity-0 group-hover:opacity-5 transition-opacity pointer-events-none"></div>
+<button class="mt-6 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 text-[10px] font-black uppercase tracking-[0.2em] opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all">Quick Add</button>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-white dark:bg-background-dark p-6 group cursor-pointer relative overflow-hidden">
+<div class="aspect-square bg-white dark:bg-slate-900 mb-6 flex items-center justify-center relative">
+<img alt="Aerosol spray can" class="w-4/5 h-4/5 object-contain grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Professional aerosol spray can with nozzle detail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlUdOyhaSyj4BkrpEAoL6UCMnvn5lVf7UVsAFiTZpqjNIkY7Pt-3B3Ug-gxJcjP9fDMKNRWkifjVCO2iAPVM6NMF2IGHo7xXs3JecgipmXufIfuSWmgyhFQ_XA5kB2N4LJs7f4DTTGH8pR4ZhTJKDPsyVrJlEl-X11DN84_8gpRn8QN6cgrXBcs-u6nlkeLD0x6rVw-lkSOA406CT2yaZeeWNi0yv0A7JRJd0Yh-vB-HT9q-EwGXIH3GFx2Cq9ujBM6hB8wo0gsOk"/>
+</div>
+<div class="space-y-1">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aerosol Systems</p>
+<h3 class="text-lg font-black uppercase tracking-tight group-hover:text-primary transition-colors">Pro-Mist Precision</h3>
+<div class="flex items-baseline gap-2 pt-2">
+<span class="text-xl font-black">$42.50</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ Unit</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-secondary opacity-0 group-hover:opacity-5 transition-opacity pointer-events-none"></div>
+<button class="mt-6 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 text-[10px] font-black uppercase tracking-[0.2em] opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all">Quick Add</button>
+</div>
+<!-- Product Card 3 -->
+<div class="bg-white dark:bg-background-dark p-6 group cursor-pointer relative overflow-hidden">
+<div class="aspect-square bg-white dark:bg-slate-900 mb-6 flex items-center justify-center relative">
+<img alt="Industrial brush" class="w-4/5 h-4/5 object-contain grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Industrial grade paint brush with wooden handle" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcMEm3ZLgVrgZChcc6jVKRvWTmc6XmgnMKrKjC0NchjRFojybmj1jylPTAqbtpN69uGn2WYQWk3kn7Xq6m95kbzfcEgJEBBemSswSXFWV0F_tELcT-TeZ0FAZnf-luG5MjiB5XvWk2tAAg_PktUMdOd8weNlYfMNlSRtpS_bfKfsFZvyeVPAhgbqt8xDw0NLddmgQg67vMdmcFnq07gdzcoTkpskFMKRmhUau_W6eL3ZdsL42v0qFR4AVWvZ5eVSR2yShAuZWGGqU"/>
+</div>
+<div class="space-y-1">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Surface Prep</p>
+<h3 class="text-lg font-black uppercase tracking-tight group-hover:text-primary transition-colors">Structural Bristle 400</h3>
+<div class="flex items-baseline gap-2 pt-2">
+<span class="text-xl font-black">$18.25</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ Per Unit</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-primary opacity-0 group-hover:opacity-5 transition-opacity pointer-events-none"></div>
+<button class="mt-6 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 text-[10px] font-black uppercase tracking-[0.2em] opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all">Quick Add</button>
+</div>
+<!-- Product Card 4 -->
+<div class="bg-white dark:bg-background-dark p-6 group cursor-pointer relative overflow-hidden">
+<div class="aspect-square bg-white dark:bg-slate-900 mb-6 flex items-center justify-center relative">
+<img alt="Spray gun" class="w-4/5 h-4/5 object-contain grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Professional airless spray gun metallic finish" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm6B9g0nWqSR-GF-7mORTFyU45EWhnZLf-12AH4bpZWnEcZYzhMH333m6iR3eI98p9M8D9DDl9KhYni9q3STVmueehZtBnR-EzUaLvb8RQ2-fn9pQhJk0yo7OZ8z_P9G5sQPBxEJfHsBjfh2ZaDgTI-iBhBZ_10tABO85eKdlDMPwRw1KEWw75qv7zKl-sT9kY6pOMw_-AftT4rRPle875rA4UZPs5Hsa_a1h572q0dfNhxqhsHgeKy1XcdH4BIGvJP3L1Xyawbpo"/>
+</div>
+<div class="space-y-1">
+<p class="text-[10px] font-bold text-primary uppercase tracking-widest">System Expert</p>
+<h3 class="text-lg font-black uppercase tracking-tight group-hover:text-primary transition-colors">HP-V3 Spray Head</h3>
+<div class="flex items-baseline gap-2 pt-2">
+<span class="text-xl font-black">$512.00</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ Assembly</span>
+</div>
+</div>
+<button class="mt-6 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 text-[10px] font-black uppercase tracking-[0.2em] opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all">Quick Add</button>
+</div>
+<!-- Product Card 5 -->
+<div class="bg-white dark:bg-background-dark p-6 group cursor-pointer relative overflow-hidden">
+<div class="aspect-square bg-white dark:bg-slate-900 mb-6 flex items-center justify-center relative">
+<img alt="Lab beaker" class="w-4/5 h-4/5 object-contain grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Scientific lab beaker with dark purple liquid" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFpELHdOXnAVNzwvCQT_58eTmaaKu6MaL8j6k_VXlBSkFh48HknuAwnUxYrMjZccyIW7y9ZmCf5Vkrcp6WfJGq_Pu3Dqslf9dNro33k7U1XqD_tavoS82dYLvAt5g98EINSMVOGO-zckK7_TSBQU5TkLHlsshdwkbmv_h5hbuzJ9fXj0EGst2uuSgy4trgXUbGy-ZhdfC3COvSLfb4Irt2L1M8BYdEWmUDIzKXXUOd8eLz3UAKmSRKwwQ6DYo0Hui_Xumjzu4m_oY"/>
+</div>
+<div class="space-y-1">
+<p class="text-[10px] font-bold text-secondary uppercase tracking-widest">Lab Services</p>
+<h3 class="text-lg font-black uppercase tracking-tight group-hover:text-primary transition-colors">Viscosity Analysis</h3>
+<div class="flex items-baseline gap-2 pt-2">
+<span class="text-xl font-black">$120.00</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ Per Sample</span>
+</div>
+</div>
+<button class="mt-6 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 text-[10px] font-black uppercase tracking-[0.2em] opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all">Book Service</button>
+</div>
+<!-- Product Card 6 -->
+<div class="bg-white dark:bg-background-dark p-6 group cursor-pointer relative overflow-hidden">
+<div class="aspect-square bg-white dark:bg-slate-900 mb-6 flex items-center justify-center relative">
+<img alt="Large container" class="w-4/5 h-4/5 object-contain grayscale group-hover:grayscale-0 transition-all duration-500" data-alt="Large industrial chemical container barrel" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD12amW-uJmEz6y5jPvnatRUpS7VvYZCJATjE1gkQRoxxUV8TMi21NItJYcx3sXGv1B5hrmArq6kCa22HUIAkpv5jX2jXiZydY_9XKTbH_iahM_vzFXnoYjbupGFvjGu-vF8NGPKzycaLWchi0Jy421Zd5V3cujSTlqX1-qP_rvAFmvaE__BhThgm0w2oukY6f6LoYijGl4j2KUNTZZjwudj2Hi5UayJMdTFQd02xGNl5kwoWJSHGBCE2m6NqHF_-P5ZWqU_SiVCDU"/>
+</div>
+<div class="space-y-1">
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bulk Supplies</p>
+<h3 class="text-lg font-black uppercase tracking-tight group-hover:text-primary transition-colors">Matrix 500 Sealant</h3>
+<div class="flex items-baseline gap-2 pt-2">
+<span class="text-xl font-black">$1,450.00</span>
+<span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">/ Drum</span>
+</div>
+</div>
+<button class="mt-6 w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 text-[10px] font-black uppercase tracking-[0.2em] opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all">Inquiry Only</button>
+</div>
+</div>
+<!-- Pagination -->
+<div class="mt-12 flex justify-center">
+<div class="flex items-center gap-1">
+<button class="w-10 h-10 flex items-center justify-center border border-slate-200 dark:border-slate-800 text-xs font-bold hover:bg-slate-900 hover:text-white transition-all">1</button>
+<button class="w-10 h-10 flex items-center justify-center border border-primary bg-primary text-white text-xs font-bold">2</button>
+<button class="w-10 h-10 flex items-center justify-center border border-slate-200 dark:border-slate-800 text-xs font-bold hover:bg-slate-900 hover:text-white transition-all">3</button>
+<span class="px-2 font-bold">...</span>
+<button class="w-10 h-10 flex items-center justify-center border border-slate-200 dark:border-slate-800 text-xs font-bold hover:bg-slate-900 hover:text-white transition-all">12</button>
+<button class="w-10 h-10 flex items-center justify-center border border-slate-200 dark:border-slate-800 hover:bg-slate-900 hover:text-white transition-all">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Simple Modern Footer -->
+<footer class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-black py-20 mt-20">
+<div class="max-w-7xl mx-auto px-4 md:px-12 grid grid-cols-1 md:grid-cols-4 gap-12">
+<div class="col-span-1 md:col-span-1">
+<div class="flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-3xl">precision_manufacturing</span>
+<h2 class="text-xl font-black uppercase tracking-tighter italic">Pavlicevits</h2>
+</div>
+<p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-loose">The industry standard for high-performance coating solutions and advanced laboratory analysis since 1984.</p>
+</div>
+<div>
+<h4 class="text-[10px] font-black uppercase tracking-[0.2em] mb-6">Navigation</h4>
+<ul class="space-y-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+<li><a class="hover:text-primary" href="#">Home</a></li>
+<li><a class="hover:text-primary" href="#">Products</a></li>
+<li><a class="hover:text-primary" href="#">Solutions</a></li>
+<li><a class="hover:text-primary" href="#">Contact</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-[10px] font-black uppercase tracking-[0.2em] mb-6">Services</h4>
+<ul class="space-y-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+<li><a class="hover:text-primary" href="#">Lab Analysis</a></li>
+<li><a class="hover:text-primary" href="#">Custom Mixing</a></li>
+<li><a class="hover:text-primary" href="#">On-site Consultation</a></li>
+<li><a class="hover:text-primary" href="#">Technical Docs</a></li>
+</ul>
+</div>
+<div>
+<h4 class="text-[10px] font-black uppercase tracking-[0.2em] mb-6">Newsletter</h4>
+<div class="flex">
+<input class="bg-slate-100 dark:bg-slate-900 border-none text-[10px] font-bold tracking-widest py-3 px-4 w-full focus:ring-1 focus:ring-primary" placeholder="ENTER EMAIL" type="email"/>
+<button class="bg-primary text-white px-4">
+<span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+<div class="max-w-7xl mx-auto px-4 md:px-12 mt-20 pt-8 border-t border-slate-100 dark:border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-[8px] font-bold text-slate-400 uppercase tracking-[0.3em]">© 2024 Pavlicevits Industrial Coatings Group. All Rights Reserved.</p>
+<div class="flex gap-8 text-[8px] font-bold uppercase tracking-[0.3em] text-slate-400">
+<a class="hover:text-primary" href="#">Privacy</a>
+<a class="hover:text-primary" href="#">Terms</a>
+<a class="hover:text-primary" href="#">Accessibility</a>
+</div>
+</div>
+</footer>
+</body></html>

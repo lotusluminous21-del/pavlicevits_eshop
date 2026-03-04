@@ -124,6 +124,260 @@ def expert_chat_v2(req: https_fn.CallableRequest) -> dict:
         print(f"Error in expert_chat_v2 wrapper: {e}")
         return {"error": str(e)}
 
+# --- 7c. Expert Paint Advisor V3 - Manual Solution Finalization ---
+@https_fn.on_call(region="europe-west1", memory=options.MemoryOption.MB_512, timeout_sec=120)
+def generate_expert_solution_v3(req: https_fn.CallableRequest) -> dict:
+    try:
+        data = req.data
+        session_id = data.get("sessionId")
+        user_id = data.get("userId")
+        
+        if not session_id or not user_id:
+            return {"status": "error", "message": "Missing sessionId or userId"}
+            
+        from firebase_admin import firestore
+        import uuid
+        from datetime import datetime, timezone
+        
+        db = firestore.client()
+        session_ref = db.collection("users").document(user_id).collection("expert_sessions").document(session_id)
+        
+        doc_snap = session_ref.get()
+        if not doc_snap.exists:
+            return {"status": "error", "message": "Session not found"}
+            
+        session_data = doc_snap.to_dict() or {}
+        messages = session_data.get("messages", [])
+        accumulated = session_data.get("accumulatedProducts", {})
+        
+        if not accumulated:
+            return {"status": "error", "message": "No products gathered yet to build a solution"}
+            
+        history_text = "\n".join([
+            f"{'Πελάτης' if m.get('role') == 'user' else 'Ειδικός'}: {m.get('content')}"
+            for m in messages if m.get('content')
+        ])
+        
+        from expert_v3.solution_builder import generate_expert_solution
+        result = generate_expert_solution(history_text, accumulated)
+        
+        now = datetime.now(timezone.utc)
+        
+        if result.get("status") == "success":
+            session_ref.update({
+                "messages": firestore.firestore.ArrayUnion([{
+                    "id": str(uuid.uuid4()),
+                    "role": "assistant",
+                    "content": "Εξαιρετικά! Έχω συλλέξει όλες τις απαραίτητες πληροφορίες και σας ετοίμασα το πλήρες εξατομικευμένο πλάνο!",
+                    "solution": result.get("solution"),
+                    "timestamp": now
+                }]),
+                "status": "idle",
+                "agentStatus": ""
+            })
+        else:
+            session_ref.update({
+                "messages": firestore.firestore.ArrayUnion([{
+                    "id": str(uuid.uuid4()),
+                    "role": "assistant",
+                    "content": result.get("answer", "Συγγνώμη, παρουσιάστηκε σφάλμα κατά την επεξεργασία του πλάνου."),
+                    "timestamp": now
+                }]),
+                "status": "idle",
+                "agentStatus": ""
+            })
+            
+        return result
+
+    except Exception as e:
+        print(f"Error in generate_expert_solution_v3 wrapper: {e}")
+        return {"status": "error", "message": str(e)}
+
+# --- 7d. Expert Paint Advisor V3 (ReAct Agent - Firestore Driven) ---
+@firestore_fn.on_document_written(
+    document="users/{userId}/expert_sessions/{sessionId}",
+    region="europe-west1",
+    memory=options.MemoryOption.MB_512,
+    timeout_sec=540 # Allow up to 9 minutes for long tool queries
+)
+def expert_session_trigger(event: firestore_fn.Event[firestore_fn.Change[firestore_fn.DocumentSnapshot]]) -> None:
+    try:
+        # We only care about after-writes where the document still exists
+        if not event.data or not event.data.after or not event.data.after.exists:
+            return
+
+        after_data = event.data.after.to_dict() or {}
+        
+        # ── CRITICAL SELF-TRIGGER GUARD ──────────────────────────────────────
+        # The trigger fires on EVERY write to this document — including writes
+        # the function itself makes (agentStatus updates, etc). We ONLY want to
+        # run the agent when a NEW MESSAGE was added by the user (i.e., the
+        # messages array grew). Compare before vs after to detect this.
+        before_data = event.data.before.to_dict() if (event.data.before and event.data.before.exists) else {}
+        
+        before_messages = before_data.get("messages", [])
+        after_messages = after_data.get("messages", [])
+        
+        # If message count didn't increase, this was an internal write — skip.
+        if len(after_messages) <= len(before_messages):
+            return
+
+        last_message = after_messages[-1]
+
+        # Only process if the newly added message is from the user
+        if last_message.get("role") != "user":
+            return
+
+        user_id = event.params.get("userId", "unknown")
+        session_id = event.params.get("sessionId", "unknown")
+        main_logger.info(
+            "[expert_session_trigger] New user message detected",
+            user_id=user_id,
+            session_id=session_id,
+        )
+
+        # 1. Update status to processing immediately
+        event.data.after.reference.update({
+            "status": "processing",
+            "agentStatus": "Ανάλυση ερωτήματος..."
+        })
+        
+        from expert_v3.agent import ExpertV3Agent
+        agent = ExpertV3Agent()
+        
+        # Build history from all messages EXCEPT the latest user one
+        history = []
+        for msg in after_messages[:-1]:
+            history.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
+                
+        user_message_content = last_message.get("content", "")
+        
+        # 2. Process chat — pass session_id + user_id for structured log correlation
+        result = agent.process_chat(
+            user_message_content,
+            history=history,
+            doc_ref=event.data.after.reference,
+            session_id=session_id,
+            user_id=user_id,
+            session_data=after_data,
+        )
+        
+        from firebase_admin import firestore
+        import uuid
+        
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+
+        # 3. Append final result and reset status
+        if result.get("status") == "chat":
+            event.data.after.reference.update({
+                "messages": firestore.firestore.ArrayUnion([{
+                    "id": str(uuid.uuid4()),
+                    "role": "assistant",
+                    "content": result.get("answer", ""),
+                    "ready_for_solution": result.get("ready_for_solution", False),
+                    "timestamp": now
+                }]),
+                "status": "idle",
+                "agentStatus": ""
+            })
+        else:
+            event.data.after.reference.update({
+                "messages": firestore.firestore.ArrayUnion([{
+                    "id": str(uuid.uuid4()),
+                    "role": "assistant",
+                    "content": result.get("answer", "Συγγνώμη, παρουσιάστηκε σφάλμα κατά την επεξεργασία."),
+                    "timestamp": now
+                }]),
+
+                "status": "error",
+                "agentStatus": ""
+            })
+
+    except Exception as e:
+        main_logger.error(
+            f"expert_session_trigger CRASHED: {e}",
+            exc_info=True,
+            session_id=event.params.get("sessionId", "unknown"),
+            user_id=event.params.get("userId", "unknown"),
+        )
+        try:
+            event.data.after.reference.update({
+                "status": "error",
+                "agentStatus": f"Σφάλμα: {str(e)[:80]}"
+            })
+        except:
+            pass
+
+# --- 7e. Context Analysis Trigger (Parallel Sidebar Agent) ---
+@firestore_fn.on_document_written(
+    document="users/{userId}/expert_sessions/{sessionId}",
+    region="europe-west1",
+    memory=options.MemoryOption.MB_256,
+    timeout_sec=120
+)
+def context_analysis_trigger(event: firestore_fn.Event[firestore_fn.Change[firestore_fn.DocumentSnapshot]]) -> None:
+    """
+    Fires after the chat agent writes an assistant message.
+    Produces structured sidebar data (analysis phase, products, logs)
+    and writes it back to the session document's sidebarState field.
+    """
+    try:
+        if not event.data or not event.data.after or not event.data.after.exists:
+            return
+
+        after_data = event.data.after.to_dict() or {}
+        before_data = event.data.before.to_dict() if (event.data.before and event.data.before.exists) else {}
+
+        before_messages = before_data.get("messages", [])
+        after_messages = after_data.get("messages", [])
+
+        # Only fire when a new message was added
+        if len(after_messages) <= len(before_messages):
+            return
+
+        last_message = after_messages[-1]
+
+        # INVERSE guard: only process ASSISTANT messages
+        if last_message.get("role") != "assistant":
+            return
+
+        user_id = event.params.get("userId", "unknown")
+        session_id = event.params.get("sessionId", "unknown")
+        main_logger.info(
+            "[context_analysis_trigger] New assistant message — running sidebar analysis",
+            user_id=user_id,
+            session_id=session_id,
+        )
+
+        accumulated = after_data.get("accumulatedProducts", {})
+        has_solution = bool(last_message.get("solution"))
+
+        from expert_v3.context_analyzer import analyze_context
+        sidebar_state = analyze_context(
+            messages=after_messages,
+            accumulated_products=accumulated,
+            has_solution=has_solution,
+        )
+
+        event.data.after.reference.update({
+            "sidebarState": sidebar_state
+        })
+
+        main_logger.info(
+            "[context_analysis_trigger] Sidebar state written",
+            phase=sidebar_state.get("analysisPhase"),
+            session_id=session_id,
+        )
+
+    except Exception as e:
+        main_logger.error(
+            f"context_analysis_trigger CRASHED: {e}",
+            exc_info=True,
+            session_id=event.params.get("sessionId", "unknown"),
+        )
+        # Non-fatal — sidebar just won't update this turn
+
 @https_fn.on_call(region="europe-west1", memory=options.MemoryOption.MB_256)
 def save_expert_project(req: https_fn.CallableRequest) -> dict:
     try:

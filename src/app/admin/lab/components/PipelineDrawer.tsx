@@ -304,7 +304,7 @@ export default function PipelineDrawer({
 
     return (
         <>
-            <aside className="w-[600px] shrink-0 bg-white border-l border-zinc-200 flex flex-col relative z-20 transition-all duration-300 shadow-[-10px_0_30px_rgba(0,0,0,0.03)]">
+            <aside className="w-[600px] shrink-0 bg-white border-l border-zinc-200 flex flex-col relative z-20 transition-all duration-300 shadow-sm">
                 {/* Header */}
                 <div className="h-14 border-b border-zinc-200 px-4 flex items-center justify-between bg-zinc-50 shrink-0">
                     <div className="flex flex-col">
@@ -345,7 +345,7 @@ export default function PipelineDrawer({
                                         className={cn(
                                             "flex items-center gap-3 p-2 rounded-md transition-colors",
                                             isInteractable ? "cursor-pointer hover:bg-zinc-100/50" : "opacity-50 grayscale",
-                                            isExpanded && "bg-white shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-zinc-200"
+                                            isExpanded && "bg-white shadow-sm border border-zinc-200"
                                         )}
                                         onClick={() => isInteractable && setExpandedStep(isExpanded ? null : step.id)}
                                     >
@@ -438,7 +438,7 @@ export default function PipelineDrawer({
                                                                         src={getCategoryImage(aiCategory)}
                                                                         alt={aiCategory}
                                                                         fill
-                                                                        className="object-contain drop-shadow-[2px_4px_8px_rgba(0,0,0,0.1)]"
+                                                                        className="object-contain drop-shadow-sm"
                                                                     />
                                                                 </div>
                                                                 <select
@@ -874,7 +874,7 @@ export default function PipelineDrawer({
                 </div>
 
                 {/* Drawer Footer Actions */}
-                <div className="p-4 border-t border-red-100 bg-white shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+                <div className="p-4 border-t border-red-100 bg-white shadow-sm">
                     <Button variant="outline" className="w-full text-red-600 border-red-200 hover:bg-red-50 text-xs font-semibold h-9" onClick={() => {
                         if (confirm(`Irreversibly delete product ${product.sku}?`)) {
                             deleteDoc(doc(db!, "staging_products", product.id));

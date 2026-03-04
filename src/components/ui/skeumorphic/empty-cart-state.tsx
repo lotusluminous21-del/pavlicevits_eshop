@@ -34,7 +34,7 @@ export function EmptyCartState({ className, ...props }: EmptyCartStateProps) {
                     className={cn(
                         "absolute top-[20px] right-[10px] w-[38px] h-[38px] rounded-full flex items-center justify-center",
                         "bg-[#00D4CA]",
-                        "shadow-[3px_3px_6px_rgba(0,0,0,0.15),-3px_-3px_6px_rgba(255,255,255,0.9),inset_1px_1px_2px_rgba(255,255,255,0.4)]"
+                        "shadow-sm"
                     )}
                 >
                     <Plus className="w-[20px] h-[20px] text-slate-900" strokeWidth={3} />

@@ -21,7 +21,7 @@ export function ConfirmedFacts({ confirmed, inferred, onCorrect, className, ...p
                 <div className="space-y-2">
                     {confirmed.map((fact, i) => (
                         <div key={i} className="flex items-center gap-3">
-                            <div className="w-[20px] h-[20px] rounded-full bg-skeuo-accent flex items-center justify-center shrink-0 shadow-[0_2px_4px_rgba(0,212,202,0.3)]">
+                            <div className="w-[20px] h-[20px] rounded-full bg-skeuo-accent flex items-center justify-center shrink-0 shadow-sm">
                                 <Check className="w-[12px] h-[12px] text-white" strokeWidth={2} />
                             </div>
                             <span className="text-[14px] font-semibold text-slate-700 tracking-tight">
@@ -37,7 +37,7 @@ export function ConfirmedFacts({ confirmed, inferred, onCorrect, className, ...p
                     <p className="text-[12px] font-medium text-slate-500 uppercase tracking-wide">Εκτιμώμενα</p>
                     {inferred.map((fact, i) => (
                         <div key={i} className="flex items-center gap-3">
-                            <div className="w-[20px] h-[20px] rounded-full bg-amber-400 flex items-center justify-center shrink-0 shadow-[0_2px_4px_rgba(251,191,36,0.3)]">
+                            <div className="w-[20px] h-[20px] rounded-full bg-amber-400 flex items-center justify-center shrink-0 shadow-sm">
                                 <AlertCircle className="w-[12px] h-[12px] text-white" strokeWidth={2} />
                             </div>
                             <span className="text-[14px] font-semibold text-slate-600 tracking-tight">

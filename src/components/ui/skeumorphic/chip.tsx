@@ -12,8 +12,8 @@ const Chip = React.forwardRef<HTMLDivElement, ChipProps>(
                 ref={ref}
                 className={cn(
                     "inline-flex items-center gap-[6px] px-[16px] h-[38px] rounded-full shrink-0",
-                    "bg-[#F0F2F6]",
-                    "shadow-[3px_3px_6px_rgba(0,0,0,0.06),-3px_-3px_6px_rgba(255,255,255,0.9),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
+                    "bg-[#ffffff]",
+                    "shadow-sm",
                     "text-[14px] font-bold text-slate-700 tracking-tight",
                     className
                 )}

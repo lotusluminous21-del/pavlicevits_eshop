@@ -850,3 +850,78 @@ class ShopifyClient:
                 products.append(prod_data)
                 
         return products
+
+    def search_products_by_query(self, search_query: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Executes a raw Shopify GraphQL product search query.
+        This is optimized for filtering at the database level using metafields.
+        e.g., query: "metafield.pavlicevits.chemical_base:'Ακρυλικό'"
+        """
+        full_query = """
+        query($query: String, $first: Int) {
+          products(first: $first, query: $query) {
+            edges {
+              node {
+                id
+                title
+                handle
+                description
+                tags
+                productType
+                metafields(first: 30, namespace: "pavlicevits") {
+                  edges {
+                    node {
+                      key
+                      value
+                      type
+                    }
+                  }
+                }
+                variants(first: 5) {
+                  edges {
+                    node {
+                      id
+                      title
+                      sku
+                      price
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        """
+        logger.info(f"Executing GraphQL search: {search_query}")
+        result = self._graphql_request(full_query, {"query": search_query, "first": limit})
+        if not result:
+            logger.warning("GraphQL request returned empty/None result")
+            return []
+            
+        if "errors" in result:
+            logger.error(f"GraphQL request returned errors: {result['errors']}")
+            return []
+            
+        products = []
+        raw_edges = result.get("data", {}).get("products", {}).get("edges", [])
+        for edge in raw_edges:
+            node = edge["node"]
+            metafields = {}
+            for m_edge in node.get("metafields", {}).get("edges", []):
+                m = m_edge["node"]
+                metafields[m["key"]] = m["value"]
+                
+            prod_data = {
+                "id": node["id"],
+                "title": node["title"],
+                "handle": node["handle"],
+                "description": node.get("description", ""),
+                "tags": node["tags"],
+                "product_type": node.get("productType", ""),
+                "metafields": metafields,
+                "variants": [v["node"] for v in node.get("variants", {}).get("edges", [])]
+            }
+            products.append(prod_data)
+            
+        logger.info(f"GraphQL search returned {len(products)} products")
+        return products

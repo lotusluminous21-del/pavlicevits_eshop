@@ -99,6 +99,10 @@ export const cartFragment = `
               currencyCode
             }
           }
+          attributes {
+            key
+            value
+          }
           merchandise {
             ... on ProductVariant {
               id

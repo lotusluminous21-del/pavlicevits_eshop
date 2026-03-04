@@ -15,8 +15,8 @@ const AccordionItem = React.forwardRef<
   <AccordionPrimitive.Item
     ref={ref}
     className={cn(
-      "group/item rounded-[24px] bg-[#F0F2F6] transition-all duration-300 border-none",
-      "shadow-[5px_5px_10px_rgba(0,0,0,0.05),-5px_-5px_10px_rgba(255,255,255,0.8),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
+      "group/item rounded-[24px] bg-[#ffffff] transition-all duration-300 border-none",
+      "shadow-sm",
       "data-[state=open]:p-[4px]",
       "data-[state=closed]:p-0",
       className
@@ -25,7 +25,7 @@ const AccordionItem = React.forwardRef<
   >
     <div className={cn(
       "transition-all duration-300 h-full",
-      "group-data-[state=open]/item:rounded-[20px] group-data-[state=open]/item:shadow-[inset_4px_4px_8px_rgba(0,0,0,0.06),inset_-4px_-4px_8px_rgba(255,255,255,0.7),inset_1px_1px_2px_rgba(0,0,0,0.05),inset_-1px_-1px_2px_rgba(255,255,255,0.9)]",
+      "group-data-[state=open]/item:rounded-[20px] group-data-[state=open]/item:shadow-sm",
       "group-data-[state=closed]/item:rounded-[24px]"
     )}>
       {children}
@@ -52,7 +52,7 @@ const AccordionTrigger = React.forwardRef<
       <span className="pl-1 text-left">{children}</span>
       <div className={cn(
         "h-[28px] w-[28px] rounded-full flex items-center justify-center shrink-0 transition-all duration-300",
-        "group-data-[state=open]/item:bg-[#F0F2F6] group-data-[state=open]/item:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.08),inset_-2px_-2px_4px_rgba(255,255,255,0.8)]",
+        "group-data-[state=open]/item:bg-[#ffffff] group-data-[state=open]/item:shadow-sm",
         "group-data-[state=closed]/item:shadow-none"
       )}>
         <ChevronDown

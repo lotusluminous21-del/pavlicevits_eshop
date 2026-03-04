@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import { Home, CheckCircle2, ShoppingCart, MessageSquareText, User } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
+import { useCartStore } from "@/store/cart-store"
 
 export interface BottomNavProps extends React.HTMLAttributes<HTMLDivElement> { }
 
@@ -13,24 +14,23 @@ export function BottomNav({ className, ...props }: BottomNavProps) {
     const pathname = usePathname();
     const [activeTab, setActiveTab] = useState<"home" | "check" | "cart" | "chat" | "profile">("home")
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const cartCount = useCartStore(state => state.getCartCount());
 
     // Sync active tab with pathname
     useEffect(() => {
         if (pathname === "/") setActiveTab("home");
         else if (pathname.startsWith("/profile")) setActiveTab("profile");
         else if (pathname.startsWith("/proionta") || pathname.startsWith("/categories")) setActiveTab("check"); // Assuming Check is browse/categories for now
+        else if (pathname.startsWith("/cart")) setActiveTab("cart");
         // Keep existing tab for other routes unless cart is open
     }, [pathname]);
-
-    // Calculate total items
-    const cartCount = 0;
 
     // Helper to render the diamond pip only for the active tab
     const renderPip = (tab: string) => (
         <div
             className={cn(
                 "absolute -bottom-[10px] w-1.5 h-1.5 rotate-45 rounded-[1px] transition-all duration-300",
-                activeTab === tab ? "bg-slate-800 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.3)] opacity-100 scale-100" : "bg-transparent opacity-0 scale-0"
+                activeTab === tab ? "bg-slate-800 shadow-sm opacity-100 scale-100" : "bg-transparent opacity-0 scale-0"
             )}
         />
     )
@@ -45,8 +45,8 @@ export function BottomNav({ className, ...props }: BottomNavProps) {
             <div
                 className={cn(
                     "relative w-full max-w-[420px] h-[64px] pb-[8px] flex items-center justify-between px-6",
-                    "bg-[#F0F2F6] rounded-none z-40", // Ensure sits under modals/drawers
-                    "shadow-[8px_8px_16px_rgba(0,0,0,0.05),-8px_-8px_16px_rgba(255,255,255,0.8),1px_1px_2px_rgba(0,0,0,0.03),-1px_-1px_2px_rgba(255,255,255,1)]",
+                    "bg-[#ffffff] rounded-none z-40", // Ensure sits under modals/drawers
+                    "shadow-sm",
                     className
                 )}
                 {...props}
@@ -84,9 +84,9 @@ export function BottomNav({ className, ...props }: BottomNavProps) {
                         }}
                         className={cn(
                             "absolute -top-[16px] left-1/2 -translate-x-1/2 w-[64px] h-[64px] rounded-full flex items-center justify-center outline-none transition-all duration-300",
-                            "bg-[#F0F2F6]",
-                            "shadow-[8px_8px_16px_rgba(0,0,0,0.06),-8px_-8px_16px_rgba(255,255,255,0.9),1px_1px_2px_rgba(0,0,0,0.04),-1px_-1px_2px_rgba(255,255,255,1)]",
-                            activeTab === "cart" && "scale-[0.96] shadow-[inset_4px_4px_8px_rgba(0,0,0,0.06),inset_-4px_-4px_8px_rgba(255,255,255,0.8),inset_1px_1px_2px_rgba(0,0,0,0.05),inset_-1px_-1px_2px_rgba(255,255,255,0.9)]"
+                            "bg-[#ffffff]",
+                            "shadow-sm",
+                            activeTab === "cart" && "scale-[0.96] shadow-sm"
                         )}
                     >
                         <ShoppingCart className={cn("w-[26px] h-[26px] transition-colors drop-shadow-sm", activeTab === "cart" ? "text-slate-900" : "text-slate-700")} strokeWidth={2.2} />
