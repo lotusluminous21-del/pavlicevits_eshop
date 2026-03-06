@@ -61,3 +61,17 @@ env:
     secret: SHOPIFY_WEBHOOK_SECRET
   - variable: SERPER_API_KEY
     secret: SERPER_API_KEY
+  - variable: SHOPIFY_LOCATION_ID
+    value: "82550325416"
+  - variable: PYLON_MOCK_MODE
+    value: "true"
+  - variable: PYLON_INVOICE_SERIES
+    value: "A"
+  - variable: PYLON_ORDER_SERIES
+    value: "E-SH"
+  - variable: PYLON_CREDIT_SERIES
+    value: "ΠΙΣ"
+  - variable: PYLON_API_KEY
+    secret: PYLON_API_KEY
+  - variable: PYLON_API_URL
+    value: ""
