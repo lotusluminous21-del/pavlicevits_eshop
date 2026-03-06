@@ -6,3 +6,58 @@ runConfig:
   maxInstances: 10
   minInstances: 0
   concurrency: 80
+
+env:
+  - variable: NEXT_PUBLIC_SHOPIFY_STORE_DOMAIN
+    value: "pavlicevits.myshopify.com"
+  - variable: NEXT_PUBLIC_SITE_NAME
+    value: "Pavlicevits"
+  - variable: NEXT_PUBLIC_APP_URL
+    value: "https://pavlicevits-eshop--pavlicevits-9a889.us-central1.hosted.app"
+  - variable: NEXT_PUBLIC_ENABLE_AI
+    value: "true"
+  - variable: NEXT_PUBLIC_ENABLE_STRIPE
+    value: "true"
+  - variable: NEXT_PUBLIC_ENABLE_VIVA
+    value: "false"
+  - variable: REMBG_SERVICE_URL
+    value: "https://rembg-service-879284048895.europe-west1.run.app"
+  - variable: GOOGLE_CLOUD_PROJECT
+    value: "pavlicevits-9a889"
+  # Firebase Public Config
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyCt3GfPqUMPSNFW_x3wUCmGR5Y0_luS9iE"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "pavlicevits-9a889.firebaseapp.com"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "pavlicevits-9a889"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "pavlicevits-9a889.firebasestorage.app"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "879284048895"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:879284048895:web:9d80c76b02d2291dbc0dca"
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: "G-5VREPN5HD5"
+  - variable: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    value: "pk_test_51SU68B0O5BKJ7zFDGkFzh4tboG15Z9LRRdLoI5UcERKgXQaUYFG4gWcWL6Q3E3rfR2yrifQir3DC7KgOT8oWG4kT00yTFqG4b6"
+  - variable: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+    value: "AIzaSyDEBkHg2TfFprruN-a_AKUAWWtuqjXQcqo"
+
+  # Secrets
+  - variable: SHOPIFY_STOREFRONT_ACCESS_TOKEN
+    secret: SHOPIFY_STOREFRONT_ACCESS_TOKEN
+  - variable: NEXT_PUBLIC_SHOPIFY_STOREFRONT_TOKEN
+    secret: SHOPIFY_STOREFRONT_ACCESS_TOKEN
+  - variable: STRIPE_SECRET_KEY
+    secret: STRIPE_SECRET_KEY
+  - variable: STRIPE_WEBHOOK_SECRET
+    secret: STRIPE_WEBHOOK_SECRET
+  - variable: GOOGLE_AI_API_KEY
+    secret: GOOGLE_AI_API_KEY
+  - variable: SHOPIFY_ADMIN_ACCESS_TOKEN
+    secret: SHOPIFY_ADMIN_ACCESS_TOKEN
+  - variable: SHOPIFY_WEBHOOK_SECRET
+    secret: SHOPIFY_WEBHOOK_SECRET
+  - variable: SERPER_API_KEY
+    secret: SERPER_API_KEY
