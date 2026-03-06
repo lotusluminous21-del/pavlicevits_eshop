@@ -18,6 +18,7 @@ interface AuthContextType {
     profile: UserProfile | null;
     loading: boolean;
     isAdmin: boolean;
+    isAnonymous: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,6 +26,7 @@ const AuthContext = createContext<AuthContextType>({
     profile: null,
     loading: true,
     isAdmin: false,
+    isAnonymous: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -75,9 +77,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const isAdmin = profile?.role === 'admin';
+    const isAnonymous = user?.isAnonymous ?? false;
 
     return (
-        <AuthContext.Provider value={{ user, profile, loading, isAdmin }}>
+        <AuthContext.Provider value={{ user, profile, loading, isAdmin, isAnonymous }}>
             {children}
         </AuthContext.Provider>
     );

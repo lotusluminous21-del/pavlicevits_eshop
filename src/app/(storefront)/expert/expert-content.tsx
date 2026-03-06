@@ -11,7 +11,10 @@
 
 import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/lib/auth-context';
+import { signInAnonymously } from '@/lib/auth';
 import {
     RotateCcw,
     Paperclip,
@@ -25,6 +28,7 @@ import {
     Loader2,
     X,
     ImageIcon,
+    UserCircle,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { IndexedFadeInUp, FadeInUp } from '@/components/ui/motion';
@@ -281,6 +285,14 @@ export default function ExpertContent() {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const { user, loading: authLoading, isAnonymous } = useAuth();
+
+    useEffect(() => {
+        if (!authLoading && !user) {
+            signInAnonymously().catch(err => console.error("Anonymous login failed:", err));
+        }
+    }, [user, authLoading]);
+
     const {
         messages,
         solution,
@@ -425,24 +437,40 @@ export default function ExpertContent() {
             <section className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 {/* ─ Top toolbar (mobile sidebar toggle + reset) ─ */}
                 <div className="flex-shrink-0 flex items-center justify-between md:justify-end gap-2 px-4 sm:px-6 md:px-10 py-3 border-b border-border bg-background/60 backdrop-blur-sm">
-                    <button
-                        onClick={() => setSidebarOpen(true)}
-                        className="md:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-secondary border border-border hover:bg-muted transition-colors"
-                        aria-label="Open project panel"
-                    >
-                        <PanelLeftOpen className="w-4 h-4" />
-                        <span>Status</span>
-                    </button>
-
-                    {messages.length > 0 && (
+                    <div className="flex items-center gap-2">
                         <button
-                            onClick={resetSession}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-muted-foreground hover:text-destructive bg-secondary border border-border transition-colors"
+                            onClick={() => setSidebarOpen(true)}
+                            className="md:hidden inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-secondary border border-border hover:bg-muted transition-colors"
+                            aria-label="Open project panel"
                         >
-                            <RotateCcw className="w-3 h-3" />
-                            New Session
+                            <PanelLeftOpen className="w-4 h-4" />
+                            <span>Status</span>
                         </button>
-                    )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {isAnonymous && (
+                            <Link 
+                                href="/login?redirect=/expert" 
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                            >
+                                <UserCircle className="w-3.5 h-3.5" />
+                                <span className="hidden sm:inline">Save Project (Register)</span>
+                                <span className="sm:hidden">Register</span>
+                            </Link>
+                        )}
+
+                        {messages.length > 0 && (
+                            <button
+                                onClick={resetSession}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-muted-foreground hover:text-destructive bg-secondary border border-border transition-colors"
+                            >
+                                <RotateCcw className="w-3 h-3" />
+                                <span className="hidden sm:inline">New Session</span>
+                                <span className="sm:hidden">New</span>
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* ─ Scrollable messages area with fade gradients ─ */}
