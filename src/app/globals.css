@@ -1659,3 +1659,100 @@
 .typing-dot:nth-child(3) {
   animation-delay: 0.4s;
 }
+
+/* ============================================
+   EXPERT CHAT — Chat-Specific Styles
+   ============================================ */
+
+/* Chat icon spin */
+.expert-chat-spin {
+  animation: expert-spin 3s ease-in-out infinite;
+}
+
+@keyframes expert-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hidden scrollbar for chat */
+.chat-scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chat-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Markdown in chat bubbles */
+.markdown-chat {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  letter-spacing: 0.005em;
+}
+
+.markdown-chat p {
+  margin-bottom: 0.5em;
+}
+
+.markdown-chat p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-chat strong,
+.markdown-chat b {
+  font-weight: 700;
+}
+
+.markdown-chat a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown-chat ul,
+.markdown-chat ol {
+  margin: 0.35em 0;
+  padding-left: 1.2em;
+}
+
+.markdown-chat ul li {
+  list-style: disc;
+}
+
+.markdown-chat ol li {
+  list-style: decimal;
+}
+
+.markdown-chat blockquote {
+  border-left: 3px solid currentColor;
+  padding-left: 0.75em;
+  margin: 0.4em 0;
+  opacity: 0.85;
+}
+
+.markdown-chat hr {
+  border: none;
+  border-top: 1px solid currentColor;
+  opacity: 0.2;
+  margin: 0.75em 0;
+}
+
+.markdown-chat h1,
+.markdown-chat h2,
+.markdown-chat h3,
+.markdown-chat h4,
+.markdown-chat h5,
+.markdown-chat h6 {
+  margin: 0.6em 0 0.2em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.markdown-chat h1 { font-size: 1.4em; }
+.markdown-chat h2 { font-size: 1.25em; }
+.markdown-chat h3 { font-size: 1.1em; }
+.markdown-chat h4 { font-size: 1.0em; }

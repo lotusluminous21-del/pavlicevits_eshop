@@ -1,0 +1,18 @@
+INFO:expert_v3.agent:ExpertV3 Agent (ADK) initializing
+INFO:expert_v3.agent:ExpertV3 Agent (ADK) ready
+INFO:expert_v3.agent:ExpertV3 Session Started
+INFO:expert_v3.agent:ExpertV3 Session Seeded
+INFO:expert_v3.agent:ExpertV3 ADK: Entering run loop
+INFO:google_adk.google.adk.models.google_llm:Sending out request, model: gemini-2.5-flash-lite, backend: GoogleLLMVariant.VERTEX_AI, stream: False
+INFO:google_adk.google.adk.models.google_llm:Response received from the model.
+INFO:expert_v3.agent:ExpertV3 Final Response — CHAT
+Traceback (most recent call last):
+  File "C:\Users\lotus\Documents\pavlicevits\functions\test_expert_react.py", line 17, in <module>
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\lotus\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode characters in position 37-45: character maps to <undefined>
+
+--- TEST: Rusty Galvanized Steel ---
