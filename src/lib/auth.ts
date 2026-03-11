@@ -5,6 +5,7 @@ import {
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
     signInAnonymously as firebaseSignInAnonymously,
+    updateProfile,
     User 
 } from 'firebase/auth';
 import { auth } from './firebase';
@@ -25,14 +26,22 @@ export async function signInWithGoogle(): Promise<User | null> {
     }
 }
 
-export async function signUpWithEmail(email: string, password: string): Promise<User | null> {
+export async function signUpWithEmail(email: string, password: string, firstName?: string, lastName?: string): Promise<User | null> {
     if (!auth) {
         throw new Error('Firebase Auth is not initialized. Check your configuration.');
     }
 
     try {
         const result = await createUserWithEmailAndPassword(auth, email, password);
-        return result.user;
+        const user = result.user;
+        
+        // Update the display name right away if names are provided
+        if (firstName || lastName) {
+            const displayName = `${firstName || ''} ${lastName || ''}`.trim();
+            await updateProfile(user, { displayName });
+        }
+        
+        return user;
     } catch (error) {
         console.error('Error signing up with Email', error);
         throw error;

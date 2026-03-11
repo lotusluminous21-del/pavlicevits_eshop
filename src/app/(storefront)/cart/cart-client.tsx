@@ -7,13 +7,15 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import Link from "next/link"
 import { useCartStore } from "@/store/cart-store"
-import { updateCartItemQuantity, removeCartItem } from "@/app/actions/cart"
+import { updateCartItemQuantity, removeCartItem, updateCartBuyerIdentityAction } from "@/app/actions/cart"
+import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { IndexedFadeInUp, StaggerContainer, FadeInUp } from "@/components/ui/motion"
 
 export function CartClient({ initialCart }: { initialCart?: Cart | null }) {
     const { cart, setCart, isSyncing, setIsSyncing } = useCartStore();
+    const { user } = useAuth();
     const [isCheckingOut, setIsCheckingOut] = React.useState(false);
 
     // Sync initial server cart to Zustand if the server cart differs
@@ -52,9 +54,20 @@ export function CartClient({ initialCart }: { initialCart?: Cart | null }) {
         setIsSyncing(false);
     }
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (!displayCart?.checkoutUrl) return;
         setIsCheckingOut(true);
+
+        try {
+            if (user?.email) {
+                // Associate checkout with current signed-in user so Shopify links it directly
+                // and avoids creating duplicate checkout profiles / guest accounts
+                await updateCartBuyerIdentityAction(user.email);
+            }
+        } catch (e) {
+            console.error("Failed to update cart buyer identity prior to checkout", e);
+        }
+
         window.location.href = displayCart.checkoutUrl;
     };
 

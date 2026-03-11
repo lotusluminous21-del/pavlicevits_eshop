@@ -1,7 +1,7 @@
 "use server"
 
 import { cookies } from "next/headers"
-import { createCart, addToCart, removeFromCart, updateCart, getCart } from "@/lib/shopify/cart"
+import { createCart, addToCart, removeFromCart, updateCart, getCart, updateCartBuyerIdentity } from "@/lib/shopify/cart"
 import { Cart } from "@/lib/shopify/types"
 
 export async function getCartAction(): Promise<Cart | null> {
@@ -68,6 +68,20 @@ export async function removeCartItem(lineId: string): Promise<Cart | null> {
         return updatedCart;
     } catch (error) {
         console.error("Error removing from cart:", error);
+        return null;
+    }
+}
+
+export async function updateCartBuyerIdentityAction(email: string): Promise<Cart | null> {
+    const cookieStore = await cookies();
+    const cartId = cookieStore.get('cartId')?.value;
+    if (!cartId) return null;
+
+    try {
+        const updatedCart = await updateCartBuyerIdentity(cartId, { email });
+        return updatedCart;
+    } catch (error) {
+        console.error("Error updating cart buyer identity:", error);
         return null;
     }
 }

@@ -57,6 +57,11 @@ class ShopifyClient:
                     # Search result usually contains 'default_address' and 'addresses'.
                     
                     logger.info(f"Found existing Shopify customer ID: {customer['id']}")
+                    
+                    # If we found it but it's missing names, and we provided them, let's update it!
+                    if first_name and not customer.get("first_name"):
+                        customer = self.update_customer(str(customer['id']), first_name=first_name, last_name=last_name) or customer
+                        
                     return customer
 
                 # 2. Create new customer
@@ -93,6 +98,32 @@ class ShopifyClient:
                 
         except Exception as e:
             logger.error(f"Error syncing customer to Shopify: {e}")
+            return None
+
+    def update_customer(self, customer_id: str, first_name: str = "", last_name: str = "") -> Optional[Dict[str, Any]]:
+        """Updates an existing customer's basic info."""
+        if not self.domain or not self.token:
+            return None
+            
+        headers = {
+            "X-Shopify-Access-Token": self.token,
+            "Content-Type": "application/json"
+        }
+        
+        try:
+            with httpx.Client() as client:
+                url = f"{self.base_url}/customers/{customer_id}.json"
+                payload: Dict[str, Any] = {"customer": {"id": int(customer_id)}}
+                if first_name:
+                    payload["customer"]["first_name"] = first_name
+                if last_name:
+                    payload["customer"]["last_name"] = last_name
+                    
+                response = client.put(url, json=payload, headers=headers)
+                response.raise_for_status()
+                return response.json().get("customer")
+        except Exception as e:
+            logger.error(f"Error updating Shopify customer {customer_id}: {e}")
             return None
 
     def get_inventory_item_id_by_sku(self, sku: str) -> Optional[str]:

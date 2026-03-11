@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { ChevronRight, Droplets, Target, ShieldCheck, Layers } from 'lucide-react';
+import { ChevronRight, Droplets, Target, ShieldCheck, Layers, Bot, ArrowRight } from 'lucide-react';
 import { CollectionCard } from '@/components/industrial_ui/CollectionCard';
 import { ServiceCard } from '@/components/industrial_ui/ServiceCard';
 import { Button } from '@/components/ui/button';
@@ -94,7 +94,6 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                             description="Πλήρης γκάμα χρωμάτων για εσωτερικούς και εξωτερικούς χώρους με υψηλή κάλυψη και αντοχή."
                             image="/images/homescreen/building.webp"
                             variant="featured"
-                            colors={['bg-[#0f172a]', 'bg-[#1e293b]', 'bg-[#e2e8f0]']}
                         />
                     </FadeInUp>
 
@@ -104,7 +103,6 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                             description="Επαγγελματικά χρώματα και προϊόντα φανοποιίας για τέλειο αποτέλεσμα σε κάθε επισκευή."
                             image="/images/homescreen/automotive.webp"
                             variant="featured"
-                            colors={['bg-[#165c52]', 'bg-[#0f172a]', 'bg-[#334155]']}
                         />
                     </FadeInUp>
 
@@ -114,9 +112,50 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                             description="Εξειδικευμένα προϊόντα για σκάφη και θαλάσσιες εφαρμογές με αντοχή στο αλάτι και την υγρασία."
                             image="/images/homescreen/marine.webp"
                             variant="featured"
-                            badge="Θαλάσσιες Εφαρμογές"
                         />
                     </FadeInUp>
+                </StaggerContainer>
+            </section>
+
+            {/* AI Expert CTA Banner */}
+            <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-10 py-16 md:py-24">
+                <StaggerContainer staggerDelay={0.1} viewportAmount={0.5} className="bg-[#0f4d44] text-white flex border border-transparent flex-col md:flex-row items-center justify-between p-6 sm:p-8 md:px-12 md:py-8 relative overflow-hidden shadow-lg">
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
+                    
+                    <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-8 relative z-10 w-full">
+                        <FadeInUp className="flex-shrink-0 hidden sm:flex">
+                            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#0a352f] rounded-none flex items-center justify-center border border-white/10 shadow-inner">
+                                <Bot className="w-8 h-8 sm:w-10 sm:h-10 text-white opacity-90" />
+                            </div>
+                        </FadeInUp>
+                        <div className="flex flex-col justify-center text-center md:text-left flex-1 min-w-0">
+                            <FadeInUp>
+                                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-[#0a352f] text-white border border-white/10 text-[10px] sm:text-xs font-bold uppercase tracking-widest rounded-sm mb-3 md:mb-2 mx-auto md:mx-0 w-fit">
+                                    <Bot className="w-3 h-3 sm:hidden" />
+                                    <span>AI Assistant</span>
+                                </div>
+                            </FadeInUp>
+                            <FadeInUp>
+                                <h2 className="text-xl sm:text-2xl md:text-3xl font-black uppercase tracking-tighter text-white mb-2 md:mb-1.5">
+                                    Δεν ειστε σιγουροι τι χρειαζεστε;
+                                </h2>
+                            </FadeInUp>
+                            <FadeInUp>
+                                <p className="text-white/80 text-xs sm:text-sm font-medium leading-relaxed max-w-3xl mx-auto md:mx-0">
+                                    Ανεβάστε μια φωτογραφία του χώρου σας ή περιγράψτε μας το project σας. Ο <strong>AI Expert</strong> μας θα σας προτείνει τα ιδανικά υλικά και χρώματα.
+                                </p>
+                            </FadeInUp>
+                        </div>
+                        <FadeInUp className="mt-2 md:mt-0 flex-shrink-0 w-full md:w-auto self-center flex items-center">
+                            <Button asChild className="w-full md:w-auto rounded-none uppercase tracking-widest font-bold px-6 py-6 sm:px-8 sm:py-6 bg-white text-[#0f4d44] hover:bg-gray-100 shadow-xl group/btn transition-colors" size="lg">
+                                <Link href="/expert" className="flex items-center justify-center gap-2">
+                                    Ρωτηστε τον Expert
+                                    <ArrowRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
+                                </Link>
+                            </Button>
+                        </FadeInUp>
+                    </div>
                 </StaggerContainer>
             </section>
 

@@ -12,3 +12,4 @@ google-cloud-firestore
 Pillow>=10.0.0
 fal-client
 colormath
+resend

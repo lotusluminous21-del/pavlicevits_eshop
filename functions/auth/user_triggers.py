@@ -83,3 +83,52 @@ def create_user_document(event: identity_fn.AuthBlockingEvent) -> identity_fn.Be
             
     except Exception as e:
         print(f"Warning: Failed to sync with Shopify: {e}")
+
+def sync_shopify_customer(req) -> dict:
+    """
+    Called by the frontend immediately after a user registers with Email/Password 
+    and sets their displayName via updateProfile.
+    """
+    user_id = req.auth.uid if req.auth else None
+    if not user_id:
+        return {"error": "Unauthorized"}
+        
+    db = firestore.client()
+    doc_ref = db.collection("users").document(user_id)
+    doc = doc_ref.get()
+    
+    if not doc.exists:
+        return {"error": "User document not found"}
+        
+    user_data = doc.to_dict()
+    first_name = req.data.get("firstName", "")
+    last_name = req.data.get("lastName", "")
+    email = user_data.get("email")
+    
+    if not email:
+        return {"error": "User has no email"}
+        
+    display_name = f"{first_name} {last_name}".strip()
+    
+    # Update firestore
+    doc_ref.update({"displayName": display_name})
+    
+    try:
+        from shopify import ShopifyClient
+        shopify = ShopifyClient()
+        
+        shopify_customer = shopify.get_or_create_customer(
+            email=email,
+            first_name=first_name,
+            last_name=last_name
+        )
+        
+        if shopify_customer:
+            doc_ref.update({"shopifyCustomerId": str(shopify_customer['id'])})
+            return {"success": True, "customerId": str(shopify_customer['id'])}
+            
+    except Exception as e:
+        print(f"Warning: Failed to sync with Shopify in callable: {e}")
+        return {"error": str(e)}
+        
+    return {"success": False}

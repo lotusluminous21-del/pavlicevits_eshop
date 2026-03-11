@@ -1,12 +1,89 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { ArrowRight, Clock, Phone, MapPin, ChevronDown } from 'lucide-react';
+import { ArrowRight, Clock, Phone, MapPin, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { IndexedFadeInUp, StaggerContainer, FadeInUp, ImageReveal } from '@/components/ui/motion';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { toast } from 'sonner';
+import { APIProvider, Map, Marker } from '@vis.gl/react-google-maps';
+
+const mapStyles = [
+    { elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] },
+    { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#616161' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#f5f5f5' }] },
+    { featureType: 'administrative.land_parcel', elementType: 'labels.text.fill', stylers: [{ color: '#bdbdbd' }] },
+    { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#eeeeee' }] },
+    { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
+    { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#e5e5e5' }] },
+    { featureType: 'poi.park', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#0f4d44' }] },
+    { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#ffffff' }, { weight: 1 }] },
+    { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#ffffff' }] },
+    { featureType: 'road', elementType: 'labels.text.stroke', stylers: [{ color: '#0f4d44' }, { weight: 2 }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#0f4d44' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9c9c9' }] },
+    { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#9e9e9e' }] },
+];
+
+const POSITION = { lat: 40.58309, lng: 22.96459 }; // Εθνικής Αντιστάσεως 66, Καλαμαριά 551 33
+
+const contactSchema = z.object({
+    name: z.string().min(2, 'Το όνομα πρέπει να έχει τουλάχιστον 2 χαρακτήρες'),
+    email: z.string().email('Η διεύθυνση email δεν είναι έγκυρη'),
+    phone: z.string().min(10, 'Το τηλέφωνο πρέπει να έχει τουλάχιστον 10 ψηφία').max(15, 'Μη έγκυρος αριθμός τηλεφώνου'),
+    message: z.string().min(10, 'Το μήνυμα πρέπει να έχει τουλάχιστον 10 χαρακτήρες'),
+});
+
+type ContactFormValues = z.infer<typeof contactSchema>;
 
 export default function ContactClient() {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        formState: { errors },
+    } = useForm<ContactFormValues>({
+        resolver: zodResolver(contactSchema),
+        defaultValues: {
+            name: '',
+            email: '',
+            phone: '',
+            message: '',
+        },
+    });
+
+    const onSubmit = async (data: ContactFormValues) => {
+        if (!db) {
+            toast.error('Πρόβλημα σύνδεσης με τη βάση δεδομένων.');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await addDoc(collection(db, 'contact_inquiries'), {
+                ...data,
+                status: 'unread',
+                createdAt: serverTimestamp(),
+            });
+            toast.success('Το μήνυμά σας εστάλη επιτυχώς! Θα επικοινωνήσουμε μαζί σας σύντομα.');
+            reset();
+        } catch (error) {
+            console.error('Error submitting form:', error);
+            toast.error('Παρουσιάστηκε σφάλμα κατά την αποστολή. Παρακαλώ δοκιμάστε ξανά.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <>
             {/* ───── Hero Section ───── */}
@@ -31,25 +108,39 @@ export default function ContactClient() {
                     </div>
 
                     <ImageReveal delay={0.2} className="order-1 lg:order-2 h-[300px] sm:h-[400px] md:h-[500px] w-full relative overflow-hidden border border-border group bg-muted/20">
-                        <iframe
-                            title="Google Maps Location"
-                            className="w-full h-full grayscale opacity-90 transition-opacity duration-300 group-hover:opacity-100 dark:opacity-80 dark:group-hover:opacity-100"
-                            style={{ border: 0 }}
-                            loading="lazy"
-                            allowFullScreen
-                            referrerPolicy="no-referrer-when-downgrade"
-                            src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent("Λεωφ. Εθνικής Αντιστάσεως 66, Καλαμαριά, 551 33, Θεσσαλονίκη")}`}
-                        ></iframe>
-                        <div className="absolute bottom-6 left-6 bg-background p-5 border border-foreground shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] pointer-events-none">
-                            <p className="text-[10px] font-black tracking-[0.2em] uppercase mb-1.5 text-muted-foreground">Καλαμαριά, Θεσσαλονίκη</p>
-                            <p className="text-xs font-mono font-bold uppercase tracking-tight">Από το 1982 // Χρώματα & Δομικά Υλικά</p>
+                        {/* Interactive Customized Google Map */}
+                        <div className="w-full h-full grayscale-[0.3] opacity-[0.9] transition-all duration-500 group-hover:grayscale-0 group-hover:opacity-100 dark:opacity-[0.85] dark:group-hover:opacity-100 relative z-0">
+                            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}>
+                                <Map
+                                    defaultCenter={POSITION}
+                                    defaultZoom={16}
+                                    gestureHandling={'none'} // Disables scroll-to-zoom and pan via drag
+                                    disableDefaultUI={true}
+                                    zoomControl={true} // Re-enables explicit +/- buttons
+                                    styles={mapStyles}
+                                >
+                                    <Marker position={POSITION} />
+                                </Map>
+                            </APIProvider>
                         </div>
+                        
+                        <a 
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Εθνικής Αντιστάσεως 66, Καλαμαριά, 551 33, Θεσσαλονίκη")}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="absolute bottom-6 left-6 z-20"
+                        >
+                            <div className="bg-background p-5 border border-foreground shadow-[4px_4px_0px_0px_rgba(15,77,68,1)] transition-all duration-300 hover:shadow-[6px_6px_0px_0px_rgba(15,77,68,1)] hover:-translate-y-0.5 hover:-translate-x-0.5 cursor-pointer">
+                                <p className="text-[10px] font-black tracking-[0.2em] uppercase mb-1.5 text-[#0f4d44] dark:text-[#207a6d]">Καλαμαριά, Θεσσαλονίκη</p>
+                                <p className="text-xs font-mono font-bold uppercase tracking-tight text-foreground/90">Εθνικής Αντιστάσεως 66, 551 33</p>
+                            </div>
+                        </a>
                     </ImageReveal>
                 </div>
-            </section >
+            </section>
 
             {/* ───── Form & Locations Grid ───── */}
-            < section className="max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-10 py-16 md:py-24" >
+            <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-10 py-16 md:py-24">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-20">
                     {/* Contact Form Module */}
                     <StaggerContainer className="lg:col-span-2 space-y-12">
@@ -57,68 +148,73 @@ export default function ContactClient() {
                             <h3 className="text-sm font-black uppercase tracking-[0.2em]">Φόρμα Επικοινωνίας</h3>
                         </FadeInUp>
 
-                        <form className="space-y-10" onSubmit={(e) => e.preventDefault()}>
+                        <form className="space-y-10" onSubmit={handleSubmit(onSubmit)}>
                             <FadeInUp inStaggerGroup className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80">Ονοματεπώνυμο</label>
+                                <div className="flex flex-col gap-3 group relative">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 group-focus-within:text-primary transition-colors">Ονοματεπώνυμο</label>
                                     <input
                                         type="text"
                                         placeholder="ΤΟ ΟΝΟΜΑ ΣΑΣ"
-                                        className="bg-transparent border-0 border-b border-border focus:border-primary focus:ring-0 placeholder:text-muted-foreground/30 text-sm font-bold py-4 px-0 rounded-none transition-all outline-none"
+                                        {...register('name')}
+                                        className={`bg-transparent border-0 border-b ${errors.name ? 'border-destructive focus:border-destructive text-destructive' : 'border-border focus:border-primary'} focus:ring-0 placeholder:text-muted-foreground/30 text-sm font-bold py-4 px-0 rounded-none transition-all outline-none`}
                                     />
+                                    {errors.name && <span className="text-xs font-medium text-destructive mt-1 absolute -bottom-5 left-0">{errors.name.message}</span>}
                                 </div>
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80">Email</label>
+                                <div className="flex flex-col gap-3 group relative">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 group-focus-within:text-primary transition-colors">Email</label>
                                     <input
                                         type="email"
                                         placeholder="ΤΟ EMAIL ΣΑΣ"
-                                        className="bg-transparent border-0 border-b border-border focus:border-primary focus:ring-0 placeholder:text-muted-foreground/30 text-sm font-bold py-4 px-0 rounded-none transition-all outline-none"
+                                        {...register('email')}
+                                        className={`bg-transparent border-0 border-b ${errors.email ? 'border-destructive focus:border-destructive text-destructive' : 'border-border focus:border-primary'} focus:ring-0 placeholder:text-muted-foreground/30 text-sm font-bold py-4 px-0 rounded-none transition-all outline-none`}
                                     />
+                                    {errors.email && <span className="text-xs font-medium text-destructive mt-1 absolute -bottom-5 left-0">{errors.email.message}</span>}
                                 </div>
                             </FadeInUp>
 
-                            <FadeInUp inStaggerGroup className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="flex flex-col gap-3">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80">Τηλέφωνο</label>
+                            <FadeInUp inStaggerGroup className="grid grid-cols-1 gap-10">
+                                <div className="flex flex-col gap-3 group relative w-full md:w-1/2 md:pr-5">
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 group-focus-within:text-primary transition-colors">Τηλέφωνο</label>
                                     <input
                                         type="tel"
                                         placeholder="ΤΟ ΤΗΛΕΦΩΝΟ ΣΑΣ"
-                                        className="bg-transparent border-0 border-b border-border focus:border-primary focus:ring-0 placeholder:text-muted-foreground/30 text-sm font-bold py-4 px-0 rounded-none transition-all outline-none"
+                                        {...register('phone')}
+                                        className={`bg-transparent border-0 border-b ${errors.phone ? 'border-destructive focus:border-destructive text-destructive' : 'border-border focus:border-primary'} focus:ring-0 placeholder:text-muted-foreground/30 text-sm font-bold py-4 px-0 rounded-none transition-all outline-none`}
                                     />
-                                </div>
-                                <div className="flex flex-col gap-3 relative">
-                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80">Κατηγορία Ενδιαφέροντος</label>
-                                    <div className="relative">
-                                        <select className="w-full bg-transparent border-0 border-b border-border focus:border-primary focus:ring-0 text-sm font-bold py-4 px-0 rounded-none transition-all appearance-none uppercase cursor-pointer outline-none group">
-                                            <option className="bg-background">Οικοδομικά Χρώματα</option>
-                                            <option className="bg-background">Χρώματα Αυτοκινήτου</option>
-                                            <option className="bg-background">Ναυτιλιακά Χρώματα</option>
-                                            <option className="bg-background">Ειδικές Εφαρμογές</option>
-                                            <option className="bg-background">Άλλο</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none group-hover:text-primary transition-colors" />
-                                    </div>
+                                    {errors.phone && <span className="text-xs font-medium text-destructive mt-1 absolute -bottom-5 left-0">{errors.phone.message}</span>}
                                 </div>
                             </FadeInUp>
 
-                            <FadeInUp inStaggerGroup className="flex flex-col gap-3">
-                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80">Μήνυμα</label>
+                            <FadeInUp inStaggerGroup className="flex flex-col gap-3 group relative">
+                                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 group-focus-within:text-primary transition-colors">Μήνυμα</label>
                                 <textarea
                                     rows={4}
                                     placeholder="ΠΩΣ ΜΠΟΡΟΥΜΕ ΝΑ ΣΑΣ ΒΟΗΘΗΣΟΥΜΕ;"
-                                    className="bg-transparent border-0 border-b border-border focus:border-primary focus:ring-0 placeholder:text-muted-foreground/30 text-sm font-bold py-4 px-0 resize-none rounded-none transition-all outline-none uppercase"
+                                    {...register('message')}
+                                    className={`bg-transparent border-0 border-b ${errors.message ? 'border-destructive focus:border-destructive text-destructive' : 'border-border focus:border-primary'} focus:ring-0 placeholder:text-muted-foreground/30 text-sm font-bold py-4 px-0 resize-none rounded-none transition-all outline-none uppercase leading-relaxed`}
                                 />
+                                {errors.message && <span className="text-xs font-medium text-destructive mt-1 absolute -bottom-5 left-0">{errors.message.message}</span>}
                             </FadeInUp>
 
                             <FadeInUp inStaggerGroup>
                                 <Button
-                                type="submit"
-                                size="lg"
-                                className="rounded-none px-12 py-8 text-xs font-black uppercase tracking-[0.3em] flex items-center gap-4 w-fit shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-                            >
-                                Αποστολή Μηνύματος
-                                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                            </Button>
+                                    type="submit"
+                                    size="lg"
+                                    disabled={isSubmitting}
+                                    className="rounded-none px-12 py-8 text-xs font-black uppercase tracking-[0.3em] flex items-center justify-center gap-4 w-fit shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all group disabled:opacity-70 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)]"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            Αποστολή...
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                        </>
+                                    ) : (
+                                        <>
+                                            Αποστολή Μηνύματος
+                                            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                                        </>
+                                    )}
+                                </Button>
                             </FadeInUp>
                         </form>
                     </StaggerContainer>
@@ -210,7 +306,7 @@ export default function ContactClient() {
                         </FadeInUp>
                     </StaggerContainer>
                 </div>
-            </section >
+            </section>
         </>
     );
 }

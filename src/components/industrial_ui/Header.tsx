@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Search, ShoppingCart, User, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ export interface HeaderProps {
 export function Header({ className }: HeaderProps) {
     const { user, loading } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const pathname = usePathname();
 
     const navItems = [
         { label: 'Shop', href: '/categories', description: 'Εξερευνήστε τις συλλογές μας' },
@@ -41,15 +43,23 @@ export function Header({ className }: HeaderProps) {
                     </Link>
 
                     <nav className="hidden lg:flex items-center gap-8">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                className="text-muted-foreground hover:text-accent text-sm font-semibold uppercase tracking-wider transition-colors"
-                            >
-                                {item.label}
-                            </Link>
-                        ))}
+                        {navItems.map((item) => {
+                            const isActive = pathname.startsWith(item.href);
+                            return (
+                                <Link
+                                    key={item.label}
+                                    href={item.href}
+                                    className={cn(
+                                        "text-sm font-semibold uppercase tracking-wider transition-colors border-b-2 pb-0.5",
+                                        isActive
+                                            ? "text-accent border-accent"
+                                            : "text-muted-foreground hover:text-accent border-transparent"
+                                    )}
+                                >
+                                    {item.label}
+                                </Link>
+                            );
+                        })}
                     </nav>
                 </div>
 
@@ -116,10 +126,20 @@ export function Header({ className }: HeaderProps) {
                                                 <Link
                                                     href={item.href}
                                                     onClick={() => setIsMobileMenuOpen(false)}
-                                                    className="group flex flex-col pt-4 pb-2 border-b border-transparent hover:border-border/30 transition-colors"
+                                                    className={cn(
+                                                        "group flex flex-col pt-4 pb-2 border-b transition-colors",
+                                                        pathname.startsWith(item.href)
+                                                            ? "border-l-4 border-l-accent pl-4 border-b-border/30"
+                                                            : "border-transparent hover:border-border/30"
+                                                    )}
                                                 >
                                                     <div className="flex items-center justify-between">
-                                                        <span className="text-foreground text-3xl sm:text-5xl font-black uppercase tracking-tighter transition-colors group-hover:text-primary">
+                                                        <span className={cn(
+                                                            "text-3xl sm:text-5xl font-black uppercase tracking-tighter transition-colors",
+                                                            pathname.startsWith(item.href)
+                                                                ? "text-primary"
+                                                                : "text-foreground group-hover:text-primary"
+                                                        )}>
                                                             {item.label}
                                                         </span>
                                                         <span className="text-primary opacity-0 group-hover:opacity-100 transition-all transform -translate-x-4 group-hover:translate-x-0 duration-300">

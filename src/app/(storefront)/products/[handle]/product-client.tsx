@@ -10,6 +10,7 @@ import { RAL_COLORS } from "@/components/custom-paint/color-system-data"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { ImageReveal, IndexedFadeInUp, StaggerContainer, FadeInUp } from "@/components/ui/motion"
+import { Sparkles, Ruler, Timer, FlaskConical, MapPin, Layers, Paintbrush, ListChecks, Shapes, ListOrdered, Info } from "lucide-react"
 
 const colorNameToHex: Record<string, string> = {
     // Basic Greek Colors
@@ -222,9 +223,60 @@ export function ProductClient({ product }: { product: Product }) {
     const heroImage = variantImage?.url || (images.length > 0 ? images[0].url : "");
     const heroAlt = variantImage?.altText || (images.length > 0 ? images[0].altText || product.title : product.title);
 
+    // Semantic spec configuration — controls labels, icons, and top-grid eligibility
+    const SPEC_CONFIG: Record<string, { label: string; icon: any; topGrid: boolean }> = {
+        finish:             { label: "Φινίρισμα",      icon: Sparkles,           topGrid: true  },
+        coverage:           { label: "Κάλυψη",         icon: Ruler,              topGrid: true  },
+        drying_time:        { label: "Στέγνωμα",       icon: Timer,              topGrid: true  },
+        chemical_base:      { label: "Βάση",           icon: FlaskConical,       topGrid: false },
+        environment:        { label: "Χώρος",          icon: MapPin,             topGrid: false },
+        surfaces:           { label: "Επιφάνειες",     icon: Layers,             topGrid: false },
+        application_method: { label: "Εφαρμογή",       icon: Paintbrush,         topGrid: false },
+        features:           { label: "Χαρακτηριστικά", icon: ListChecks,         topGrid: false },
+        category:           { label: "Κατηγορία",      icon: Shapes,             topGrid: false },
+        sequence_step:      { label: "Στάδιο",         icon: ListOrdered,        topGrid: false },
+    };
+
+    const getSpecLabel = (key: string) => SPEC_CONFIG[key]?.label || key.replace(/_/g, ' ');
+    const getSpecIcon = (key: string) => SPEC_CONFIG[key]?.icon || Info;
+
+    // Helper: normalize a metafield value (which may be a JSON array or plain string)
+    // into a clean display string or array of tags
+    const parseSpecValue = (value: string): string[] => {
+        let parsed = value;
+
+        // Try to parse JSON arrays like ["Σπρέι","Πινέλο"]
+        try {
+            const jsonVal = JSON.parse(value);
+            if (Array.isArray(jsonVal)) {
+                return jsonVal.map(v => String(v).trim()).filter(Boolean);
+            }
+            parsed = String(jsonVal);
+        } catch {
+            // Not JSON, continue with string parsing
+        }
+
+        // Split comma-separated values
+        if (parsed.includes(',') || parsed.includes('·')) {
+            return parsed.split(/[,·]+/).map(v => v.trim()).filter(Boolean);
+        }
+
+        return [parsed];
+    };
+
+    // Helper: get a clean display string for a single metafield value
+    const getDisplayValue = (value: string): string => {
+        const tags = parseSpecValue(value);
+        return tags.join(', ');
+    };
+
     const validMetafields = product.metafields?.filter(m => m !== null) || [];
-    const topGridMetafields = validMetafields.slice(0, 3); // Max 3 items in top grid
-    const remainingMetafields = validMetafields.slice(topGridMetafields.length);
+
+    // Top grid: Only specs explicitly marked for the hero area
+    const topGridSpecs = validMetafields.filter(m => SPEC_CONFIG[m!.key]?.topGrid);
+
+    // Tech specs table: ALL valid metafields (repeated from top grid for completeness)
+    const allSpecs = validMetafields;
 
     // Title processing to break into two lines dynamically for aesthetic matching
     const formatTitle = (title: string) => {
@@ -305,18 +357,29 @@ export function ProductClient({ product }: { product: Product }) {
                             </IndexedFadeInUp>
                         </div>
 
-                        {/* Performance Specs Grid (Dynamic Metafields) */}
-                        {topGridMetafields.length > 0 && (
-                            <IndexedFadeInUp index={3} className={cn("grid gap-1",
-                                topGridMetafields.length === 1 ? "grid-cols-1" :
-                                    topGridMetafields.length === 2 ? "grid-cols-2" : "grid-cols-3"
-                            )}>
-                                {topGridMetafields.map(m => (
-                                    <div key={m?.id} className="bg-slate-50 p-5 border border-slate-200 flex flex-col justify-center gap-1">
-                                        <p className="text-[8px] font-bold uppercase text-slate-400 tracking-[0.2em] mb-1">{m?.key?.replace(/_/g, ' ')}</p>
-                                        <p className="text-lg font-black tracking-tight text-slate-900 truncate" title={m?.value}>{m?.value}</p>
-                                    </div>
-                                ))}
+                        {/* Performance Specs Grid (Semantic Hero Specs) */}
+                        {topGridSpecs.length > 0 && (
+                            <IndexedFadeInUp index={3}>
+                                <div className="h-[1px] bg-slate-200/60 w-full mb-6 mt-2" />
+                                <div className={cn("grid gap-3",
+                                    topGridSpecs.length === 1 ? "grid-cols-1" :
+                                        topGridSpecs.length === 2 ? "grid-cols-2" : "grid-cols-3"
+                                )}>
+                                    {topGridSpecs.map(m => {
+                                        const Icon = getSpecIcon(m!.key);
+                                        return (
+                                            <div key={m?.id} className="bg-[#f8fafc] p-4 lg:p-5 border border-slate-100 flex flex-col gap-3.5 min-w-0">
+                                                <div className="flex items-center gap-2 text-[#8b9dba]">
+                                                    <Icon className="w-[14px] h-[14px] flex-shrink-0" strokeWidth={2} />
+                                                    <span className="text-[9px] font-bold uppercase tracking-[0.15em] leading-none pt-[1px]">{getSpecLabel(m!.key)}</span>
+                                                </div>
+                                                <p className="text-[13px] sm:text-[14px] font-bold tracking-tight text-[#0f172a] leading-[1.3] break-words">
+                                                    {getDisplayValue(m?.value || '')}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </IndexedFadeInUp>
                         )}
 
@@ -444,21 +507,42 @@ export function ProductClient({ product }: { product: Product }) {
                     </FadeInUp>
                 )}
 
-                {/* Technical Specifications Table */}
-                {remainingMetafields.length > 0 && (
+                {/* Technical Specifications Table — ALL specs including those from top grid */}
+                {allSpecs.length > 0 && (
                     <FadeInUp className="mt-32">
-                        <div className="flex items-end gap-6 mb-12 text-slate-900">
-                            <h3 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-[0.85]" style={{ letterSpacing: '-0.05em' }}>Technical <br />Specifications</h3>
-                            <div className="h-[1px] bg-slate-200 grow mb-2"></div>
+                        <div className="flex items-end gap-6 mb-10 text-slate-900">
+                            <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tighter leading-[0.85]" style={{ letterSpacing: '-0.05em' }}>Technical <br />Specifications</h3>
+                            <div className="h-[1px] bg-slate-200/80 grow mb-1.5"></div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-24 gap-y-[1px] bg-slate-100 p-[1px]">
-                            {remainingMetafields.map((metafield) => (
-                                <div key={metafield?.id} className="flex justify-between items-center bg-background-light py-5 gap-4 text-slate-900">
-                                    <span className="text-[8px] font-black uppercase text-slate-400 tracking-[0.2em] shrink-0">{metafield?.key?.replace(/_/g, ' ')}</span>
-                                    <div className="flex-grow border-b border-dotted border-slate-200 mx-4 relative top-[-4px]"></div>
-                                    <span className="text-[10px] font-black uppercase tracking-tight text-right shrink-0">{metafield?.value}</span>
-                                </div>
-                            ))}
+                        <div className="bg-[#f8fafc] p-6 lg:p-8 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 border border-slate-100">
+                            {allSpecs.map((metafield) => {
+                                const tags = parseSpecValue(metafield?.value || '');
+                                const isMultiTag = tags.length > 1;
+
+                                return (
+                                    <div key={metafield?.id} className="flex flex-col gap-3.5 min-w-0">
+                                        {/* Label row with icon */}
+                                        <div className="flex items-center gap-2 text-[#8b9dba]">
+                                            {React.createElement(getSpecIcon(metafield!.key), { className: "w-[14px] h-[14px] flex-shrink-0", strokeWidth: 2 })}
+                                            <span className="text-[9px] font-bold uppercase tracking-[0.15em] leading-none pt-[1px]">{getSpecLabel(metafield!.key)}</span>
+                                        </div>
+                                        {/* Value — pills for lists, plain text for single values */}
+                                        {isMultiTag ? (
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {tags.map((tag, i) => (
+                                                    <span key={i} className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-[#0f172a] bg-white border border-slate-200/80 px-2.5 py-[3px] whitespace-nowrap rounded-[2px] shadow-sm">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <span className="text-[13px] sm:text-[14px] font-bold tracking-tight text-[#0f172a] leading-[1.3] break-words">
+                                                {tags[0]}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </FadeInUp>
                 )}

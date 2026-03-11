@@ -11,6 +11,7 @@ import {
     Zap,
     PanelLeftOpen,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useExpertStore, type SidebarState } from '@/lib/expert/store';
 import { useProductDetails } from '@/lib/expert/use-product-details';
 import { ProjectProgress, type ProgressStep } from '@/components/industrial_ui/ProjectProgress';
@@ -105,56 +106,66 @@ function SidebarContent({ steps, progress, sidebarState }: SidebarProps) {
     const hasDimensions = dimensions.length > 0;
 
     return (
-        <div className="flex flex-col gap-6 h-full">
-            <ProjectProgress
-                title="Πρόοδος Ανάλυσης"
-                progress={progress}
-                steps={steps}
-            />
+        <div className="flex flex-col gap-8 h-full">
+            {/* 1. Progress Section */}
+            <div>
+                <ProjectProgress
+                    title="ΠΡΟΟΔΟΣ ΑΝΑΛΥΣΗΣ"
+                    progress={progress}
+                    steps={steps}
+                />
+            </div>
 
+            {/* 2. Dimensions Section */}
             {hasDimensions && (
-                <>
-                    <div className="h-px bg-border" />
-                    <div className="space-y-2">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                            Ανάλυση Έργου
-                            {sidebarState?.domain && (
-                                <span className="ml-1.5 normal-case font-medium text-accent">
-                                    — {sidebarState.domain}
+                <div className="flex flex-col gap-3">
+                    <div className="h-px bg-border/50 mb-1" />
+                    <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center justify-between">
+                        <span>ΑΝΑΛΥΣΗ ΕΡΓΟΥ</span>
+                        {sidebarState?.domain && (
+                            <span className="text-[10px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded">
+                                {sidebarState.domain}
+                            </span>
+                        )}
+                    </h3>
+                    
+                    <div className="space-y-2.5">
+                        {dimensions.map((dim) => (
+                            <div key={dim.id} className="flex items-center gap-2.5 text-sm">
+                                <span className={cn(
+                                    "w-2 h-2 rounded-full flex-shrink-0 relative top-0.5",
+                                    dim.status === 'identified' ? 'bg-accent' :
+                                    dim.status === 'pending' ? 'bg-primary animate-pulse' :
+                                    'bg-secondary'
+                                )} />
+                                <span className={cn(
+                                    "font-medium truncate flex-1",
+                                    dim.status === 'identified' ? 'text-foreground' : 'text-muted-foreground'
+                                )}>
+                                    {dim.label}
                                 </span>
-                            )}
-                        </h3>
-                        <div className="space-y-1">
-                            {dimensions.map((dim) => (
-                                <div key={dim.id} className="flex items-center gap-2 text-xs">
-                                    <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dim.status === 'identified' ? 'bg-green-500' :
-                                        dim.status === 'pending' ? 'bg-amber-400 animate-pulse' :
-                                            'bg-muted-foreground/30'
-                                        }`} />
-                                    <span className="text-muted-foreground font-medium truncate">
-                                        {dim.label}
+                                {dim.value && dim.status === 'identified' && (
+                                    <span className="ml-auto px-2 py-0.5 rounded text-xs font-semibold bg-secondary text-foreground flex-shrink-0 max-w-[130px] truncate">
+                                        {dim.value}
                                     </span>
-                                    {dim.value && dim.status === 'identified' && (
-                                        <span className="ml-auto px-1.5 py-0 rounded text-[10px] font-semibold bg-accent/10 text-accent border border-accent/20 flex-shrink-0 max-w-[120px] truncate">
-                                            {dim.value}
-                                        </span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
-                </>
+                </div>
             )}
 
-            <div className="space-y-2">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+            {/* 3. Recommended Products Section */}
+            <div className="flex flex-col gap-3">
+                <div className="h-px bg-border/50 mb-1" />
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Package className="w-3.5 h-3.5" />
-                    Προτεινόμενα
-                    {loading && <Loader2 className="w-3 h-3 animate-spin text-accent ml-auto" />}
+                    ΠΡΟΤΕΙΝΟΜΕΝΑ
+                    {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-accent ml-auto" />}
                 </h3>
 
                 {uniqueProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-3 mt-1">
                         {uniqueProducts.map((rec) => {
                             const shopifyProduct = products.get(rec.handle);
                             const image = shopifyProduct?.featuredImage;
@@ -164,35 +175,33 @@ function SidebarContent({ steps, progress, sidebarState }: SidebarProps) {
                                 <button
                                     key={rec.handle}
                                     onClick={() => setLightboxHandle(rec.handle)}
-                                    className="flex flex-col rounded-lg bg-secondary border border-border hover:border-accent/50 hover:bg-secondary/70 transition-all text-left group cursor-pointer overflow-hidden"
+                                    className="flex flex-col rounded-xl bg-card border border-border/50 hover:border-accent/30 hover:shadow-md transition-all text-left group cursor-pointer overflow-hidden"
                                 >
-                                    <div className="relative w-full aspect-square bg-muted border-b border-border overflow-hidden">
+                                    <div className="relative w-full aspect-square bg-secondary/30 overflow-hidden flex items-center justify-center p-3">
                                         {image?.url ? (
                                             <Image
                                                 src={image.url}
                                                 alt={image.altText || rec.title}
                                                 fill
-                                                className="object-contain p-2 group-hover:scale-105 transition-transform duration-200"
+                                                className="object-contain p-3 group-hover:scale-110 transition-transform duration-500 ease-out"
                                                 sizes="120px"
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <Package className="w-6 h-6 text-muted-foreground/30" />
-                                            </div>
+                                            <Package className="w-6 h-6 text-muted-foreground/30" />
                                         )}
                                     </div>
-                                    <div className="p-1.5 flex flex-col gap-0.5">
-                                        <p className="text-[11px] font-bold text-foreground line-clamp-2 leading-tight group-hover:text-accent transition-colors">
+                                    <div className="p-2.5 flex flex-col gap-1 w-full bg-card">
+                                        <p className="text-xs font-bold text-foreground line-clamp-2 leading-snug group-hover:text-accent transition-colors">
                                             {rec.title}
                                         </p>
-                                        <div className="flex items-center justify-between gap-1 mt-0.5">
+                                        <div className="flex items-center justify-between gap-1 mt-1">
                                             {rec.sequence_step && (
-                                                <span className="px-1 py-0 rounded text-[9px] font-semibold bg-accent/10 text-accent truncate">
+                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-accent/10 text-accent truncate">
                                                     {rec.sequence_step}
                                                 </span>
                                             )}
                                             {price && (
-                                                <span className="text-[10px] font-semibold text-muted-foreground flex-shrink-0">
+                                                <span className="text-[11px] font-bold text-muted-foreground flex-shrink-0 ml-auto leading-none">
                                                     {parseFloat(price.amount).toLocaleString('el-GR', { style: 'currency', currency: price.currencyCode || 'EUR' })}
                                                 </span>
                                             )}
@@ -203,7 +212,9 @@ function SidebarContent({ steps, progress, sidebarState }: SidebarProps) {
                         })}
                     </div>
                 ) : (
-                    <p className="text-xs text-muted-foreground/60 italic">Αναμονή ανάλυσης...</p>
+                    <div className="h-24 rounded-xl border border-dashed border-border flex items-center justify-center bg-secondary/20 mt-1">
+                        <p className="text-xs text-muted-foreground/60 font-medium">Αναμονή ανάλυσης...</p>
+                    </div>
                 )}
             </div>
 

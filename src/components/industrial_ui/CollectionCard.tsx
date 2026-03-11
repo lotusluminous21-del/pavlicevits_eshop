@@ -54,19 +54,6 @@ export function CollectionCard({
 
       <h3 className="text-lg font-bold uppercase tracking-tight text-foreground">{title}</h3>
       <p className="text-muted-foreground text-sm mt-1">{description}</p>
-
-      {badge ? (
-        <div className="mt-4 flex gap-2 items-center">
-          <Verified className="w-4 h-4 text-muted-foreground" />
-          <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">{badge}</span>
-        </div>
-      ) : (
-        <div className="mt-4 flex gap-2">
-          {colors.map((color, i) => (
-            <span key={i} className={cn("w-4 h-4 rounded-full border border-border/50", color)}></span>
-          ))}
-        </div>
-      )}
     </motion.div>
   );
 }

@@ -6,9 +6,11 @@ import { signInWithGoogle, signInWithEmail, signUpWithEmail } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { User, Layers, Mail, Lock, AlertCircle } from 'lucide-react';
+import { User, Layers, Mail, Lock, AlertCircle, UserCircle2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { IndexedFadeInUp } from '@/components/ui/motion';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app } from '@/lib/firebase';
 
 export default function LoginPage() {
     return (
@@ -28,6 +30,8 @@ function LoginContent() {
     const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [authError, setAuthError] = useState<string | null>(null);
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -62,10 +66,24 @@ function LoginContent() {
             setAuthError('Παρακαλούμε συμπληρώστε email και κωδικό.');
             return;
         }
+        
+        if (isRegistering && (!firstName || !lastName)) {
+            setAuthError('Παρακαλούμε συμπληρώστε Όνομα και Επώνυμο.');
+            return;
+        }
+
         setIsSigningIn(true);
         try {
             if (isRegistering) {
-                await signUpWithEmail(email, password);
+                await signUpWithEmail(email, password, firstName, lastName);
+                
+                try {
+                    const functions = getFunctions(app, 'europe-west1');
+                    const syncCustomer = httpsCallable(functions, 'sync_shopify_customer');
+                    await syncCustomer({ firstName, lastName });
+                } catch (syncError) {
+                    console.error("Failed to sync Shopify customer right away:", syncError);
+                }
             } else {
                 await signInWithEmail(email, password);
             }
@@ -101,9 +119,9 @@ function LoginContent() {
                 </div>
             </IndexedFadeInUp>
             <IndexedFadeInUp index={1}>
-                <h1 className="text-3xl font-black text-foreground uppercase tracking-tighter mb-2">Account Access</h1>
+                <h1 className="text-3xl font-black text-foreground uppercase tracking-tighter mb-2">Ο Λογαριασμος Σας</h1>
                 <p className="text-xs font-bold text-muted-foreground mb-8 max-w-sm uppercase tracking-widest leading-relaxed mx-auto">
-                    Authenticate to manage your project configurations, track orders, and access technical specs.
+                    Συνδεθείτε για να διαχειριστείτε τα έργα, να παρακολουθήσετε παραγγελίες και να δείτε τεχνικές προδιαγραφές.
                 </p>
             </IndexedFadeInUp>
 
@@ -116,8 +134,45 @@ function LoginContent() {
                         </div>
                     )}
                     
+                    {isRegistering && (
+                        <div className="flex gap-4">
+                            <div className="space-y-1.5 flex-1">
+                                <Label htmlFor="firstName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Όνομα</Label>
+                                <div className="relative">
+                                    <Input 
+                                        id="firstName" 
+                                        type="text" 
+                                        placeholder="Γιώργος" 
+                                        value={firstName}
+                                        onChange={(e) => setFirstName(e.target.value)}
+                                        required={isRegistering} 
+                                        className="pl-9 font-medium"
+                                        disabled={isSigningIn}
+                                    />
+                                    <UserCircle2 className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                                </div>
+                            </div>
+                            <div className="space-y-1.5 flex-1">
+                                <Label htmlFor="lastName" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Επώνυμο</Label>
+                                <div className="relative">
+                                    <Input 
+                                        id="lastName" 
+                                        type="text" 
+                                        placeholder="Παπαδόπουλος" 
+                                        value={lastName}
+                                        onChange={(e) => setLastName(e.target.value)}
+                                        required={isRegistering} 
+                                        className="pl-9 font-medium"
+                                        disabled={isSigningIn}
+                                    />
+                                    <UserCircle2 className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-1.5">
-                        <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email Address</Label>
+                        <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Διεύθυνση Email</Label>
                         <div className="relative">
                             <Input 
                                 id="email" 
@@ -134,7 +189,7 @@ function LoginContent() {
                     </div>
                     
                     <div className="space-y-1.5">
-                        <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Password</Label>
+                        <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Κωδικός Πρόσβασης</Label>
                         <div className="relative">
                             <Input 
                                 id="password" 
@@ -156,13 +211,13 @@ function LoginContent() {
                         className="w-full text-xs tracking-widest uppercase font-black bg-foreground text-background hover:opacity-90 transition-opacity rounded-md"
                         size="lg"
                     >
-                        {isSigningIn ? "Processing..." : (isRegistering ? "Create Account" : "Sign In")}
+                        {isSigningIn ? "Επεξεργασια..." : (isRegistering ? "Δημιουργια Λογαριασμου" : "Συνδεση")}
                     </Button>
                 </form>
 
                 <div className="flex items-center gap-4 mb-6">
                     <div className="h-px bg-border flex-1"></div>
-                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">or</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Η</span>
                     <div className="h-px bg-border flex-1"></div>
                 </div>
 
@@ -175,7 +230,7 @@ function LoginContent() {
                         className="w-full text-[10px] tracking-widest uppercase font-black hover:bg-muted transition-colors rounded-md"
                         size="lg"
                     >
-                        Authenticate with Google
+                        Συνδεση με Google
                     </Button>
 
                     <Button
@@ -185,7 +240,7 @@ function LoginContent() {
                         variant="ghost"
                         className="w-full text-[10px] tracking-widest uppercase font-bold text-muted-foreground hover:text-foreground"
                     >
-                        {isRegistering ? "Already have an account? Sign in" : "Need an account? Register"}
+                        {isRegistering ? "Εχετε ηδη λογαριασμο; Συνδεση" : "Δεν εχετε λογαριασμο; Εγγραφη"}
                     </Button>
                 </div>
             </IndexedFadeInUp>

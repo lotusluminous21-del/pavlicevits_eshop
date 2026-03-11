@@ -8,6 +8,7 @@ import { KineticPostEffects } from "@/components/effects/KineticPostEffects";
 
 import { constructMetadata } from "@/lib/seo/metadata";
 import { constructOrganizationSchema } from "@/lib/seo/structured-data";
+import { Toaster } from "@/components/ui/sonner";
 
 const nunito = Nunito({
   variable: "--font-nunito",
@@ -54,6 +55,7 @@ export default function RootLayout({
             dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
           />
         </Providers>
+        <Toaster />
       </body>
     </html>
   );

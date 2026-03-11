@@ -93,6 +93,16 @@ def create_user_document(event: identity_fn.AuthBlockingEvent) -> identity_fn.Be
         print(f"Error in create_user_document wrapper: {e}")
         return None
 
+# --- 5b. Sync User to Shopify (Callable) ---
+@https_fn.on_call(region="europe-west1", memory=options.MemoryOption.MB_256)
+def sync_shopify_customer(req: https_fn.CallableRequest) -> dict:
+    try:
+        from auth.user_triggers import sync_shopify_customer as sync_handler
+        return sync_handler(req)
+    except Exception as e:
+        print(f"Error in sync_shopify_customer wrapper: {e}")
+        return {"error": str(e)}
+
 # --- 6. Bundle Advisor (AI Agent) ---
 @https_fn.on_call(region="europe-west1", memory=options.MemoryOption.MB_512)
 def suggest_bundles(req: https_fn.CallableRequest) -> dict:
@@ -597,6 +607,19 @@ def pylon_ingest_csv(req: https_fn.Request) -> https_fn.Response:
     except Exception as e:
         print(f"Error in pylon_ingest_csv: {e}")
         return https_fn.Response(f"Error: {str(e)}", status=500, headers=headers)
+
+@firestore_fn.on_document_created(
+    document="contact_inquiries/{docId}",
+    region="europe-west1",
+    memory=options.MemoryOption.MB_256,
+    secrets=["RESEND_API_KEY"]
+)
+def on_contact_inquiry_created(event: firestore_fn.Event[firestore_fn.DocumentSnapshot]) -> None:
+    try:
+        from webhooks.contact import handle_contact_inquiry
+        handle_contact_inquiry(event)
+    except Exception as e:
+        print(f"Error in on_contact_inquiry_created wrapper: {e}")
 
 @https_fn.on_call(
     region="europe-west1",
