@@ -50,28 +50,27 @@ export function Footer({
           )}
         </div>
 
-        {columns.map((column, index) => (
-          <div key={index} className={cn(
-            "flex flex-col text-left items-start",
-            index === 0 ? "md:col-span-2" : index === 1 ? "md:col-span-2" : "md:col-span-3"
-          )}>
-            <h4 className="font-bold uppercase tracking-widest text-xs mb-6 text-foreground">{column.title}</h4>
-            <ul className="space-y-4 text-sm text-muted-foreground">
-              {column.links.map((link, linkIndex) => (
-                <li key={linkIndex}>
-                  <a href={link.href} className="hover:text-accent transition-colors">
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        <div className="md:col-span-7 flex flex-wrap md:justify-end gap-12 md:gap-24">
+          {columns.map((column, index) => (
+            <div key={index} className="flex flex-col text-left items-start">
+              <h4 className="font-bold uppercase tracking-widest text-xs mb-6 text-foreground">{column.title}</h4>
+              <ul className="space-y-4 text-sm text-muted-foreground">
+                {column.links.map((link, linkIndex) => (
+                  <li key={linkIndex}>
+                    <a href={link.href} className="hover:text-accent transition-colors">
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="max-w-7xl mx-auto border-t border-border mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
         <p className="text-muted-foreground text-[10px] uppercase font-bold tracking-widest text-center md:text-left">
-          © {copyrightYear} {companyName} International. All Rights Reserved.
+          &copy; {copyrightYear} {companyName || 'Pavlicevits'}. Με την επιφύλαξη παντός δικαιώματος.
         </p>
         {bottomLinks && (
           <div className="flex gap-8 justify-center md:justify-end">

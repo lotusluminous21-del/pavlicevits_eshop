@@ -20,11 +20,12 @@ export function Header({ className }: HeaderProps) {
     const pathname = usePathname();
 
     const navItems = [
-        { label: 'Shop', href: '/categories', description: 'Εξερευνήστε τις συλλογές μας' },
-        { label: 'AI Expert', href: '/expert', description: 'Διαδραστικός βοηθός αγορών AI' },
-        { label: 'Services', href: '/services', description: 'Εξειδικευμένη κατασκευή & άλλα' },
-        { label: 'About', href: '/about', description: 'Η ιστορία και η αποστολή μας' },
-        { label: 'Contact', href: '/contact', description: 'Επικοινωνήστε μαζί μας' },
+        // { label: 'Shop', href: '/categories', description: 'Εξερευνήστε τις συλλογές μας' },
+        // { label: 'AI Expert', href: '/expert', description: 'Διαδραστικός βοηθός αγορών AI' },
+        { label: 'Έργα', href: '/projects', description: 'Δείτε τα υλοποιημένα έργα μας' },
+        { label: 'Υπηρεσίες', href: '/services', description: 'Εξειδικευμένη κατασκευή & άλλα' },
+        { label: 'Η Εταιρεία', href: '/about', description: 'Η ιστορία και η αποστολή μας' },
+        { label: 'Επικοινωνία', href: '/contact', description: 'Επικοινωνήστε μαζί μας' },
     ];
 
     return (
@@ -50,7 +51,7 @@ export function Header({ className }: HeaderProps) {
                                     key={item.label}
                                     href={item.href}
                                     className={cn(
-                                        "text-sm font-semibold uppercase tracking-wider transition-colors border-b-2 pb-0.5",
+                                        "text-sm font-light uppercase tracking-wider transition-colors border-b-2 pb-0.5",
                                         isActive
                                             ? "text-accent border-accent"
                                             : "text-muted-foreground hover:text-accent border-transparent"
@@ -64,38 +65,40 @@ export function Header({ className }: HeaderProps) {
                 </div>
 
                 <div className="flex items-center gap-4 lg:gap-6">
-                    <div className="hidden sm:flex items-center bg-secondary rounded-lg px-3 py-1.5 border border-border">
-                        <Search className="text-muted-foreground w-5 h-5" />
-                        <Input
-                            className="bg-transparent border-none focus-visible:ring-0 shadow-none text-sm w-32 lg:w-48 placeholder:text-muted-foreground h-auto py-0"
-                            placeholder="Search catalog..."
-                            type="text"
-                        />
-                    </div>
+                    {/*
+                        <div className="hidden sm:flex items-center bg-secondary rounded-lg px-3 py-1.5 border border-border">
+                            <Search className="text-muted-foreground w-5 h-5" />
+                            <Input
+                                className="bg-transparent border-none focus-visible:ring-0 shadow-none text-sm w-32 lg:w-48 placeholder:text-muted-foreground h-auto py-0"
+                                placeholder="Search catalog..."
+                                type="text"
+                            />
+                        </div>
 
-                    <Link href="/cart" className="relative p-2 text-foreground hover:bg-secondary rounded-lg transition-colors">
-                        <ShoppingCart className="w-6 h-6" />
-                        <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"></span>
-                    </Link>
+                        <Link href="/cart" className="relative p-2 text-foreground hover:bg-secondary rounded-lg transition-colors">
+                            <ShoppingCart className="w-6 h-6" />
+                            <span className="absolute top-1 right-1 w-2 h-2 bg-accent rounded-full"></span>
+                        </Link>
 
-                    <Link
-                        href="/profile"
-                        prefetch={false}
-                        className="flex w-10 h-10 rounded-full border border-border bg-muted items-center justify-center overflow-hidden hover:border-primary transition-colors shadow-sm"
-                        title={user ? "Account Dashboard" : "Sign In"}
-                    >
-                        {loading ? (
-                            <div className="w-4 h-4 rounded-full border-[2px] border-muted-foreground/20 border-t-muted-foreground animate-spin"></div>
-                        ) : user ? (
-                            user.photoURL ? (
-                                <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover grayscale" />
+                        <Link
+                            href="/profile"
+                            prefetch={false}
+                            className="flex w-10 h-10 rounded-full border border-border bg-muted items-center justify-center overflow-hidden hover:border-primary transition-colors shadow-sm"
+                            title={user ? "Account Dashboard" : "Sign In"}
+                        >
+                            {loading ? (
+                                <div className="w-4 h-4 rounded-full border-[2px] border-muted-foreground/20 border-t-muted-foreground animate-spin"></div>
+                            ) : user ? (
+                                user.photoURL ? (
+                                    <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover grayscale" />
+                                ) : (
+                                    <span className="text-sm font-black text-slate-500">{user.email?.[0].toUpperCase() || 'U'}</span>
+                                )
                             ) : (
-                                <span className="text-sm font-black text-slate-500">{user.email?.[0].toUpperCase() || 'U'}</span>
-                            )
-                        ) : (
-                            <User className="w-5 h-5 text-muted-foreground" />
-                        )}
-                    </Link>
+                                <User className="w-5 h-5 text-muted-foreground" />
+                            )}
+                        </Link>
+                    */}
 
                     <div className="lg:hidden flex items-center">
                         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -135,7 +138,7 @@ export function Header({ className }: HeaderProps) {
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <span className={cn(
-                                                            "text-3xl sm:text-5xl font-black uppercase tracking-tighter transition-colors",
+                                                            "text-3xl sm:text-5xl font-light uppercase tracking-tighter transition-colors",
                                                             pathname.startsWith(item.href)
                                                                 ? "text-primary"
                                                                 : "text-foreground group-hover:text-primary"

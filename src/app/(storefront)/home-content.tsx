@@ -56,8 +56,8 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                         <div className="flex flex-col flex-wrap sm:flex-row gap-3 sm:gap-4 mt-4">
                             <IndexedFadeInUp index={3}>
                                 <Button asChild className="w-full sm:w-auto rounded-none uppercase tracking-widest font-bold px-6 sm:px-8 py-6 shadow-none" size="lg">
-                                    <Link href="/categories">
-                                        Δείτε τα Προϊόντα μας
+                                    <Link href="/projects">
+                                        Τα Εργα μας
                                     </Link>
                                 </Button>
                             </IndexedFadeInUp>
@@ -89,11 +89,7 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                             <p className="text-muted-foreground text-xs sm:text-sm uppercase tracking-widest mt-1">Κατηγορίες Προϊόντων</p>
                         </FadeInUp>
                     </StaggerContainer>
-                    <FadeInUp inStaggerGroup>
-                        <Link href="/categories" className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-accent hover:underline hover:text-primary transition-colors">
-                            Δείτε Όλα <ChevronRight className="w-4 h-4" />
-                        </Link>
-                    </FadeInUp>
+                    {/* View categories link intentionally omitted for portfolio format */}
                 </div>
 
                 <StaggerContainer staggerDelay={0.25} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -103,7 +99,6 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                             description="Πλήρης γκάμα χρωμάτων για εσωτερικούς και εξωτερικούς χώρους με υψηλή κάλυψη και αντοχή."
                             image="/images/homescreen/building.webp"
                             variant="featured"
-                            onClick={() => handleCategoryClick('construction')}
                         />
                     </FadeInUp>
 
@@ -113,7 +108,6 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                             description="Επαγγελματικά χρώματα και προϊόντα φανοποιίας για τέλειο αποτέλεσμα σε κάθε επισκευή."
                             image="/images/homescreen/automotive.webp"
                             variant="featured"
-                            onClick={() => handleCategoryClick('automotive')}
                         />
                     </FadeInUp>
 
@@ -123,7 +117,6 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                             description="Εξειδικευμένα προϊόντα για σκάφη και θαλάσσιες εφαρμογές με αντοχή στο αλάτι και την υγρασία."
                             image="/images/homescreen/marine.webp"
                             variant="featured"
-                            onClick={() => handleCategoryClick('marine')}
                         />
                     </FadeInUp>
 
@@ -133,16 +126,14 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                             description="Εξειδικευμένες λύσεις και υλικά για ιδιαίτερα project όπως πισίνες, βιομηχανικά δάπεδα και ειδικές επιφάνειες."
                             image="/images/homescreen/special.webp"
                             variant="featured"
-                            onClick={() => handleCategoryClick('special')}
                         />
                     </FadeInUp>
                 </StaggerContainer>
             </section>
 
-            {/* AI Expert CTA Banner */}
+            {/* AI Expert CTA Banner 
             <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-10 py-16 md:py-24">
                 <StaggerContainer staggerDelay={0.1} viewportAmount={0.5} className="bg-[#19657a] text-white flex border border-transparent flex-col md:flex-row items-center justify-between p-6 sm:p-8 md:px-12 md:py-8 relative overflow-hidden shadow-lg">
-                    {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '16px 16px' }}></div>
 
                     <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-8 relative z-10 w-full">
@@ -180,6 +171,7 @@ export default function HomeContent({ initialProducts, initialCategories }: Home
                     </div>
                 </StaggerContainer>
             </section>
+            */}
 
             {/* Professional Services */}
             <section className="max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-10 py-16 md:py-24">

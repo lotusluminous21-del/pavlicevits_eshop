@@ -8,29 +8,12 @@ import { cn } from "@/lib/utils";
 
 const footerColumns: FooterColumn[] = [
     {
-        title: "Products",
+        title: "ΕΤΑΙΡΕΙΑ",
         links: [
-            { label: "Industrial Paints", href: "#" },
-            { label: "Professional Aerosols", href: "#" },
-            { label: "Primers & Sealers", href: "#" },
-            { label: "Cleaning Agents", href: "#" }
-        ]
-    },
-    {
-        title: "Company",
-        links: [
-            { label: "Our Story", href: "/about" },
-            { label: "Certifications", href: "#" },
-            { label: "Technical Data", href: "#" },
-            { label: "Contact", href: "/contact" }
-        ]
-    },
-    {
-        title: "Connect",
-        links: [
-            { label: "Instagram", href: "#" },
-            { label: "LinkedIn", href: "#" },
-            { label: "Architect Portal", href: "#" }
+            { label: "Η Εταιρεία", href: "/about" },
+            { label: "Έργα", href: "/projects" },
+            { label: "Υπηρεσίες", href: "/services" },
+            { label: "Επικοινωνία", href: "/contact" }
         ]
     }
 ];
@@ -61,13 +44,13 @@ export default function StorefrontLayout({
                         <Footer
                             logo={<img src="/svg/pavlicevits_logo.svg" alt="Pavlicevits" className="h-10 w-auto" />}
                             companyName=""
-                            tagline="Setting the standard in high-performance coatings and architectural finishes. Precision in every layer."
+                            tagline="Θέτοντας τα πρότυπα στις βαφές υψηλής απόδοσης και στα αρχιτεκτονικά φινιρίσματα. Ακρίβεια σε κάθε στρώση."
                             columns={footerColumns}
                             copyrightYear={new Date().getFullYear()}
                             className="bg-transparent border-t-0 !px-0 mt-0 pt-0"
                             bottomLinks={[
-                                { label: "Privacy Policy", href: "#" },
-                                { label: "Terms of Service", href: "#" }
+                                { label: "Πολιτική Απορρήτου", href: "/privacy" },
+                                { label: "Όροι Χρήσης", href: "/terms" }
                             ]}
                         />
                     </div>
