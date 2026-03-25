@@ -1,4 +1,4 @@
-kind: 'AppHostingConfig'
+kind: 'AppHostingConfig' # Eshop version
 schemaVersion: 'v1'
 runConfig:
   cpu: 1
