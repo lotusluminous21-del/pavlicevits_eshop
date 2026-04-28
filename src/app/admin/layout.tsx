@@ -30,6 +30,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import React from "react";
+import { FirebaseProvider } from "@/providers/FirebaseProvider";
+import { AuthProvider } from "@/lib/auth-context";
 
 interface AdminLayoutProps {
     children: React.ReactNode;
@@ -156,7 +158,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
     );
 
+    // Firebase + Auth contexts live here (not in the root layout) so the
+    // marketing brand homepage doesn't pull these client-only deps. The
+    // admin surface always needs auth, so wrapping at the layout level
+    // is correct.
     return (
+      <FirebaseProvider>
+        <AuthProvider>
         <div className="h-screen overflow-hidden bg-white flex text-zinc-950">
             {/* Desktop Sidebar - Slimmer & cleaner */}
             <aside className="hidden lg:flex w-56 flex-col fixed inset-y-0 left-0 bg-white border-r border-zinc-200 z-50">
@@ -224,5 +232,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </div>
             </main>
         </div>
+        </AuthProvider>
+      </FirebaseProvider>
     );
 }

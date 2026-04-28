@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   images: {
@@ -14,6 +17,19 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
+      },
+    ],
+    // Allow ?v=<hash> cache-busting on monad PNGs (written by
+    // scripts/generate-paint-assets-fal.py via the version manifest at
+    // src/lib/brand/monad-versions.json). Omitting `search` allows any
+    // query string; default behaviour without localPatterns rejects it.
+    localPatterns: [
+      {
+        pathname: "/brand/paint/**",
+      },
+      {
+        pathname: "/brand/**",
+        search: "",
       },
     ],
   },
@@ -32,4 +48,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

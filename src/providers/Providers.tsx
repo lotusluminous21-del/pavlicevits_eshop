@@ -1,9 +1,7 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { FirebaseProvider } from './FirebaseProvider';
 import { SmoothScrollProvider } from './SmoothScrollProvider';
 
 const queryClient = new QueryClient({
@@ -17,15 +15,39 @@ const queryClient = new QueryClient({
     },
 });
 
+// Devtools are dynamic-imported only in development. In production builds
+// the import path is dead-code-eliminated and the devtools chunk is never
+// emitted, removing ~30KB of overlay UI from the marketing-site bundle.
+const ReactQueryDevtools =
+    process.env.NODE_ENV === 'development'
+        ? lazy(() =>
+              import('@tanstack/react-query-devtools').then((mod) => ({
+                  default: mod.ReactQueryDevtools,
+              }))
+          )
+        : null;
+
+/**
+ * App-wide client-only providers that every route benefits from:
+ *   - QueryClient for server-state caching
+ *   - Lenis smooth-scroll
+ *
+ * NOTE: Firebase + Auth used to live here, which forced every visitor on
+ * the marketing homepage to download `firebase/{app,auth,firestore,
+ * functions}` + `reactfire` (≈250KB gzip) and pay an auth-state network
+ * call on cold load. They've been pushed down into the route groups that
+ * actually need authenticated data — `(legacy)` and `admin`. The (brand)
+ * marketing route group skips them entirely.
+ */
 export function Providers({ children }: { children: ReactNode }) {
     return (
         <QueryClientProvider client={queryClient}>
-            <SmoothScrollProvider>
-                <FirebaseProvider>
-                    {children}
-                </FirebaseProvider>
-            </SmoothScrollProvider>
-            <ReactQueryDevtools initialIsOpen={false} />
+            <SmoothScrollProvider>{children}</SmoothScrollProvider>
+            {ReactQueryDevtools ? (
+                <Suspense fallback={null}>
+                    <ReactQueryDevtools initialIsOpen={false} />
+                </Suspense>
+            ) : null}
         </QueryClientProvider>
     );
 }

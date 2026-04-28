@@ -1,0 +1,821 @@
+{
+  "nav": {
+    "about": "About",
+    "services": "Services",
+    "projects": "Projects",
+    "partnerships": "Partnerships",
+    "insights": "Insights",
+    "contact": "Contact",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "toggleTheme": "Toggle theme",
+    "switchLocale": "Switch language"
+  },
+  "brand": {
+    "chapterWord": "CHAPTER",
+    "chapters": {
+      "about": "ABOUT",
+      "services": "SERVICES",
+      "projects": "PROJECTS",
+      "partnerships": "PARTNERSHIPS",
+      "insights": "INSIGHTS",
+      "contact": "CONTACT",
+      "faq": "FAQ",
+      "privacy": "PRIVACY",
+      "terms": "TERMS"
+    }
+  },
+  "home": {
+    "movements": {
+      "arrival": {
+        "eyebrow": "SINCE 1990 · KALAMARIA, THESSALONIKI",
+        "headlineLight": "The right paint.",
+        "headlineHeavy": "For work that has to last.",
+        "lead": "Specialist paint vendor for architectural, automotive, marine, and special-application work. We carry Pellachrom, Vivechrom, Vechro, Kraft, Vitex — curated, not warehoused.",
+        "ctaPrimary": "See our projects",
+        "ctaSecondary": "Bring us your job"
+      },
+      "proposition": {
+        "eyebrow": "MATERIAL · QUALITY",
+        "title": "What's in the can is the actual product.",
+        "items": {
+          "curation": {
+            "title": "Curated, not warehoused",
+            "body": "We don't sell every paint. Every product on our wall earns its place through site testing, not catalog volume."
+          },
+          "specifier": {
+            "title": "Specifier-grade advice",
+            "body": "Architects, contractors, marine and industrial pros — we speak your language and your tolerances."
+          },
+          "longevity": {
+            "title": "No compromise on durability",
+            "body": "Pigment density. Resin chemistry. Coverage. The difference between a job that lasts and one that fails at year two."
+          }
+        }
+      },
+      "breadth": {
+        "eyebrow": "WHAT WE COVER",
+        "title": "Four specialties. One shop.",
+        "lead": "We take on the work most shops won't quote for. From Kalamaria apartments to working vessels in the Aegean.",
+        "products": {
+          "putty": { "name": "Putties", "note": "Substrate prep" },
+          "primer": { "name": "Primers", "note": "Sealing" },
+          "paintBucket": { "name": "Paints", "note": "Body coats" },
+          "hardener": { "name": "Hardeners", "note": "Two-pack" },
+          "brushes": { "name": "Brushes & rollers", "note": "Tools" }
+        },
+        "domains": {
+          "decorative": "Architectural",
+          "marine": "Marine",
+          "industrial": "Industrial",
+          "specialty": "Automotive"
+        },
+        "domainsCta": "All categories"
+      },
+      "proof": {
+        "eyebrow": "PROJECT · 2024",
+        "title": "12-meter yacht. Sithonia.",
+        "body": "Coastal exposure, salinity, seasonal lay-up cycles. Pellachrom 2-pack epoxy antifouling specified. Seven-year service life.",
+        "stat1Label": "System",
+        "stat1Value": "2-pack epoxy",
+        "stat2Label": "Substrate",
+        "stat2Value": "GRP hull",
+        "stat3Label": "Location",
+        "stat3Value": "Sithonia",
+        "projectCta": "See the case study",
+        "quoteBody": "We're not a paint store. We're the people the paint store calls when the job has to hold.",
+        "quoteAttribution": "— From the manifesto",
+        "counters": {
+          "years": { "label": "YEARS OF TRADE" },
+          "projects": { "label": "PROJECTS THAT LASTED" },
+          "partners": { "label": "CURATED PARTNERS" },
+          "rejected": { "label": "PRODUCTS REJECTED" }
+        }
+      },
+      "invitation": {
+        "eyebrow": "GET IN TOUCH",
+        "faqTitle": "Questions, straight answers.",
+        "faqItems": {
+          "q1": {
+            "q": "Do you sell to non-professionals?",
+            "a": "Yes — but every customer gets the same specification-grade advice. We'd rather lose a sale than match the wrong system to your substrate."
+          },
+          "q2": {
+            "q": "Can you specify a system for a project I'm planning?",
+            "a": "That's our day job. Send substrate, exposure, and timeline — we return a written system recommendation, usually within 48 hours."
+          },
+          "q3": {
+            "q": "Do you take on difficult applications?",
+            "a": "That's exactly where we earn our place. Jobs the catalog doesn't cover are our specialty."
+          }
+        },
+        "faqReadAll": "All questions",
+        "ctaTitle": "Have a substrate, a deadline, and a finish that has to last?",
+        "ctaLead": "Tell us about the project. We'll come back with a system, not a catalog.",
+        "ctaPrimary": "Talk to a specialist",
+        "ctaSecondary": "Visit the shop"
+      }
+    }
+  },
+  "about": {
+    "meta": {
+      "title": "About — Pavlicevits Colors · Since 1990",
+      "description": "A family-run paint vendor in Kalamaria, Thessaloniki. Two generations on the counter. Specialist in architectural, automotive, marine, and special applications."
+    },
+    "hero": {
+      "eyebrow": "ABOUT",
+      "headlineHeavy": "In Kalamaria, since 1990.",
+      "headlineLight": "Same standard. New tools.",
+      "lead": "A family-run paint vendor with two generations working the counter. We began representing German paints in Northern Greece in 1982. We founded the current company in 1990. We expanded into automotive, marine, and special applications from 2002 onwards. Today the next generation drives the brand and digital work; the previous generation still runs the floor. The handoff is continuous, not sudden."
+    },
+    "history": {
+      "eyebrow": "HISTORY",
+      "headlineHeavy": "Forty-four years of trade.",
+      "headlineLight": "Three acts.",
+      "acts": {
+        "act1": {
+          "year": "1982",
+          "title": "Act 1",
+          "body": "We started as the Northern Greece representative for a German paint manufacturer. We learned that quality is a language: you either speak it or you don't."
+        },
+        "act2": {
+          "year": "1990",
+          "title": "Act 2",
+          "body": "We founded the current company under our own name. The same family. The same standards. A wider remit."
+        },
+        "act3": {
+          "year": "From 2002",
+          "title": "Act 3",
+          "body": "We expanded into the four specialty categories that define us today: architectural, automotive, marine, and special applications. We built the curation and the partnerships that make the shop what it is."
+        }
+      }
+    },
+    "philosophy": {
+      "eyebrow": "PHILOSOPHY",
+      "headlineHeavy": "What we believe.",
+      "headlineLight": "In five lines.",
+      "values": {
+        "v1": {
+          "title": "The relationship is the product.",
+          "body": "The paint is the deliverable. The advice is the real service. The relationship is the actual product. Customers from 1995 still come to us. So do their kids."
+        },
+        "v2": {
+          "title": "The right solution, not just the available one.",
+          "body": "Every recommendation we give is the one we'd use ourselves on our own job. Not the one with the highest margin. Not the one we want to clear from the back room."
+        },
+        "v3": {
+          "title": "Material quality is non-negotiable.",
+          "body": "Pigment density. Resin chemistry. Lightfastness. Coverage. Adhesion. These are not abstract specs. They're the difference between a hotel facade that lasts seven years and one that lasts two."
+        },
+        "v4": {
+          "title": "Color is transformation.",
+          "body": "A re-coated yacht hull is not a freshly painted yacht. It's a different vessel, ready for another five years at sea. We're in the business of transformation."
+        },
+        "v5": {
+          "title": "We focus on the work, not the noise.",
+          "body": "Discipline is what gets the job right. Display is what gets the credit. We're more interested in the first."
+        }
+      }
+    },
+    "shop": {
+      "eyebrow": "WHO YOU MEET",
+      "headlineHeavy": "The counter is",
+      "headlineLight": "the consultation.",
+      "para1": "The shop is staffed by people who answer to two generations of the same family. The previous generation defined the standards over decades of work. The next generation is bringing those standards into the present — into the digital, the new partnerships, the new ways of working.",
+      "para2": "The handoff has been continuous since the early 2000s. There's no transition month. No \"the new owner takes over.\" Just two generations on the floor at the same time, working through the same jobs, holding to the same line."
+    },
+    "counters": {
+      "eyebrow": "BY THE NUMBERS",
+      "items": {
+        "years": { "label": "YEARS OF TRADE" },
+        "categories": { "label": "SPECIALIZED CATEGORIES" },
+        "customers": { "label": "RETURNING CUSTOMERS" },
+        "partners": { "label": "CURATED PARTNERS" }
+      }
+    },
+    "cta": {
+      "eyebrow": "VISIT US",
+      "headlineHeavy": "Two generations on the counter.",
+      "headlineLight": "Stop by and talk.",
+      "lead": "Bring us the job. Not a generic ask — substrate, dimensions, conditions. We'll specify the system that fits.",
+      "ctaPrimary": "Contact us",
+      "ctaSecondary": "See the projects"
+    }
+  },
+  "services": {
+    "meta": {
+      "title": "Services — Specialist Paint Advisory · Pavlicevits Colors",
+      "description": "Six specialist services: architectural, automotive, marine, industrial, color matching, and custom formulation. Bring us the job."
+    },
+    "hero": {
+      "eyebrow": "SERVICES",
+      "headlineHeavy": "The shop is the consultation.",
+      "headlineLight": "You don't pay for it. You earn it by walking in.",
+      "lead": "Walking in is the first step. We'll match the product to the job, the substrate to the system, the system to the conditions, and the conditions to your timeline and budget. The advice is part of what you came for."
+    },
+    "counters": {
+      "items": {
+        "years": { "label": "YEARS OF TRADE" },
+        "categories": { "label": "SPECIALIZED CATEGORIES" },
+        "customers": { "label": "RETURNING CUSTOMERS" },
+        "specialServices": { "label": "SPECIALIST SERVICES" }
+      }
+    },
+    "grid": {
+      "eyebrow": "SPECIALIST SERVICES",
+      "headlineHeavy": "Six services.",
+      "headlineLight": "Each grounded in real work.",
+      "items": {
+        "architectural": {
+          "title": "Architectural advisory",
+          "body": "Specialized counsel for interior and exterior systems — substrate diagnosis, moisture management, thermal considerations, coating strategy, color planning. From the spec to the application."
+        },
+        "automotive": {
+          "title": "Automotive solutions",
+          "body": "End-to-end support for body shops and individual restoration: paint, primers, clearcoats, polishing compounds, finishing tools. Color matching with calibrated equipment, not approximation."
+        },
+        "marine": {
+          "title": "Marine applications",
+          "body": "Technical guidance for antifouling selection, primer compatibility, topcoat systems, and seasonal maintenance. We work with yards across Halkidiki, Sithonia, and the Thermaikos coastline."
+        },
+        "industrial": {
+          "title": "Industrial and special",
+          "body": "Solutions for floors, pools, metal structures, and the jobs that don't fit a catalog. Epoxy systems, chemical-resistant coatings, anti-slip treatments — specified to actual operating conditions."
+        },
+        "colorMatch": {
+          "title": "Color matching study",
+          "body": "Professional color matching with specialized equipment. We identify the exact hue from your sample — not the closest in our deck — and document it for repeatability across multi-phase jobs."
+        },
+        "customColor": {
+          "title": "Custom color formulation",
+          "body": "Bespoke color preparation per your specifications — from a sample, a photograph, or a unique idea. Done in the lab in Edessa with Pellachrom, with batch documentation for future re-orders."
+        }
+      }
+    },
+    "process": {
+      "eyebrow": "HOW WE WORK",
+      "headlineHeavy": "Four steps.",
+      "headlineLight": "No surprises.",
+      "steps": {
+        "step1": {
+          "number": "01",
+          "title": "Listen",
+          "body": "Tell us what you're working with. Substrate. Conditions. Timeline. The job, in its real specifics."
+        },
+        "step2": {
+          "number": "02",
+          "title": "Specify",
+          "body": "We'll match the system to the substrate. We'll explain why. We'll tell you which product we'd use ourselves — and which one we wouldn't."
+        },
+        "step3": {
+          "number": "03",
+          "title": "Apply",
+          "body": "Step-by-step technique guidance for the right finish. Sequence. Wait times. Conditions. The details that turn a coat of paint into a service life."
+        },
+        "step4": {
+          "number": "04",
+          "title": "Stay",
+          "body": "We don't disappear after the sale. Questions during application are part of the work. Call us. We'll pick up."
+        }
+      }
+    },
+    "cta": {
+      "eyebrow": "GET IN TOUCH",
+      "headlineHeavy": "Have a job that needs",
+      "headlineLight": "specialist input?",
+      "lead": "The more specific the question, the faster we can answer it. Bring us the substrate, the dimensions, the conditions, the timeline.",
+      "ctaPrimary": "Get specialist input",
+      "ctaSecondary": "See the projects"
+    }
+  },
+  "projects": {
+    "meta": {
+      "title": "Projects — Recent Work · Pavlicevits Colors",
+      "description": "Selected projects across architectural, automotive, marine, and special applications in Northern Greece. Substrate, system, products, and service life — every case study."
+    },
+    "hero": {
+      "eyebrow": "PROJECTS",
+      "headlineHeavy": "The work speaks for itself.",
+      "headlineLight": "These are some of the louder ones.",
+      "lead": "Selected projects that show what we recommended, why we recommended it, and how it has held up. Each case study includes the substrate, the system, and the products used — because that's the part most marketing pages skip."
+    },
+    "filters": {
+      "all": "All",
+      "architectural": "Architectural",
+      "automotive": "Automotive",
+      "marine": "Marine",
+      "specialty": "Special applications"
+    },
+    "viewCase": "Full case study",
+    "items": {
+      "sithoniaYacht": {
+        "category": "marine",
+        "categoryLabel": "MARINE",
+        "year": "2024",
+        "title": "12-meter yacht. Sithonia.",
+        "subtitle": "Seven-year service life.",
+        "summary": "Pellachrom 2-pack epoxy applied in two phases. Sithonia exposure. Re-inspection six years on."
+      },
+      "halkidikiHotel": {
+        "category": "architectural",
+        "categoryLabel": "ARCHITECTURAL",
+        "year": "2023",
+        "title": "Hotel facade. Halkidiki.",
+        "subtitle": "A decade of salinity resistance.",
+        "summary": "Acrylic-silicone system over plaster repair. 2.5 km from the coast, 1,000 m² facade."
+      },
+      "thessalonikiBodyshop": {
+        "category": "automotive",
+        "categoryLabel": "AUTOMOTIVE",
+        "year": "2024",
+        "title": "Metallic match. Thessaloniki.",
+        "subtitle": "OEM color reconstruction.",
+        "summary": "Body shop with a particular ask: match a factory pearl-white three-coat with batch documentation."
+      },
+      "industrialFloor": {
+        "category": "specialty",
+        "categoryLabel": "SPECIAL",
+        "year": "2023",
+        "title": "Industrial floor. Sindos.",
+        "subtitle": "1,200 m² epoxy build.",
+        "summary": "Warehouse floor with food-industry load, R10 anti-slip, epoxy system stable against oil contact."
+      },
+      "kalamariaApartment": {
+        "category": "architectural",
+        "categoryLabel": "ARCHITECTURAL",
+        "year": "2024",
+        "title": "Apartment. Kalamaria.",
+        "subtitle": "110 m² interior renovation.",
+        "summary": "Full Vivechrom system with eco-grade water-based paint. Defined color palette, delivery in 8 days."
+      },
+      "porticarrasBoats": {
+        "category": "marine",
+        "categoryLabel": "MARINE",
+        "year": "2022",
+        "title": "Working fleet. Porto Carras.",
+        "subtitle": "Six vessels, one system.",
+        "summary": "Coordinated repaint of six line-service boats, common spec, single application window."
+      }
+    },
+    "indexCta": {
+      "eyebrow": "GET IN TOUCH",
+      "headlineHeavy": "Have a project",
+      "headlineLight": "that has to last?",
+      "lead": "Bring us the details. We'll come back with a system, not an invoice.",
+      "ctaPrimary": "Talk to us"
+    },
+    "single": {
+      "techGrid": {
+        "title": "Technical",
+        "substrate": "Substrate",
+        "conditions": "Conditions",
+        "system": "System",
+        "products": "Products",
+        "application": "Application",
+        "lifespan": "Service life"
+      },
+      "body": {
+        "briefTitle": "The brief",
+        "specTitle": "The specification",
+        "applicationTitle": "The application",
+        "resultTitle": "The result"
+      },
+      "relatedTitle": "Related projects",
+      "cta": {
+        "headlineHeavy": "Have a marine job",
+        "headlineLight": "that needs specifying?",
+        "ctaPrimary": "Talk to us about your vessel"
+      },
+      "sithoniaYacht": {
+        "tech": {
+          "substrate": "GRP hull, coastal exposure",
+          "conditions": "Year-round Sithonia exposure, salinity ≥ 3.5%, seasonal lay-up",
+          "system": "2-pack epoxy primer + tie coat + 2-pack epoxy antifouling, 2 finish coats",
+          "products": "Pellachrom Marine — primer, tie coat, antifouling",
+          "application": "Two phases at yard, 7 days between phases",
+          "lifespan": "7+ years (re-inspection due 2031)"
+        },
+        "body": {
+          "brief": "The owner had previously seen 18-24 month service from a single-pack antifouling system on the same hull. The vessel sees year-round exposure at Porto Sani Marina with limited lay-up. The brief was straightforward: extend the maintenance interval without overspecifying.",
+          "spec": "We specified a 2-pack epoxy system over a tie coat to manage adhesion across the existing primer. Pellachrom Marine was the right answer — both for performance under salinity and for the practical proximity (we coordinated the application window with the yard and the manufacturer's technical desk).",
+          "application": "Phase one in mid-March, with primer and tie coat. Phase two seven days later, with the antifouling and finish. The yard handled the application; we handled the spec, the materials, and the on-call technical questions.",
+          "result": "The owner contacted us this season for the first re-inspection — six years on. Adhesion intact. Color stable. No biofouling beyond cosmetic. Re-coat is due in approximately 12-18 months."
+        }
+      }
+    }
+  },
+  "partnerships": {
+    "meta": {
+      "title": "Partnerships — Pellachrom + Curated Brands · Pavlicevits Colors",
+      "description": "Official Pellachrom partner. Plus Vivechrom, Vechro, Kraft, Vitex, and Isomat — curated, not warehoused. Each brand earns its place on our shelves."
+    },
+    "hero": {
+      "eyebrow": "PARTNERSHIPS",
+      "headlineHeavy": "The brands on our shelves.",
+      "headlineLight": "Each one earned the place.",
+      "lead": "We don't carry every brand. We carry the ones we've tested, used on our own work, and would recommend without hesitation. Each one is here for a specific reason."
+    },
+    "pellachrom": {
+      "eyebrow": "OFFICIAL PARTNER",
+      "headlineHeavy": "Pellachrom.",
+      "headlineLight": "Our deepest partnership.",
+      "para1": "D.G.K. Pellachrom has been making paint in Edessa, in the Pella regional unit of Northern Greece, since 1981. Our cooperation with them is a working relationship — direct, technical, and ongoing.",
+      "para2": "What \"official partnership\" means in practice: when we specify a Pellachrom system for a customer project, we have direct lines to the formulators if a substrate or exposure question comes up. When a project needs a custom batch — non-standard hue, modified resin, special pigment ratio for repeatability across phases — we can request it. The supply chain is short: Edessa to Kalamaria is roughly 100 km. Stock is fresh. Custom-batch turnaround is a phone call.",
+      "para3": "Pellachrom's range covers marine, decorative, anti-corrosion, industrial, and eco lines. Where their product is the right answer, we recommend it. Where it isn't — and we are honest about this — we recommend something else from our other partners.",
+      "para4": "The relationship matters because it lets us specify, not just sell. A generic distribution arrangement tells you what's on the catalog. A working partnership lets us specify systems for the actual job in front of us."
+    },
+    "others": {
+      "eyebrow": "OTHER PARTNERS",
+      "headlineHeavy": "Curated brands,",
+      "headlineLight": "not a logo wall.",
+      "items": {
+        "vivechrom": {
+          "name": "Vivechrom",
+          "subtitle": "AkzoNobel — Greek market leader since 1964",
+          "body": "Vivechrom holds the leading position in the Greek architectural paint market. The breadth of their decorative range, the depth of their technical documentation, and their professional acceptance across the industry make them a default for many architectural specifications."
+        },
+        "vechro": {
+          "name": "Vechro",
+          "subtitle": "Greek-owned, 70+ years, eco-paint leader",
+          "body": "Vechro is the Greek company most committed to ecological paint: 96 certified eco products. For projects where independent eco-certification is required (LEED, BREEAM, internal corporate ESG), Vechro is often the right specification."
+        },
+        "kraft": {
+          "name": "Kraft Paints",
+          "subtitle": "Druckfarben group — 900+ sales points nationally",
+          "body": "For value-tier work where the price-quality balance must be precise, Kraft is reliable. The product range is wide. The performance is consistent. We use them for jobs that don't justify higher specifications — and we say so plainly."
+        },
+        "vitex": {
+          "name": "Vitex",
+          "subtitle": "Greek decorative",
+          "body": "Where Vitex's specific lines outperform alternatives, we stock them. Some of their decorative interiors are best-in-category; we carry those."
+        },
+        "isomat": {
+          "name": "Isomat",
+          "subtitle": "Construction chemicals",
+          "body": "For projects that cross the line between paint and construction chemistry — sealants, adhesives, restoration mortars — Isomat provides reliable specifications. We coordinate with them on integrated jobs."
+        }
+      }
+    },
+    "curation": {
+      "eyebrow": "HOW WE CHOOSE",
+      "headlineHeavy": "Six tests.",
+      "headlineLight": "Every product passes them, or it isn't on our shelves.",
+      "intro": "When we evaluate whether a product earns shelf space, we apply six tests in this order:",
+      "tests": {
+        "t1": {
+          "title": "Performance under real conditions",
+          "body": "Not lab spec sheets. We use it ourselves or watch trusted painters use it."
+        },
+        "t2": {
+          "title": "Pigment integrity over time",
+          "body": "Does the color hold at year five, or fade by year two?"
+        },
+        "t3": {
+          "title": "Coverage and yield",
+          "body": "Does the listed yield match field reality?"
+        },
+        "t4": {
+          "title": "Substrate compatibility",
+          "body": "Does it adhere properly across the substrates our customers actually face?"
+        },
+        "t5": {
+          "title": "Documented technical support",
+          "body": "Datasheets, MSDS, manufacturer responsiveness when there's a question."
+        },
+        "t6": {
+          "title": "Safety and certification",
+          "body": "VOC compliance, eco-certifications where claimed."
+        }
+      },
+      "outro": "If a product fails any of these in our experience, it leaves the shelf."
+    },
+    "cta": {
+      "eyebrow": "QUESTIONS",
+      "headlineHeavy": "Looking for a specific brand",
+      "headlineLight": "or a specific application?",
+      "lead": "Ask us straight. We'll answer straight — with or without one of our own brands as the right answer.",
+      "ctaPrimary": "Ask us — we'll tell you straight",
+      "ctaSecondary": "See the projects"
+    }
+  },
+  "insights": {
+    "meta": {
+      "title": "Insights — Notes from the Counter · Pavlicevits Colors",
+      "description": "Technical writing on real paint questions: marine antifouling, color matching, industrial floors, eco-coatings. From the people who answer them at the counter."
+    },
+    "hero": {
+      "eyebrow": "INSIGHTS",
+      "headlineHeavy": "Notes from the counter.",
+      "headlineLight": "In writing.",
+      "lead": "Technical writing on real questions we get asked. We write what we'd say at the counter. If you disagree with anything you read here, come to the shop. We'll talk."
+    },
+    "readArticle": "Read article",
+    "minRead": "min read",
+    "publishedBy": "Pavlicevits Colors",
+    "items": {
+      "antifoulingNorth": {
+        "category": "TECHNICAL · MARINE",
+        "title": "Choosing antifouling for Northern Greek waters",
+        "excerpt": "Salinity, temperature variation, and lay-up cycles all factor in. Here's how we specify for Halkidiki and Sithonia conditions.",
+        "date": "April 2026",
+        "readTime": "6"
+      },
+      "colorMatchOEM": {
+        "category": "TECHNICAL · AUTOMOTIVE",
+        "title": "Factory color match: what separates \"close\" from \"identical\"",
+        "excerpt": "Sample, equipment, batch record. Why the closest color isn't the same color — and how we handle it.",
+        "date": "March 2026",
+        "readTime": "5"
+      },
+      "industrialFloors": {
+        "category": "TECHNICAL · INDUSTRIAL",
+        "title": "Epoxy floors: from yards to food-grade plants",
+        "excerpt": "Loading, chemicals, slip rating. Seven questions that have to be answered before the first coat.",
+        "date": "February 2026",
+        "readTime": "8"
+      },
+      "ecoCertifications": {
+        "category": "ECO",
+        "title": "LEED, BREEAM, ESG — when eco-certification actually matters",
+        "excerpt": "Choosing among Greek eco lines. What the certifications actually mean, and where they become marketing.",
+        "date": "February 2026",
+        "readTime": "7"
+      },
+      "mediterraneanFacades": {
+        "category": "ARCHITECTURAL",
+        "title": "Coastal facades in Halkidiki: systems that hold",
+        "excerpt": "Acrylic-silicone or siloxane? When the cost difference is justified, when it isn't. Two real examples.",
+        "date": "January 2026",
+        "readTime": "6"
+      },
+      "primerSelection": {
+        "category": "FUNDAMENTALS",
+        "title": "The primer: the silent decision behind every good job",
+        "excerpt": "Continuity between substrate and topcoat. Five failures that start with the wrong primer — and how to avoid them.",
+        "date": "December 2025",
+        "readTime": "5"
+      }
+    },
+    "single": {
+      "backToIndex": "All articles",
+      "relatedTitle": "Related articles",
+      "ctaTitle": "Have a marine job we should look at?",
+      "ctaPrimary": "Talk to us",
+      "body": {
+        "lead": "Northern Greek waters — from Sithonia to the Thermaikos — have their own identity. Salinity around 3.5%, big temperature swings, springtime biological activity that explodes within weeks. Antifouling isn't a consumable. It's a system.",
+        "p1Title": "First test: what your hull can take",
+        "p1": "Before we choose antifouling, we read the hull. New GRP? Polyester with a repaint history? Aluminum with galvanic protection? Every substrate has its own scenario. Adhesion, expansion, reaction with old primers. There is no one answer that covers all of them.",
+        "p2Title": "Second test: exposure",
+        "p2": "Year-round in the water? Seasonal? Out for the winter? The application window changes completely. A boat that goes in at Easter and comes out in November doesn't need what a working vessel in continuous service does. We specify for your conditions, not the Aegean average.",
+        "p3Title": "Third test: continuity",
+        "p3": "Antifouling is one link in a chain. Primer, tie coat, antifouling, finish coats. One weak link and the chain snaps at 18 months. The whole conversation is about color, but often the life of the system is decided in the tie coat — exactly where few people look.",
+        "outro": "These three tests are how every marine conversation in our shop begins. Bring us the boat, the conditions, the history. We'll specify the continuity."
+      }
+    }
+  },
+  "contact": {
+    "meta": {
+      "title": "Contact — Pavlicevits Colors · Kalamaria, Thessaloniki",
+      "description": "Get in touch. Reply within one working day. Phone +30 2310 447 033 · info@pavlicevits.gr · Leoforos Ethnikis Antistaseos 66, Kalamaria."
+    },
+    "hero": {
+      "eyebrow": "GET IN TOUCH",
+      "headlineHeavy": "Tell us about the work.",
+      "headlineLight": "We'll match the product to the job.",
+      "lead": "The more specific your question, the faster the answer can be useful. Substrate. Dimensions. Conditions. Timeline. We reply within one working day. For urgent technical questions, the phone is faster."
+    },
+    "form": {
+      "title": "Tell us about your project",
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "Your name",
+        "email": "Email",
+        "emailPlaceholder": "name@domain.com",
+        "phone": "Phone (optional)",
+        "phonePlaceholder": "Faster reply if you include it",
+        "projectType": "Project type",
+        "projectArchitectural": "Architectural",
+        "projectAutomotive": "Automotive",
+        "projectMarine": "Marine",
+        "projectSpecialty": "Special applications",
+        "message": "Tell us about the job",
+        "messagePlaceholder": "Describe what you're looking for — substrate, dimensions, conditions, timeline. If you have a sample or photo, you can bring it when you stop by the shop."
+      },
+      "submit": "Send message",
+      "confirmation": "Thank you. We've received your message and will reply within one working day. For urgent technical questions, you can call us directly at +30 2310 447 033."
+    },
+    "side": {
+      "phone": {
+        "eyebrow": "CALL US",
+        "lines": [
+          "+30 2310 447 033",
+          "+30 2310 444 329",
+          "Mobile: +30 6937 405 030"
+        ]
+      },
+      "visit": {
+        "eyebrow": "COME BY",
+        "lines": [
+          "Pavlicevits Colors",
+          "Leoforos Ethnikis Antistaseos 66",
+          "Kalamaria, 55133 Thessaloniki"
+        ]
+      },
+      "hours": {
+        "eyebrow": "WHEN WE'RE OPEN",
+        "lines": [
+          "Monday – Friday: 08:30 – 16:30",
+          "Saturday: 08:30 – 14:30",
+          "Sunday: closed"
+        ]
+      },
+      "email": {
+        "eyebrow": "EMAIL",
+        "value": "info@pavlicevits.gr"
+      }
+    },
+    "map": {
+      "title": "On the map",
+      "openIn": "Open in Google Maps"
+    }
+  },
+  "faq": {
+    "meta": {
+      "title": "FAQ — Pavlicevits Colors",
+      "description": "Questions we get at the counter, with straight answers. From general to technical."
+    },
+    "hero": {
+      "eyebrow": "FREQUENTLY ASKED",
+      "headlineHeavy": "Questions,",
+      "headlineLight": "straight answers.",
+      "lead": "Like asking us at the counter. If you can't find what you're looking for, talk to us."
+    },
+    "groups": {
+      "general": {
+        "title": "General",
+        "items": {
+          "g1": {
+            "q": "Do you sell to non-professionals?",
+            "a": "Yes — but every customer gets the same specification-grade advice. We'd rather lose a sale than match the wrong system to your substrate."
+          },
+          "g2": {
+            "q": "Do you supply outside Thessaloniki?",
+            "a": "Yes — across Greece for trade orders. Contact us with quantities and delivery address."
+          },
+          "g3": {
+            "q": "Do you work with architects or engineers?",
+            "a": "Routinely. We send specifications, technical sheets, alternatives. Many architectural studies in Kalamaria and Halkidiki pass through our shop."
+          }
+        }
+      },
+      "technical": {
+        "title": "Technical",
+        "items": {
+          "t1": {
+            "q": "Can you specify a system for a project I'm planning?",
+            "a": "Send substrate, exposure, and timeline. We return a written system recommendation, no excuses."
+          },
+          "t2": {
+            "q": "Do you take on difficult applications?",
+            "a": "That's exactly where we earn our place. Jobs the catalog doesn't cover are our specialty."
+          },
+          "t3": {
+            "q": "Do you do color matching?",
+            "a": "Yes, with calibrated equipment. Bring a sample, swatch, or high-resolution photo. We document the batch for future re-orders."
+          },
+          "t4": {
+            "q": "Can you get custom Pellachrom batches?",
+            "a": "As an official partner, we can request custom batches directly from the Edessa plant. Ask us — we'll tell you what's feasible and on what timeline."
+          }
+        }
+      },
+      "logistics": {
+        "title": "Logistics",
+        "items": {
+          "l1": {
+            "q": "How fast do you deliver?",
+            "a": "From the shelf, same-day at the shop. For custom batches or large quantities, 3-7 business days, depending on the product."
+          },
+          "l2": {
+            "q": "Can I get a quote without coming to the shop?",
+            "a": "For trade, yes. Email us with specifications and quantities. We respond within one working day."
+          },
+          "l3": {
+            "q": "Do you accept returns?",
+            "a": "Yes, for sealed products within 14 days. For opened or custom batches, case-by-case — without bureaucracy."
+          }
+        }
+      }
+    },
+    "cta": {
+      "headlineHeavy": "Didn't find the answer",
+      "headlineLight": "you were looking for?",
+      "lead": "Send us the question. We reply within one working day — from a person, not a bot.",
+      "ctaPrimary": "Contact us"
+    }
+  },
+  "errors": {
+    "notFound": {
+      "eyebrow": "404",
+      "headlineHeavy": "The paint didn't adhere.",
+      "headlineLight": "Let's get you back on a clean surface.",
+      "lead": "The page you were looking for isn't here. It might have moved, or the link might be old.",
+      "cta": "Back to home"
+    },
+    "serverError": {
+      "eyebrow": "500",
+      "headlineHeavy": "Something blistered.",
+      "headlineLight": "We're already on it.",
+      "lead": "Our site hit a snag. We'll have it sorted shortly. In the meantime, you can reach us by phone.",
+      "cta": "Call +30 2310 447 033",
+      "retry": "Try again"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "meta": {
+        "title": "Privacy Policy — Pavlicevits Colors",
+        "description": "How we handle your personal data on pavlicevits.gr."
+      },
+      "eyebrow": "LEGAL",
+      "headlineHeavy": "Privacy Policy.",
+      "headlineLight": "What you need to know.",
+      "updated": "Last updated: April 2026",
+      "sections": {
+        "s1": {
+          "title": "What we keep",
+          "body": "We keep only the data needed to answer you: name, email, phone, and the project details you send us. We don't buy lists, we don't sell data, we don't build advertising profiles."
+        },
+        "s2": {
+          "title": "Cookies",
+          "body": "We use only the cookies necessary for the site to work, plus a few analytics (anonymous aggregate traffic) so we can see which pages were useful to you. We don't run advertising cookies."
+        },
+        "s3": {
+          "title": "Your rights",
+          "body": "You have the right to access, correct, delete, and port your data, in accordance with GDPR. Email info@pavlicevits.gr and we'll respond within 30 days."
+        },
+        "s4": {
+          "title": "Contact",
+          "body": "For any data-related question: info@pavlicevits.gr · +30 2310 447 033 · Leoforos Ethnikis Antistaseos 66, Kalamaria, 55133 Thessaloniki."
+        }
+      }
+    },
+    "terms": {
+      "meta": {
+        "title": "Terms of Use — Pavlicevits Colors",
+        "description": "The terms under which you use pavlicevits.gr."
+      },
+      "eyebrow": "LEGAL",
+      "headlineHeavy": "Terms of Use.",
+      "headlineLight": "Short and clear.",
+      "updated": "Last updated: April 2026",
+      "sections": {
+        "s1": {
+          "title": "Use of the site",
+          "body": "pavlicevits.gr is the official website of Pavlicevits Colors. You're free to use it to learn about our products and services or to get in touch with us."
+        },
+        "s2": {
+          "title": "Intellectual property",
+          "body": "Text, photography, drawings, and graphics on the site are the intellectual property of Pavlicevits Colors or third parties under license. Reproduction without permission is prohibited."
+        },
+        "s3": {
+          "title": "Technical information",
+          "body": "Technical information on the site is informational. For each specific project, the final specification and materials are determined together at the shop or in writing."
+        },
+        "s4": {
+          "title": "Governing law",
+          "body": "These terms are governed by Greek law. Competent courts for any dispute are the courts of Thessaloniki."
+        }
+      }
+    }
+  },
+  "footer": {
+    "tagline": "Specialist paint vendor in Kalamaria. Since 1990. Pellachrom partner.",
+    "address": "Leoforos Ethnikis Antistaseos 66, Kalamaria, 55133 Thessaloniki",
+    "rights": "All rights reserved",
+    "slogan": "Making your life colorful.",
+    "columns": {
+      "company": "Company",
+      "services": "Services",
+      "contact": "Contact",
+      "social": "Social"
+    },
+    "links": {
+      "about": "About",
+      "partnerships": "Partnerships",
+      "insights": "Insights",
+      "faq": "FAQ",
+      "architectural": "Architectural",
+      "automotive": "Automotive",
+      "marine": "Marine",
+      "specialty": "Special applications",
+      "colorMatch": "Color matching",
+      "customColor": "Custom formulation",
+      "instagram": "Instagram",
+      "facebook": "Facebook",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Use",
+      "cookies": "Cookie Policy"
+    }
+  }
+}

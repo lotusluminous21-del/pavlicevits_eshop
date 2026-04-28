@@ -56,3 +56,9 @@ test_out.json
 temp_lifecycle.json
 repomix-output.xml
 logs/
+
+# Claude Code local settings
+.claude/
+
+# Local script caches
+scripts/.recraft-style-cache.json

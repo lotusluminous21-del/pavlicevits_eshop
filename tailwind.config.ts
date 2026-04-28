@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 // import tailwindcssAnimate from "tailwindcss-animate";
 
 const config: Config = {
+    darkMode: "class",
     content: [
         "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -10,10 +11,10 @@ const config: Config = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ["var(--font-nunito)", "sans-serif"],
-                greek: ["var(--font-source-sans)", "sans-serif"],
+                sans: ["var(--font-inter)", "var(--font-nunito)", "sans-serif"],
+                greek: ["var(--font-inter)", "var(--font-source-sans)", "sans-serif"],
                 mono: ["var(--font-geist-mono)", "monospace"],
-                heading: ["var(--font-heading)", "sans-serif"],
+                heading: ["var(--font-inter)", "var(--font-heading)", "sans-serif"],
             },
             colors: {
                 background: 'hsl(var(--background))',
@@ -49,6 +50,10 @@ const config: Config = {
                 border: 'hsl(var(--border))',
                 input: 'hsl(var(--input))',
                 ring: 'hsl(var(--ring))',
+                showcase: {
+                    DEFAULT: 'hsl(var(--showcase))',
+                    foreground: 'hsl(var(--showcase-foreground))'
+                },
                 chart: {
                     '1': 'hsl(var(--chart-1))',
                     '2': 'hsl(var(--chart-2))',
