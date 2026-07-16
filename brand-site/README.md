@@ -60,7 +60,7 @@ The e-shop's App Hosting staging serves a built copy of this site at
 `next.config.ts`). To refresh it after changes here:
 
 ```sh
-npm run build -- --base=/brand-site/ --outDir ../public/brand-site --emptyOutDir
+npm run build:staging
 ```
 
 then commit and push `staging`. Long-term the site should get its own

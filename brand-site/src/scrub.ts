@@ -11,7 +11,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
  */
 const FRAME_COUNT = 161;
 const framePath = (i: number) =>
-  `/media/hero/frame_${String(i + 1).padStart(4, '0')}.webp`;
+  `${import.meta.env.BASE_URL}media/hero/frame_${String(i + 1).padStart(4, '0')}.webp`;
 
 export function initHeroScrub(reducedMotion: boolean): void {
   const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement | null;

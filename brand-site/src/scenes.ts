@@ -29,7 +29,8 @@ function initSceneVideos(): void {
         const video = entry.target as HTMLVideoElement;
         if (entry.isIntersecting) {
           if (!video.src && video.dataset.src) {
-            video.src = video.dataset.src;
+            // data-src is root-relative; honor Vite's base when deployed under a subpath
+            video.src = import.meta.env.BASE_URL + video.dataset.src.replace(/^\//, '');
             video.load();
           }
           video.play().catch(() => {
