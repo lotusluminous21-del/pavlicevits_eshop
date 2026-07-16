@@ -39,6 +39,15 @@ Requires ffmpeg on PATH. Generation source jobs (Higgsfield, 2026-07-16):
 hero image `ea3dc3db`, hero bloom `001a8fad`, material `781b6b17`,
 work/project `58b1bd61`, shop `1c735fd4` (first take `e4ec075b`).
 
+## Brand assets
+
+`public/brand/` holds the generated logo (Higgsfield job `a248a4ba`, 2026-07-16):
+`logo-lockup.png/.webp` (mark + wordmark) and `logo-mark.png/.webp` (drop only).
+Their flat background is `#0C1420`, slightly off the site canvas `#0A0E1A` —
+for use inside the site (header, hero), trace the mark to SVG or knock out
+the background first; as a standalone lockup (proposals, social, print on
+dark) it works as-is.
+
 ## Before go-live
 
 - Wire the lead form to a real inbox (see TODO in `src/form.ts`) — it currently
