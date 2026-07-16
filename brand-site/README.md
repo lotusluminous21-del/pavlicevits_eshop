@@ -41,12 +41,30 @@ work/project `58b1bd61`, shop `1c735fd4` (first take `e4ec075b`).
 
 ## Brand assets
 
-`public/brand/` holds the generated logo (Higgsfield job `a248a4ba`, 2026-07-16):
-`logo-lockup.png/.webp` (mark + wordmark) and `logo-mark.png/.webp` (drop only).
-Their flat background is `#0C1420`, slightly off the site canvas `#0A0E1A` —
-for use inside the site (header, hero), trace the mark to SVG or knock out
-the background first; as a standalone lockup (proposals, social, print on
-dark) it works as-is.
+The production mark is `public/brand/logo-mark.svg` — the "strata" mark:
+three horizontal layers of liquid paint (bright cyan top coat, petrol mid,
+pale base), generated as vector, background removed and viewBox cropped to
+the artwork. The header and footer reference it via `<img>`, so swapping
+the mark is a one-file change; `public/favicon.svg` embeds the same paths
+inside a dark rounded tile. Wordmark text is always set in type, never as
+part of the image.
+
+`logo-lockup.png/.webp` and `logo-mark.png/.webp` are the earlier
+AI-generated raster exploration (Higgsfield job `a248a4ba`, 2026-07-16),
+kept for reference only.
+
+## Staging deployment
+
+The e-shop's App Hosting staging serves a built copy of this site at
+`/brand-site` (files in `../public/brand-site/`, rewrite in the root
+`next.config.ts`). To refresh it after changes here:
+
+```sh
+npm run build -- --base=/brand-site/ --outDir ../public/brand-site --emptyOutDir
+```
+
+then commit and push `staging`. Long-term the site should get its own
+Firebase Hosting target instead.
 
 ## Before go-live
 

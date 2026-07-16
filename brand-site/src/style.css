@@ -183,10 +183,15 @@ body {
 .site-header__brand {
   text-decoration: none;
   display: flex;
-  align-items: baseline;
-  gap: 0.5em;
+  align-items: center;
+  gap: 0.6em;
   font-size: 0.88rem;
   letter-spacing: 0.14em;
+}
+.site-header__mark {
+  width: 26px;
+  height: auto;
+  flex-shrink: 0;
 }
 .site-header__name {
   font-weight: 740;
@@ -669,6 +674,12 @@ a.shop-details__value:hover {
   border-top: 1px solid var(--hairline-soft);
   padding: clamp(4rem, 9vh, 6.5rem) var(--gutter) 3rem;
   text-align: center;
+}
+.site-footer__mark {
+  display: block;
+  width: 52px;
+  height: auto;
+  margin: 0 auto 1.6rem;
 }
 .site-footer__slogan {
   font-family: var(--font-serif);

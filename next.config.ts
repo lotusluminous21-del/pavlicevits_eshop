@@ -33,6 +33,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      // Standalone brand one-pager, built from brand-site/ into public/brand-site/
+      {
+        source: "/brand-site",
+        destination: "/brand-site/index.html",
+      },
+    ];
+  },
   async headers() {
     return [
       {
