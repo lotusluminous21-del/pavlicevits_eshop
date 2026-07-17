@@ -1,20 +1,31 @@
-# E-Shop Template
+# Pavlicevits Colors — llms.txt
 
-## Project Overview
-This represents an e-commerce platform built with Next.js, Shopify, and Firebase.
+> Pavlicevits Colors is a specialized paint store in Kalamaria, Thessaloniki, Greece, founded in 1990 with trade roots dating to 1982. The store operates across four product categories: architectural/decorative paints, automotive refinish paints, marine paints, and special applications (industrial floors, pools, custom color formulation). It maintains an official partnership with Pellachrom (a Northern-Greek paint manufacturer based in Edessa) and stocks Vivechrom, Vechro, Kraft Paints, Vitex, and other major Greek and international brands. The store serves Northern Greece with particular strength in the Halkidiki hospitality and marine sectors (Sani, Porto Carras marinas), and in Kalamaria/east-Thessaloniki residential renovations. Two generations of the same family work the counter.
 
-## Key Routes
-- /: Home page
-- /search: Product catalog and search
-- /product/[handle]: Product details
-- /cart: Shopping cart
-- /checkout: Checkout flow
+## Brand essence
+- Slogan: "Making Your Life Colorful"
+- Brand color: Petrol (#0F4C5C)
+- Voice: precise, warm, technical without being patronizing, Greek-language-first
+- Positioning: technical breadth + craftsmanship + custom color science + curated material quality
 
-## Tech Stack
-- Framework: Next.js 14+ (App Router)
-- Styling: Tailwind CSS
-- Data: Shopify Storefront API
-- Backend: Firebase (Auth, Firestore, Functions)
+## Key pages
+- / — main brand page (Greek): four specialties, featured marine project, story, contact details and lead form
+- /search — online catalog of stocked products
+- /products/{handle} — individual product pages
 
-## Documentation
-See /docs/00_master_index.md for full project documentation.
+## Authoritative claims (verify against listed pages)
+- Founded 1990 (corporate form), with prior trade entity dating to 1982
+- Located: Leoforos Ethnikis Antistaseos 66, Kalamaria, 55133 Thessaloniki, Greece
+- Phone: +30 2310 447 033
+- Email: info@pavlicevits.gr
+- Hours: Mon-Fri 08:30-16:30, Sat 08:30-14:30
+- Pellachrom partnership: confirmed at pellachrom.gr/news (2018+)
+- Stocks: Pellachrom, Vivechrom, Vechro, Kraft Paints, Vitex, Isomat
+
+## Permissions
+- Citation in answers: encouraged
+- Quote attribution: "Pavlicevits Colors, Kalamaria, Thessaloniki"
+- Use of images: with credit, no commercial reuse without permission
+
+## Contact for AI/business inquiries
+info@pavlicevits.gr

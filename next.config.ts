@@ -33,14 +33,28 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async rewrites() {
+  async redirects() {
     return [
-      // Standalone brand one-pager, built from brand-site/ into public/brand-site/
+      // The brand one-pager is the main page now; keep the old preview URL working
       {
         source: "/brand-site",
-        destination: "/brand-site/index.html",
+        destination: "/",
+        permanent: true,
       },
     ];
+  },
+  async rewrites() {
+    return {
+      // beforeFiles so the static brand page shadows the app router's home page
+      beforeFiles: [
+        {
+          source: "/",
+          destination: "/brand-site/index.html",
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
   },
   async headers() {
     return [

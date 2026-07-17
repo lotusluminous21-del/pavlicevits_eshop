@@ -53,18 +53,29 @@ part of the image.
 AI-generated raster exploration (Higgsfield job `a248a4ba`, 2026-07-16),
 kept for reference only.
 
-## Staging deployment
+## Deployment
 
-The e-shop's App Hosting staging serves a built copy of this site at
-`/brand-site` (files in `../public/brand-site/`, rewrite in the root
-`next.config.ts`). To refresh it after changes here:
+This site is the MAIN page of the deployed app: the root `next.config.ts`
+rewrites `/` to the built copy in `../public/brand-site/` (assets stay
+under `/brand-site/`; the old `/brand-site` URL redirects to `/`).
+To refresh after changes here:
 
 ```sh
 npm run build:staging
 ```
 
-then commit and push `staging`. Long-term the site should get its own
-Firebase Hosting target instead.
+then commit and push (`staging` → verify → merge to `main`).
+
+## SEO / GEO
+
+- Canonical, Open Graph, Twitter cards and JSON-LD (HardwareStore +
+  WebSite) are baked into `index.html` at build time from `VITE_SITE_URL`
+  in `.env` — **switch it to `https://pavlicevits.gr` and rebuild when the
+  custom domain is connected**.
+- `../public/llms.txt` is the AI-crawler handshake; `../src/app/robots.ts`
+  explicitly allows GPTBot, ClaudeBot, PerplexityBot, etc.
+- OG image: `public/og-image.jpg` (1200×630, from the hero reference).
+- Strategy source: `design-pack/06_AI_SEARCH_STRATEGY.md`.
 
 ## Before go-live
 
