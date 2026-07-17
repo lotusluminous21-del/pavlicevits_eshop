@@ -70,7 +70,7 @@ then commit and push (`staging` → verify → merge to `main`).
 
 - Canonical, Open Graph, Twitter cards and JSON-LD (HardwareStore +
   WebSite) are baked into `index.html` at build time from `VITE_SITE_URL`
-  in `.env` — **switch it to `https://pavlicevits.gr` and rebuild when the
+  in `vite.config.ts` — **switch it to `https://pavlicevits.gr` and rebuild when the
   custom domain is connected**.
 - `../public/llms.txt` is the AI-crawler handshake; `../src/app/robots.ts`
   explicitly allows GPTBot, ClaudeBot, PerplexityBot, etc.
