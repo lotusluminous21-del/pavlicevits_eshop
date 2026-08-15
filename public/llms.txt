@@ -10,8 +10,8 @@
 
 ## Key pages
 - / — main brand page (Greek): four specialties, featured marine project, story, contact details and lead form
-- /search — online catalog of stocked products
-- /products/{handle} — individual product pages
+- /privacy — privacy policy (Greek)
+- /terms — terms of use (Greek)
 
 ## Authoritative claims (verify against listed pages)
 - Founded 1990 (corporate form), with prior trade entity dating to 1982

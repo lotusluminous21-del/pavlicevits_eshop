@@ -67,6 +67,21 @@ const nextConfig: NextConfig = {
     };
   },
   async headers() {
+    // E-shop routes stay functional but out of search/AI indexes until the
+    // client green-lights the shop (then remove the noindex + restore the
+    // sitemap entries). Kept crawlable on purpose: robots.txt-blocking them
+    // would hide the noindex and leave stale results in the index.
+    const eshopRoutes = [
+      "/search",
+      "/search/:path*",
+      "/products/:path*",
+      "/cart",
+      "/categories",
+      "/expert",
+      "/solution",
+      "/login",
+      "/profile",
+    ];
     return [
       {
         source: "/(.*)",
@@ -77,6 +92,10 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      ...eshopRoutes.map((source) => ({
+        source,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, follow" }],
+      })),
     ];
   },
 };
