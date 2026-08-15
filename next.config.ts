@@ -41,16 +41,26 @@ const nextConfig: NextConfig = {
         destination: "/",
         permanent: true,
       },
+      // Old-brand content pages consolidated into the one-pager. Their
+      // (brand)/(legacy) route sources are unreachable behind these.
+      { source: "/contact", destination: "/#epikoinonia", permanent: true },
+      { source: "/services", destination: "/#katigories", permanent: true },
+      { source: "/projects", destination: "/#ergo", permanent: true },
+      { source: "/projects/:slug", destination: "/#ergo", permanent: true },
+      { source: "/about", destination: "/", permanent: true },
+      { source: "/partnerships", destination: "/", permanent: true },
+      { source: "/faq", destination: "/", permanent: true },
+      { source: "/insights", destination: "/", permanent: true },
+      { source: "/insights/:slug", destination: "/", permanent: true },
     ];
   },
   async rewrites() {
     return {
-      // beforeFiles so the static brand page shadows the app router's home page
+      // beforeFiles so the static brand pages shadow the app router's routes
       beforeFiles: [
-        {
-          source: "/",
-          destination: "/brand-site/index.html",
-        },
+        { source: "/", destination: "/brand-site/index.html" },
+        { source: "/privacy", destination: "/brand-site/privacy.html" },
+        { source: "/terms", destination: "/brand-site/terms.html" },
       ],
       afterFiles: [],
       fallback: [],

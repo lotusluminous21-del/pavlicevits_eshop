@@ -669,6 +669,50 @@ a.shop-details__value:hover {
   color: var(--ink);
 }
 
+/* ── legal subpages (privacy, terms) ───────────────────────── */
+.legal {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: clamp(8rem, 18vh, 11rem) var(--gutter) var(--space-section);
+}
+.legal .eyebrow {
+  margin-bottom: 1.8rem;
+}
+.legal__headline {
+  font-size: clamp(2.2rem, 5.4vw, 3.8rem);
+  line-height: 1.1;
+}
+.legal__updated {
+  margin-top: 1.6rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+.legal__section {
+  margin-top: 3.2rem;
+  border-top: 1px solid var(--hairline-soft);
+  padding-top: 2rem;
+}
+.legal__section h2 {
+  font-size: 0.78rem;
+  font-weight: 560;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+  margin-bottom: 0.9rem;
+}
+.legal__section p {
+  color: var(--ink-dim);
+  line-height: 1.75;
+}
+.legal__section a {
+  color: var(--teal-bright);
+  text-decoration: none;
+}
+.legal__section a:hover {
+  color: var(--ink);
+}
+
 /* ── footer ────────────────────────────────────────────────── */
 .site-footer {
   border-top: 1px solid var(--hairline-soft);
@@ -697,6 +741,14 @@ a.shop-details__value:hover {
   font-size: 0.75rem;
   letter-spacing: 0.05em;
   color: var(--ink-faint);
+}
+.site-footer__meta a {
+  color: var(--ink-faint);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+.site-footer__meta a:hover {
+  color: var(--teal-bright);
 }
 
 /* ── reveal defaults (JS toggles) ──────────────────────────── */
