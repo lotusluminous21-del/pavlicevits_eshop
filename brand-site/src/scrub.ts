@@ -13,6 +13,19 @@ const FRAME_COUNT = 161;
 const framePath = (i: number) =>
   `${import.meta.env.BASE_URL}media/hero/frame_${String(i + 1).padStart(4, '0')}.webp`;
 
+// The opening (drop → burst) is where the clip moves fastest and jumps
+// between frames, so it loads first and gets a larger share of the
+// scroll; every step is a crossfade between neighbours, never a hard cut.
+const OPENING_FRAMES = 30;
+const OPENING_SCROLL = 0.25;
+const BLEND_STEPS = 16;
+
+const OPENING_SHARE = OPENING_FRAMES / (FRAME_COUNT - 1);
+const scrollToFrames = (p: number) =>
+  p < OPENING_SCROLL
+    ? (p / OPENING_SCROLL) * OPENING_SHARE
+    : OPENING_SHARE + ((p - OPENING_SCROLL) / (1 - OPENING_SCROLL)) * (1 - OPENING_SHARE);
+
 export function initHeroScrub(reducedMotion: boolean): void {
   const canvas = document.getElementById('hero-canvas') as HTMLCanvasElement | null;
   if (!canvas) return;
@@ -34,25 +47,42 @@ export function initHeroScrub(reducedMotion: boolean): void {
     draw();
   };
 
-  const draw = () => {
-    const index = Math.min(FRAME_COUNT - 1, Math.max(0, Math.round(state.frame)));
-    // fall back to the nearest loaded frame so scrubbing never blanks
-    let img = frames[index];
-    if (!img) {
-      for (let d = 1; d < FRAME_COUNT && !img; d++) {
-        img = frames[index - d] ?? frames[index + d] ?? null;
-      }
-    }
-    if (!img || index === lastDrawn) return;
-    lastDrawn = index;
-
+  const paint = (img: HTMLImageElement, alpha: number) => {
     const cw = canvas.width;
     const ch = canvas.height;
     const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight);
     const dw = img.naturalWidth * scale;
     const dh = img.naturalHeight * scale;
-    ctx.clearRect(0, 0, cw, ch);
+    ctx.globalAlpha = alpha;
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+    ctx.globalAlpha = 1;
+  };
+
+  const draw = () => {
+    const pos = Math.min(FRAME_COUNT - 1, Math.max(0, state.frame));
+    const key = Math.round(pos * BLEND_STEPS);
+    if (key === lastDrawn) return;
+
+    const base = Math.floor(pos);
+    const mix = pos - base;
+    let from = frames[base];
+    let to = mix > 0 ? frames[Math.min(FRAME_COUNT - 1, base + 1)] : null;
+    if (!from || (mix > 0 && !to)) {
+      // a neighbour is still loading: show the nearest loaded frame so
+      // scrubbing never blanks, unblended until the pair arrives
+      const index = Math.round(pos);
+      from = frames[index];
+      for (let d = 1; d < FRAME_COUNT && !from; d++) {
+        from = frames[index - d] ?? frames[index + d] ?? null;
+      }
+      to = null;
+    }
+    if (!from) return;
+    lastDrawn = key;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    paint(from, 1);
+    if (to) paint(to, mix);
   };
 
   const loadFrame = (i: number) =>
@@ -79,10 +109,12 @@ export function initHeroScrub(reducedMotion: boolean): void {
     return;
   }
 
-  // first frame immediately, the rest in coarse-to-fine passes so
-  // early scrubbing has something to show across the whole range
+  // the opening in order first (it is what the first scroll shows), then
+  // the rest in coarse-to-fine passes so early scrubbing has something to
+  // show across the whole range
   loadFrame(0).then(draw);
   const order: number[] = [];
+  for (let i = 0; i < Math.min(OPENING_FRAMES, FRAME_COUNT); i++) order.push(i);
   for (const step of [8, 4, 2, 1]) {
     for (let i = 0; i < FRAME_COUNT; i += step) {
       if (!order.includes(i)) order.push(i);
@@ -103,7 +135,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
 
   gsap.to(state, {
     frame: FRAME_COUNT - 1,
-    ease: 'none',
+    ease: scrollToFrames,
     scrollTrigger: {
       trigger: '#hero',
       start: 'top top',
