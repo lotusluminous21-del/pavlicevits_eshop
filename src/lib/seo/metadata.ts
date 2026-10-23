@@ -21,15 +21,15 @@ interface MetadataProps {
  * Constructs a Next.js Metadata object with sensible defaults
  */
 export function constructMetadata({
-    title = 'Your E-Shop Template',
-    description = 'A premium e-commerce template built with Next.js and Shopify.',
-    image = '/og-image.jpg',
+    title = 'PAVLICEVITS COLORS',
+    description = 'PAVLICEVITS COLORS — Εξειδικευμένα χρώματα στην Καλαμαριά, Θεσσαλονίκη από το 1990. Αρχιτεκτονικά, φανοποιία, ναυτιλιακά, ειδικές εφαρμογές. Επίσημος συνεργάτης Pellachrom.',
+    image = '/brand-site/og-image.jpg',
     noIndex = false,
 }: MetadataProps = {}): Metadata {
     return {
         title: {
             default: title,
-            template: `%s | ${env.NEXT_PUBLIC_SITE_NAME || 'E-Shop'}`,
+            template: `%s | ${env.NEXT_PUBLIC_SITE_NAME || 'PAVLICEVITS COLORS'}`,
         },
         description,
         openGraph: {
@@ -41,14 +41,13 @@ export function constructMetadata({
                 },
             ],
             type: 'website',
-            siteName: env.NEXT_PUBLIC_SITE_NAME || 'E-Shop',
+            siteName: env.NEXT_PUBLIC_SITE_NAME || 'PAVLICEVITS COLORS',
         },
         twitter: {
             card: 'summary_large_image',
             title,
             description,
             images: [image],
-            creator: '@yourhandle', // Configurable
         },
         ...(noIndex && {
             robots: {

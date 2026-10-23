@@ -1,61 +1,76 @@
-import Link from "next/link";
+/* eslint-disable @next/next/no-html-link-for-pages -- "/" is the static one-pager behind a rewrite; client-side <Link> would fetch an app route that isn't there */
+import type { Metadata } from "next";
+import { Inter, Noto_Serif_Display } from "next/font/google";
 import { useTranslations } from "next-intl";
-import { ArrowRight } from "lucide-react";
 
-import { EyebrowChip } from "@/components/brand/EyebrowChip";
-import { MixedHeadline } from "@/components/brand/sections/MixedHeadline";
-import { MonadFrame } from "@/components/brand/MonadFrame";
-import { SiteHeader } from "@/components/brand/SiteHeader";
-import { SiteFooter } from "@/components/brand/SiteFooter";
+import styles from "./not-found.module.css";
 
 /**
- * Global 404. Lives at the root (outside route groups) so any
- * un-matched path resolves through it. Mirrors the brand layout
- * structure manually because root-level not-found pages bypass the
- * `(brand)` layout.
+ * Global 404, in the brand one-pager's design: dark canvas, the site's own
+ * header and footer, the heavy + light-italic headline, and the hero film's
+ * first frame (a lone drop at the water's surface) behind it. Lives at the
+ * root so every unmatched path resolves here; plain <a> links because "/" is
+ * served by a rewrite to the static one-pager, not an app route.
  */
+
+const sans = Inter({ subsets: ["latin", "greek"], display: "swap", variable: "--nf-sans" });
+const serif = Noto_Serif_Display({
+  subsets: ["latin", "greek"],
+  style: ["italic"],
+  display: "swap",
+  variable: "--nf-serif",
+});
+
+// Next.js already sends noindex for 404 responses
+export const metadata: Metadata = {
+  title: { absolute: "Η σελίδα δεν βρέθηκε — PAVLICEVITS COLORS" },
+};
+
 export default function NotFound() {
   const t = useTranslations("errors.notFound");
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <SiteHeader />
-      <main className="flex-1">
-        <section className="relative overflow-hidden px-6 pt-20 pb-32 lg:px-8 lg:pt-28">
-          <div className="mx-auto grid w-full max-w-7xl gap-12 md:grid-cols-12 md:items-center md:gap-10">
-            <div className="md:col-span-7">
-              <EyebrowChip tone="primary">{t("eyebrow")}</EyebrowChip>
-              <MixedHeadline
-                heavy={t("headlineHeavy")}
-                light={t("headlineLight")}
-                size="page"
-                as="h1"
-                className="mt-6"
-              />
-              <p className="mt-7 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
-                {t("lead")}
-              </p>
-              <Link
-                href="/"
-                className="group mt-8 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-medium text-primary-foreground shadow-[0_0_0_1px_hsl(var(--primary)/0.4)] transition-all duration-200 hover:-translate-y-px hover:shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.6)]"
-              >
-                {t("cta")}
-                <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-              </Link>
-            </div>
-            <div className="md:col-span-5">
-              <div className="mx-auto w-full max-w-[360px]">
-                <MonadFrame
-                  asset="propositionA"
-                  width={1024}
-                  height={1024}
-                  maxDisplayWidth={360}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+    <div className={`${styles.page} ${sans.variable} ${serif.variable}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className={styles.backdrop} src="/brand-site/media/hero-poster.webp" alt="" aria-hidden="true" />
+      <div className={styles.shade} aria-hidden="true" />
+
+      <header className={styles.header}>
+        <a className={styles.brand} href="/" aria-label="PAVLICEVITS COLORS — αρχική σελίδα">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className={styles.mark} src="/brand-site/brand/logo-mark.svg" alt="" aria-hidden="true" />
+          <span className={styles.name}>PAVLICEVITS</span>
+          <span className={styles.colors}>COLORS</span>
+        </a>
+        <a className={styles.cta} href="/#epikoinonia">
+          Μιλήστε μας
+        </a>
+      </header>
+
+      <main className={styles.main}>
+        <p className={styles.eyebrow}>{t("eyebrow")}</p>
+        <h1 className={styles.headline}>
+          <span className={styles.heavy}>{t("headlineHeavy")}</span>
+          <span className={styles.light}>{t("headlineLight")}</span>
+        </h1>
+        <p className={styles.lead}>{t("lead")}</p>
+        <a className={styles.button} href="/">
+          {t("cta")}
+          <span aria-hidden="true">→</span>
+        </a>
       </main>
-      <SiteFooter />
+
+      <footer className={styles.footer}>
+        <p className={styles.slogan}>Making Your Life Colorful.</p>
+        <p className={styles.meta}>
+          <span>PAVLICEVITS COLORS</span>
+          <span aria-hidden="true">·</span>
+          <span>Καλαμαριά, Θεσσαλονίκη</span>
+          <span aria-hidden="true">·</span>
+          <a href="/privacy">Πολιτική Απορρήτου</a>
+          <span aria-hidden="true">·</span>
+          <a href="/terms">Όροι Χρήσης</a>
+        </p>
+      </footer>
     </div>
   );
 }
