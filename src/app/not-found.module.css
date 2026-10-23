@@ -43,12 +43,16 @@
   background: linear-gradient(180deg, rgba(10, 14, 26, 0.15) 0%, rgba(10, 14, 26, 0.55) 38%, var(--bg) 78%);
 }
 
+/* a solid bar, as on the one-pager */
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: max(1.1rem, env(safe-area-inset-top, 0px)) var(--gutter) 1.1rem;
+  min-height: 4.5rem;
+  padding: env(safe-area-inset-top, 0px) var(--gutter) 0;
+  background: var(--bg);
+  border-bottom: 1px solid rgba(242, 246, 248, 0.08);
 }
 
 .brand {
@@ -56,24 +60,45 @@
   align-items: center;
   gap: 0.6em;
   font-size: 0.88rem;
-  letter-spacing: 0.14em;
   text-decoration: none;
   color: inherit;
 }
 
+/* the roundel (the seal's small form) at 2.1 × the wordmark's cap height,
+   and the logotype in the headline voice, as in the site header */
 .mark {
-  width: 26px;
-  height: auto;
+  width: 1.53em;
+  height: 1.53em;
   flex-shrink: 0;
 }
 
+.word {
+  display: flex;
+  align-items: baseline;
+  gap: 0.33em;
+}
+
+.emblem {
+  display: block;
+  width: clamp(7rem, 5rem + 6vw, 9rem);
+  height: auto;
+  margin: 0 auto 1.8rem;
+  filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.45));
+}
+
 .name {
-  font-weight: 740;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   color: var(--ink);
 }
 
 .colors {
-  font-weight: 340;
+  font-family: var(--nf-serif), Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.3em;
+  line-height: 1;
+  letter-spacing: 0.005em;
   color: var(--teal-bright);
 }
 

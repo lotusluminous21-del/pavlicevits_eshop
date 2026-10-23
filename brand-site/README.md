@@ -53,17 +53,34 @@ work/project `58b1bd61`, shop `1c735fd4` (first take `e4ec075b`).
 
 ## Brand assets
 
-The production mark is `public/brand/logo-mark.svg` — the "strata" mark:
-three horizontal layers of liquid paint (bright cyan top coat, petrol mid,
-pale base), generated as vector, background removed and viewBox cropped to
-the artwork. The header and footer reference it via `<img>`, so swapping
-the mark is a one-file change; `public/favicon.svg` embeds the same paths
-inside a dark rounded tile. Wordmark text is always set in type, never as
-part of the image.
+The logo is the **heritage seal** (concept F of the 2026 logo exploration in
+`../design-pack/logo-exploration/`, chosen by the client): a heavy outer ring,
+a hairline ring and the inner circle; PAVLICEVITS COLORS on the upper arc,
+SINCE 1990 on the lower one, a drop at each end of the horizontal; at its
+centre the P whose counter is the hero film's drop, leaning 45° into the
+corner where the bowl meets the stem. Below about 32 px the P stands alone.
 
-`logo-lockup.png/.webp` and `logo-mark.png/.webp` are the earlier
-AI-generated raster exploration (Higgsfield job `a248a4ba`, 2026-07-16),
-kept for reference only.
+Every file is generated from geometry and the site's own Inter (ring text
+outlined, kerned, laid on the arcs), so nothing drifts:
+
+```sh
+python scripts/brand-marks.py     # needs fontTools + brotli, Pillow, Chrome
+```
+
+| Output | Use |
+|---|---|
+| `public/brand/emblem.svg`, `emblem-light.svg` | the seal on dark / light grounds (footer, 404, print) |
+| `public/brand/mark.svg` | the P, cropped to its ink (site header, privacy, terms) |
+| `public/brand/lockup.svg`, `lockup-light.svg` | P + PAVLICEVITS COLORS on one line, set like the site header |
+| `index.html` (between the `emblem:` markers) | the inline seal the intro draws and the hero shows |
+| `public/favicon.svg`, `../src/app/favicon.ico` | the P, optically centred; the SVG follows light/dark tabs |
+| `public/apple-touch-icon.png`, `public/brand/emblem-512.png` | home-screen icon; the JSON-LD logo |
+| `public/og-image.jpg` | share card: the seal over the bloom (1200 × 630) |
+| `../public/svg/pavlicevits_logo.svg`, `_mark.svg` | the parked e-shop's header lockup and chat badge |
+
+Colours: rings and text `#F2F6F8`, P and drops `#5BC5DB` on dark; `#0A0E1A`
+and `#0F4C5C` on light. Lockups follow the presenter's rule: the P at 1.65 ×
+the wordmark's cap height, centred on the cap band, 0.9 cap heights from it.
 
 ## Deployment
 
@@ -76,7 +93,7 @@ To refresh after changes here:
 npm run build:staging
 ```
 
-then commit and push (`staging` → verify → merge to `main`).
+then commit and push to `main` (production rolls out in about 8 minutes).
 
 ## SEO / GEO
 
@@ -86,7 +103,7 @@ then commit and push (`staging` → verify → merge to `main`).
   custom domain is connected**.
 - `../public/llms.txt` is the AI-crawler handshake; `../src/app/robots.ts`
   explicitly allows GPTBot, ClaudeBot, PerplexityBot, etc.
-- OG image: `public/og-image.jpg` (1200×630, from the hero reference).
+- OG image: `public/og-image.jpg` (1200×630, the seal over the bloom; `scripts/brand-marks.py`).
 - Strategy source: `design-pack/06_AI_SEARCH_STRATEGY.md`.
 
 ## Before go-live

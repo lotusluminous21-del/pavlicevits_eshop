@@ -30,6 +30,9 @@
   --hero-h: clamp(2.15rem, 1.2rem + 3.3vw, 3.9rem);
   /* the header is a solid bar; the hero film tucks its top rows under it */
   --header-h: 4.5rem;
+  /* the seal in the hero and the intro (same size, so the intro hands over
+     by moving it, not scaling it); its ring text stays above ~7 px cap height */
+  --emblem-d: clamp(10.5rem, 6.2rem + 6.6vw, 13rem);
 }
 
 * {
@@ -189,23 +192,52 @@ body {
   align-items: center;
   gap: 0.6em;
   font-size: 0.88rem;
-  letter-spacing: 0.14em;
 }
+/* The roundel, the seal's small form (a bare P before PAVLICEVITS would read
+   "PPAVLICEVITS"): 2.1 × the wordmark's cap height (Inter caps 0.727 em),
+   centred on the cap band. Inline in index.html, an <img> on the subpages. */
 .site-header__mark {
-  width: 26px;
-  height: auto;
+  width: 1.53em;
+  height: 1.53em;
   flex-shrink: 0;
 }
+.roundel {
+  --k: var(--ink);
+  --m: var(--teal-bright);
+  display: block;
+  overflow: visible;
+}
+/* drawn from 12 o'clock when it drops into the header (dock.ts) */
+.roundel__ring {
+  fill: none;
+  stroke: var(--k);
+  stroke-dasharray: 100;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  transform: rotate(-90deg);
+}
+.roundel__p {
+  fill: var(--m);
+}
+/* the logotype in the site's headline voice: heavy caps, then a light
+   serif italic on the same baseline */
 .site-header__word {
   display: flex;
-  gap: 0.6em;
+  align-items: baseline;
+  gap: 0.33em;
 }
 .site-header__name {
-  font-weight: 740;
+  font-weight: 800;
+  letter-spacing: 0.06em;
   color: var(--ink);
 }
 .site-header__colors {
-  font-weight: 340;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 300;
+  font-size: 1.3em;
+  line-height: 1;
+  letter-spacing: 0.005em;
   color: var(--teal-bright);
 }
 .site-header__cta {
@@ -270,62 +302,46 @@ body {
 .hero__meta {
   will-change: transform, opacity;
 }
-/* The signature. In the first view the mark is the only one on screen: the
-   header carries just the wordmark until the mark docks into it on scroll
-   (dock.ts). It stands on a soft petrol light, the hero halo of the visual
-   direction. Swap logo-mark-mono.svg when the new mark is chosen. */
-/* --halo: docking fades the light and ring (dock.ts); --lit: the intro
-   brings them up when the mark lands (intro.ts). The ring and the light
-   centre on the mark's optical centre, halfway between its box centre and
-   its ink centroid (53.8 % down), so the mark sits visually centred. */
+/* The signature: the heritage seal (inline SVG from scripts/brand-marks.py,
+   coloured by --k / --m in index.html). In the first view it is the only mark
+   on screen: the header carries just the wordmark until, on scroll, the seal
+   docks into it, rings and text falling away so its centre P lands on the
+   header's P (dock.ts). It stands on a soft petrol light, the hero halo of the
+   visual direction, which shows through the seal's open centre.
+   --halo / --ring: docking fades the light, then the rings and text;
+   --lit: the intro brings the light up when the seal lands (intro.ts). */
 .hero__sign {
-  --mark-h: clamp(4.25rem, 2.6rem + 4.2vw, 6.6rem);
   --halo: 1;
+  --ring: 1;
   --lit: 1;
   position: relative;
+  margin: 0 auto calc(var(--hero-h) * 0.6);
   /* its own layer: docking moves and scales it every frame without
-     repainting the drop shadow, light and ring */
+     repainting the shadow and the light */
   will-change: transform, opacity;
-  margin: calc(var(--mark-h) * 0.46) auto calc(var(--mark-h) * 0.46 + var(--hero-h) * 0.36);
 }
 .hero__sign::before {
   content: "";
   position: absolute;
   left: 50%;
-  top: 51.9%;
-  width: calc(var(--mark-h) * 3.4);
+  top: 50%;
+  width: calc(var(--emblem-d) * 2.3);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
-  background: radial-gradient(closest-side, rgba(91, 197, 219, 0.26), rgba(43, 168, 194, 0.1) 46%, rgba(15, 76, 92, 0) 100%);
+  background: radial-gradient(closest-side, rgba(91, 197, 219, 0.2), rgba(43, 168, 194, 0.08) 48%, rgba(15, 76, 92, 0) 100%);
   opacity: calc(var(--halo) * var(--lit));
   pointer-events: none;
 }
-.hero__ring {
-  position: absolute;
-  left: 50%;
-  top: 51.9%;
-  width: calc(var(--mark-h) * 1.86);
-  height: calc(var(--mark-h) * 1.86);
-  transform: translate(-50%, -50%) rotate(-90deg);
-  overflow: visible;
-  opacity: var(--halo);
-  pointer-events: none;
-}
-/* stroke in viewBox units (≈ 1 px at desktop size): non-scaling-stroke would
-   make the dashes screen pixels and break the pathLength-based draw-in */
-.hero__ring circle {
-  fill: none;
-  stroke: rgba(91, 197, 219, 0.36);
-  stroke-width: 0.6;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 0;
-}
-.hero__mark {
+.hero__emblem {
   position: relative;
-  display: block;
-  width: auto;
-  height: var(--mark-h);
-  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.5));
+  width: var(--emblem-d);
+  height: var(--emblem-d);
+  filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.45));
+}
+.hero__emblem .emblem__rings,
+.hero__emblem .emblem__text,
+.hero__emblem .emblem__drops {
+  opacity: var(--ring);
 }
 .hero__ctas {
   margin-top: calc(var(--hero-h) * 0.62);
@@ -843,11 +859,11 @@ a.shop-details__value:hover {
   padding: clamp(4rem, 9vh, 6.5rem) var(--gutter) 3rem;
   text-align: center;
 }
-.site-footer__mark {
+.site-footer__emblem {
   display: block;
-  width: 52px;
-  height: auto;
-  margin: 0 auto 1.6rem;
+  width: 8.5rem;
+  height: 8.5rem;
+  margin: 0 auto 1.8rem;
 }
 .site-footer__slogan {
   font-family: var(--font-serif);

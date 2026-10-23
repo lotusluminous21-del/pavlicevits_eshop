@@ -50,7 +50,7 @@ export default function StorefrontLayout({
                         {!isExpertPage && (
                             <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 md:px-10 pb-12 mt-24 border-t border-border pt-12">
                                 <Footer
-                                    logo={<img src="/svg/pavlicevits_logo.svg" alt="Pavlicevits" className="h-10 w-auto" />}
+                                    logo={<img src="/svg/pavlicevits_logo.svg" alt="Pavlicevits Colors" className="h-6 w-auto" />}
                                     companyName=""
                                     tagline="Θέτοντας τα πρότυπα στις βαφές υψηλής απόδοσης και στα αρχιτεκτονικά φινιρίσματα. Ακρίβεια σε κάθε στρώση."
                                     columns={footerColumns}

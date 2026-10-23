@@ -38,8 +38,8 @@ export function Header({ className }: HeaderProps) {
                     <Link href="/" className="flex items-center">
                         <img 
                             src="/svg/pavlicevits_logo.svg" 
-                            alt="Pavlicevits" 
-                            className="h-10 w-auto" 
+                            alt="Pavlicevits Colors" 
+                            className="h-6 w-auto" 
                         />
                     </Link>
 
@@ -112,8 +112,8 @@ export function Header({ className }: HeaderProps) {
                                     <SheetTitle className="text-left flex items-center">
                                         <img 
                                             src="/svg/pavlicevits_logo.svg" 
-                                            alt="Pavlicevits" 
-                                            className="h-10 w-auto" 
+                                            alt="Pavlicevits Colors" 
+                                            className="h-6 w-auto" 
                                         />
                                     </SheetTitle>
                                 </SheetHeader>

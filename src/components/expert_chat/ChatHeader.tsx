@@ -39,10 +39,10 @@ export function ChatHeader({ hasMessages, onReset, onOpenSidebar }: ChatHeaderPr
         {/* Logo */}
         <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-sm">
           <Image
-            src="/svg/pavlicevits_logo.svg"
+            src="/svg/pavlicevits_mark.svg"
             alt="Pavlicevits"
-            width={22}
-            height={22}
+            width={8}
+            height={18}
             className="brightness-0 invert"
           />
         </div>

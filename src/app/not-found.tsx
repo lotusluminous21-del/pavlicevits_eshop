@@ -37,9 +37,11 @@ export default function NotFound() {
       <header className={styles.header}>
         <a className={styles.brand} href="/" aria-label="PAVLICEVITS COLORS — αρχική σελίδα">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className={styles.mark} src="/brand-site/brand/logo-mark.svg" alt="" aria-hidden="true" />
-          <span className={styles.name}>PAVLICEVITS</span>
-          <span className={styles.colors}>COLORS</span>
+          <img className={styles.mark} src="/brand-site/brand/roundel.svg" alt="" aria-hidden="true" width={100} height={100} />
+          <span className={styles.word}>
+            <span className={styles.name}>PAVLICEVITS</span>
+            <span className={styles.colors}>Colors</span>
+          </span>
         </a>
         <a className={styles.cta} href="/#epikoinonia">
           Μιλήστε μας
@@ -47,6 +49,8 @@ export default function NotFound() {
       </header>
 
       <main className={styles.main}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className={styles.emblem} src="/brand-site/brand/emblem.svg" alt="" aria-hidden="true" width={100} height={100} />
         <p className={styles.eyebrow}>{t("eyebrow")}</p>
         <h1 className={styles.headline}>
           <span className={styles.heavy}>{t("headlineHeavy")}</span>

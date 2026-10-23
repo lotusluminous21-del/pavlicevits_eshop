@@ -462,11 +462,11 @@ export function initHeroScrub(reducedMotion: boolean): void {
     onUpdate: draw,
   });
 
-  // the copy recedes as the bloom takes over the frame (the mark docks
-  // into the header separately, see dock.ts)
+  // the copy sinks and fades with the drop as the bloom takes over the frame
+  // (the seal hands over to the header separately, see dock.ts)
   gsap.to('.hero__copy, .hero__meta', {
     opacity: 0,
-    y: -60,
+    y: 36,
     ease: 'none',
     scrollTrigger: {
       trigger: '#hero',

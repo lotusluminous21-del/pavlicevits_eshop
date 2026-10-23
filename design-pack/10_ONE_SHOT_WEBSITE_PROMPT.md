@@ -20,7 +20,7 @@
 > WEBSITE — scroll-scrub the hero bloom as a canvas frame sequence so scrolling makes the pigment bloom. Lenis smooth scroll, text reveals pinned to scroll position. GREEK-FIRST: all copy in Greek; only the brand name and the slogan stay in English. Use fonts with full Greek glyph support and verify Greek renders correctly.
 >
 > Sections, in order:
-> - HERO — eyebrow "ΑΠΟ ΤΟ 1990 · ΚΑΛΑΜΑΡΙΑ, ΘΕΣΣΑΛΟΝΙΚΗ"; mixed-weight headline "**Το σωστό χρώμα.** *Για δουλειά που αντέχει.*"; sub-line naming the four categories and the curated brands (Pellachrom, Vivechrom, Vechro, Kraft, Vitex — "επιλεγμένα, όχι απλώς στοιβαγμένα"); CTAs "Δείτε τα έργα μας" / "Φέρτε μας τη δουλειά σας".
+> - HERO — eyebrow "ΑΠΟ ΤΟ 1990 · ΚΑΛΑΜΑΡΙΑ, ΘΕΣΣΑΛΟΝΙΚΗ"; mixed-weight headline "**Το σωστό χρώμα.** *Για δουλειά που αντέχει.*"; sub-line naming the four categories and the curated brands (Pellachrom, Vivechrom, Vechro, Kraft, Vitex — "επιλεγμένα, όχι απλώς στοιβαγμένα"); CTAs "Δείτε τα έργα μας" / "Πώς θα θέλατε τη δουλειά σας;".
 > - IDENTITY STRIP — one full-width line: "Δεν πουλάμε κάθε χρώμα. Πουλάμε όσα κερδίζουν τη θέση τους στα ράφια μας."
 > - MATERIAL — pinned over clip 2: "**Αυτό που έχει μέσα το κουτί** *είναι το πραγματικό προϊόν.*" Sub: "Πυκνότητα πιγμέντων. Χημεία ρητινών. Αντοχή στο φως. Καλυπτικότητα."
 > - FOUR CATEGORIES — cards for Αρχιτεκτονικά / Φανοποιία / Ναυτιλιακά / Ειδικές εφαρμογές, each with two lines of sparse technical copy grounded in Northern Greece (Καλαμαριά apartments, Χαλκιδική hotel facades, Σάνη and Πόρτο Καρράς marinas, industrial floors and pools).
