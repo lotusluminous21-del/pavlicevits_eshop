@@ -255,6 +255,16 @@ body {
   margin-bottom: 2.2rem;
   background: rgba(10, 14, 26, 0.6);
 }
+/* The mark in one colour, sized from the headline: 1.4 × its cap height
+   (Inter caps are 0.727 em) — the same ratio the logo lockups use. Swap the
+   SVG when the new mark is chosen; the sizing rule stays. */
+.hero__mark {
+  display: block;
+  width: auto;
+  height: calc(clamp(2.6rem, 7.2vw, 5.4rem) * 0.727 * 1.4);
+  margin: 0 auto calc(clamp(2.6rem, 7.2vw, 5.4rem) * 0.42);
+  filter: drop-shadow(0 2px 18px rgba(0, 0, 0, 0.45));
+}
 .hero__sub {
   margin: 2rem auto 0;
   max-width: var(--measure);
