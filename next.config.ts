@@ -61,6 +61,9 @@ const nextConfig: NextConfig = {
         { source: "/", destination: "/brand-site/index.html" },
         { source: "/privacy", destination: "/brand-site/privacy.html" },
         { source: "/terms", destination: "/brand-site/terms.html" },
+        // Unlisted client reviews (e.g. the logo presenter): static folders
+        // under public/review/<slug>/, reachable only by their link
+        { source: "/review/:slug", destination: "/review/:slug/index.html" },
       ],
       afterFiles: [],
       fallback: [],
@@ -96,6 +99,16 @@ const nextConfig: NextConfig = {
         source,
         headers: [{ key: "X-Robots-Tag", value: "noindex, follow" }],
       })),
+      // Client review pages are never indexed, followed, cached or previewed.
+      // They stay out of robots.txt and the sitemap on purpose: listing them
+      // there would publish the links.
+      {
+        source: "/review/:path*",
+        headers: [
+          { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive, nosnippet, noimageindex" },
+          { key: "Referrer-Policy", value: "no-referrer" },
+        ],
+      },
     ];
   },
 };
