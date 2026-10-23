@@ -99,6 +99,17 @@ const nextConfig: NextConfig = {
         source,
         headers: [{ key: "X-Robots-Tag", value: "noindex, follow" }],
       })),
+      // Brand one-pager: the bundle's file names are content-hashed; the
+      // media (hero film packs ≈ 8–14 MB, clips) keep their names, so they
+      // revalidate daily and may be served stale meanwhile, CDN included.
+      {
+        source: "/brand-site/assets/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
+        source: "/brand-site/media/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }],
+      },
       // Client review pages are never indexed, followed, cached or previewed.
       // They stay out of robots.txt and the sitemap on purpose: listing them
       // there would publish the links.

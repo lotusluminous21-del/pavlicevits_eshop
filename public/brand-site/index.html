@@ -107,18 +107,63 @@
       ]
     }
     </script>
-    <script type="module" crossorigin src="/brand-site/assets/main-Yx52mG1M.js"></script>
-    <link rel="modulepreload" crossorigin href="/brand-site/assets/style-DNEQ1hSI.js">
-    <link rel="stylesheet" crossorigin href="/brand-site/assets/style-DVD8gjgR.css">
+    <!-- Intro: critical styles + state, inline so the canvas and mark paint before any script loads -->
+    <style>
+      html.intro-on, html.intro-on body { overflow: hidden; }
+      .intro { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #0a0e1a; animation: intro-failsafe 0.6s ease 11s forwards; }
+      .intro__box { display: flex; flex-direction: column; align-items: center; gap: 26px; }
+      .intro__mark { display: block; height: 76px; width: auto; overflow: visible; color: #f2f6f8; }
+      .intro__mark path { fill: currentColor; opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; transform: translateY(14%); clip-path: inset(0 100% 0 0); animation: intro-coat 0.95s cubic-bezier(0.65, 0, 0.35, 1) forwards; }
+      .intro__mark .b3 { animation-delay: 0.2s; }
+      .intro__mark .b2 { animation-delay: 0.44s; }
+      .intro__mark .b1 { animation-delay: 0.68s; }
+      .intro__line { width: 64px; height: 1px; background: rgba(242, 246, 248, 0.12); overflow: hidden; opacity: 0; animation: intro-in 0.6s ease 0.5s forwards; }
+      .intro__line i { display: block; height: 100%; background: #5bc5db; transform-origin: 0 50%; transform: scaleX(var(--p, 0)); transition: transform 0.45s ease; }
+      html.intro-quick .intro__mark path { animation: none; opacity: 1; transform: none; clip-path: none; }
+      html.intro-quick .intro__line { display: none; }
+      html.intro-on .site-header > *, html.intro-on .hero__mark, html.intro-on .hero__eyebrow, html.intro-on .hero__headline > span, html.intro-on .hero__sub, html.intro-on .hero__ctas, html.intro-on .hero__scroll-hint { opacity: 0; animation: intro-in 0.6s ease 11.2s forwards; }
+      html.intro-on .hero__sign { --lit: 0; animation: intro-lit 0.6s ease 11.2s forwards; }
+      html.intro-on .hero__ring circle { stroke-dashoffset: 100; animation: intro-ring 0.6s ease 11.2s forwards; }
+      @keyframes intro-coat { to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); } }
+      @keyframes intro-in { to { opacity: 1; } }
+      @keyframes intro-lit { to { --lit: 1; } }
+      @keyframes intro-ring { to { stroke-dashoffset: 0; } }
+      @keyframes intro-failsafe { to { opacity: 0; visibility: hidden; } }
+      @media (prefers-reduced-motion: reduce) { .intro__mark path { animation: none; opacity: 1; transform: none; clip-path: none; } }
+    </style>
+    <script>
+      (function () {
+        var d = document.documentElement;
+        d.classList.add('intro-on');
+        try {
+          if (sessionStorage.getItem('pv-intro-seen') === '1' || location.hash || matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('intro-quick');
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/brand-site/assets/main-CFmVjyTf.js"></script>
+    <link rel="modulepreload" crossorigin href="/brand-site/assets/style-DAK5Zjc2.js">
+    <link rel="stylesheet" crossorigin href="/brand-site/assets/style-Ct8AFsfR.css">
   </head>
   <body>
+    <div class="intro" id="intro" aria-hidden="true">
+      <div class="intro__box">
+        <svg class="intro__mark" viewBox="621 595 808 860" xmlns="http://www.w3.org/2000/svg">
+          <path class="b1" d="M1011.62 601.301C1016.49 600.678 1027.07 600.563 1032.02 600.756C1047.81 601.501 1063.32 605.217 1077.74 611.708C1126.11 633.158 1140.14 669.632 1174.16 706.027C1198.02 731.548 1228.77 750.075 1264.28 750.275C1313.66 750.554 1339.69 728.757 1371.71 695.242C1387.42 678.796 1407.72 657.395 1423.93 642.074L1423.7 859.412C1411.94 872.369 1396.1 886.639 1383.64 899.654C1370.06 913.117 1357.24 927.966 1342.8 940.469C1307.63 970.91 1258.76 977.585 1217.34 955.813C1189.27 941.052 1172.83 917.788 1153.89 893.562C1125.41 857.131 1085.97 830.987 1039.29 826.401C1035.61 825.848 1029.03 825.66 1025.25 825.715C971.833 826.5 934.474 848.744 900.786 889.166C888.882 903.45 876.158 920.233 863.393 932.803C839.707 956.128 810.572 969.722 776.997 968.623C727.85 967.014 705.258 940.312 673.893 908.23L626.451 859.592C627.165 788.36 626.895 715.571 626.45 644.316L674.88 693.824C707.036 726.647 737.761 755.057 786.859 750.27C904.579 738.795 889.416 620.935 1011.62 601.301Z"/>
+          <path class="b2" d="M1014.52 883.375C1031.6 881.638 1048.02 884.171 1064.35 890.294C1110.36 907.544 1130.41 953.79 1163.41 987.162C1212.39 1036.71 1287.68 1046.53 1345.42 1005.9C1360.77 995.105 1371.36 982.886 1384.01 969.765C1397.09 956.241 1410.24 942.79 1423.47 929.414L1423.72 1128.72L1365.35 1187.35C1354.33 1198.57 1343.85 1211.01 1331.77 1220.95C1311.02 1238.16 1284.24 1246.34 1257.42 1243.66C1159.89 1233.7 1165.39 1115.46 1039.24 1102.13L1034.25 1102.05C980.387 1101.23 940.14 1122.33 905.326 1163.1C891.562 1179.22 882.154 1194.58 866.531 1209.66C843.83 1231.56 814.277 1245.97 782.167 1244.54C731.346 1242.27 711.15 1214.88 679.341 1182.84C661.507 1165.18 643.953 1147.24 626.687 1129.03L626.542 930.253C646.665 949.261 676.534 984.008 696.322 999.751C725.781 1023.37 763.473 1034.19 800.974 1029.82C915.715 1015.94 911.042 895.82 1014.52 883.375Z"/>
+          <path class="b3" d="M1013.36 1160.33C1092.9 1152.89 1117.01 1210.95 1162.35 1260.66C1186.94 1287.61 1226.89 1306.26 1263.92 1306.25C1296.5 1306.24 1327.96 1294.33 1352.39 1272.77C1361.48 1264.79 1372.15 1252.75 1380.77 1243.77C1394.95 1228.97 1409.28 1214.33 1423.77 1199.84L1423.8 1290.54C1423.81 1336.69 1413.48 1373.35 1379.65 1406.85C1360.19 1425.96 1335.84 1439.33 1309.28 1445.5C1284.08 1451.27 1233.15 1449.02 1205.07 1449L1039.5 1449L857.472 1449.06C827.19 1449.08 766.862 1451.18 740.151 1445.01C713.752 1438.93 689.549 1425.66 670.22 1406.68C627.973 1364.86 626.787 1322.84 626.779 1268.25L626.752 1200.33C641.896 1215.39 656.929 1230.56 671.85 1245.84C681.399 1255.68 695.074 1270.91 705.653 1278.59C729.763 1296.09 756.619 1306.47 786.441 1306.33C806.617 1306.31 826.529 1301.75 844.705 1292.99C864.243 1283.72 884.19 1268.28 898.24 1251.91C934.249 1209.94 952.524 1168.83 1013.36 1160.33Z"/>
+        </svg>
+        <div class="intro__line"><i></i></div>
+      </div>
+    </div>
     <a class="skip-link" href="#epikoinonia">Μετάβαση στην επικοινωνία</a>
 
     <header class="site-header" id="site-header">
       <a class="site-header__brand" href="#top" aria-label="PAVLICEVITS COLORS — αρχή σελίδας">
-        <img class="site-header__mark" src="/brand-site/brand/logo-mark.svg" alt="" aria-hidden="true" />
-        <span class="site-header__name">PAVLICEVITS</span>
-        <span class="site-header__colors">COLORS</span>
+        <img class="site-header__mark" src="/brand-site/brand/logo-mark.svg" alt="" aria-hidden="true" width="808" height="860" />
+        <span class="site-header__word">
+          <span class="site-header__name">PAVLICEVITS</span>
+          <span class="site-header__colors">COLORS</span>
+        </span>
       </a>
       <a class="site-header__cta" href="#epikoinonia">Μιλήστε μας</a>
     </header>
@@ -129,22 +174,31 @@
         <div class="hero__stage">
           <canvas class="hero__canvas" id="hero-canvas" aria-hidden="true"></canvas>
           <div class="hero__glow" aria-hidden="true"></div>
+          <!-- centre: signature, headline, one action -->
           <div class="hero__content">
-            <img class="hero__mark" src="/brand-site/brand/logo-mark-mono.svg" alt="" aria-hidden="true" width="808" height="860" />
-            <p class="eyebrow hero__eyebrow">ΑΠΟ ΤΟ 1990 · ΚΑΛΑΜΑΡΙΑ, ΘΕΣΣΑΛΟΝΙΚΗ</p>
-            <h1 class="hero__headline">
-              <span class="beat-heavy">Το σωστό χρώμα.</span>
-              <span class="beat-light">Για δουλειά που αντέχει.</span>
-            </h1>
+            <div class="hero__sign">
+              <svg class="hero__ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="50" pathLength="100" /></svg>
+              <img class="hero__mark" src="/brand-site/brand/logo-mark-mono.svg" alt="" aria-hidden="true" width="808" height="860" />
+            </div>
+            <div class="hero__copy">
+              <h1 class="hero__headline">
+                <span class="beat-heavy">Το σωστό χρώμα.</span>
+                <span class="beat-light">Για δουλειά που αντέχει.</span>
+              </h1>
+              <div class="hero__ctas">
+                <a class="btn btn--solid" href="#ergo">Δείτε τα έργα μας</a>
+                <a class="hero__link" href="#epikoinonia">Φέρτε μας τη δουλειά σας <span aria-hidden="true">→</span></a>
+              </div>
+            </div>
+          </div>
+          <!-- frame corners: where and since when / what we carry -->
+          <div class="hero__meta">
+            <p class="hero__eyebrow">Από το 1990 · Καλαμαριά, Θεσσαλονίκη</p>
             <p class="hero__sub">
               Αρχιτεκτονικά, φανοποιία, ναυτιλιακά, ειδικές εφαρμογές.
               Pellachrom, Vivechrom, Vechro, Kraft, Vitex —
               <em>επιλεγμένα, όχι απλώς στοιβαγμένα.</em>
             </p>
-            <div class="hero__ctas">
-              <a class="btn btn--solid" href="#ergo">Δείτε τα έργα μας</a>
-              <a class="btn btn--ghost" href="#epikoinonia">Φέρτε μας τη δουλειά σας</a>
-            </div>
           </div>
           <div class="hero__scroll-hint" aria-hidden="true">
             <span class="hero__scroll-line"></span>
@@ -394,6 +448,6 @@
         <span class="tnum">© 2026</span>
       </p>
     </footer>
-
+
   </body>
 </html>

@@ -26,6 +26,10 @@
   --space-section: clamp(6rem, 14vh, 10rem);
   --gutter: clamp(1.25rem, 5vw, 4.5rem);
   --measure: 34rem;
+  /* hero headline size; the hero spacing is derived from it */
+  --hero-h: clamp(2.15rem, 1.2rem + 3.3vw, 3.9rem);
+  /* the header is a solid bar; the hero film tucks its top rows under it */
+  --header-h: 4.5rem;
 }
 
 * {
@@ -114,8 +118,8 @@ body {
 }
 
 .hero__headline {
-  font-size: clamp(2.6rem, 7.2vw, 5.4rem);
-  line-height: 1.06;
+  font-size: var(--hero-h);
+  line-height: 1.08;
 }
 
 .scene-headline,
@@ -125,9 +129,11 @@ body {
 }
 
 .scene-headline .beat-light,
-.section-headline .beat-light,
-.hero__headline .beat-light {
+.section-headline .beat-light {
   margin-top: 0.12em;
+}
+.hero__headline .beat-light {
+  margin-top: 0.04em;
 }
 
 /* ── buttons ───────────────────────────────────────────────── */
@@ -169,16 +175,13 @@ body {
   position: fixed;
   inset: 0 0 auto 0;
   z-index: 50;
+  height: var(--header-h);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.1rem var(--gutter);
-  transition: background-color 0.4s ease, border-color 0.4s ease;
-  border-bottom: 1px solid transparent;
-}
-.site-header.is-scrolled {
-  background: rgba(10, 14, 26, 0.92);
-  border-bottom-color: var(--hairline-soft);
+  padding: 0 var(--gutter);
+  background: var(--bg);
+  border-bottom: 1px solid var(--hairline-soft);
 }
 .site-header__brand {
   text-decoration: none;
@@ -192,6 +195,10 @@ body {
   width: 26px;
   height: auto;
   flex-shrink: 0;
+}
+.site-header__word {
+  display: flex;
+  gap: 0.6em;
 }
 .site-header__name {
   font-weight: 740;
@@ -231,6 +238,8 @@ body {
   overflow: hidden;
   display: grid;
   place-items: center;
+  /* centre the title card in the part of the frame below the header */
+  padding-top: var(--header-h);
 }
 .hero__canvas {
   position: absolute;
@@ -244,45 +253,150 @@ body {
   background: radial-gradient(ellipse 60% 45% at 50% 58%, rgba(15, 76, 92, 0.32), transparent 70%);
   pointer-events: none;
 }
+/* Hero: a title card. The centre holds only the signature, the headline and
+   one action; place and portfolio sit in the frame's bottom corners, on the
+   same gutters as the header, so the film keeps the middle of the screen. */
 .hero__content {
   position: relative;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 0 var(--gutter);
-  max-width: 62rem;
+  width: min(56rem, calc(100vw - 2 * var(--gutter)));
 }
-.hero__eyebrow {
-  margin-bottom: 2.2rem;
-  background: rgba(10, 14, 26, 0.6);
+/* the copy and the corners fade and lift on scroll: composited, not repainted */
+.hero__copy,
+.hero__meta {
+  will-change: transform, opacity;
 }
-/* The mark in one colour, sized from the headline: 1.4 × its cap height
-   (Inter caps are 0.727 em) — the same ratio the logo lockups use. Swap the
-   SVG when the new mark is chosen; the sizing rule stays. */
+/* The signature. In the first view the mark is the only one on screen: the
+   header carries just the wordmark until the mark docks into it on scroll
+   (dock.ts). It stands on a soft petrol light, the hero halo of the visual
+   direction. Swap logo-mark-mono.svg when the new mark is chosen. */
+/* --halo: docking fades the light and ring (dock.ts); --lit: the intro
+   brings them up when the mark lands (intro.ts). The ring and the light
+   centre on the mark's optical centre, halfway between its box centre and
+   its ink centroid (53.8 % down), so the mark sits visually centred. */
+.hero__sign {
+  --mark-h: clamp(4.25rem, 2.6rem + 4.2vw, 6.6rem);
+  --halo: 1;
+  --lit: 1;
+  position: relative;
+  /* its own layer: docking moves and scales it every frame without
+     repainting the drop shadow, light and ring */
+  will-change: transform, opacity;
+  margin: calc(var(--mark-h) * 0.46) auto calc(var(--mark-h) * 0.46 + var(--hero-h) * 0.36);
+}
+.hero__sign::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 51.9%;
+  width: calc(var(--mark-h) * 3.4);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgba(91, 197, 219, 0.26), rgba(43, 168, 194, 0.1) 46%, rgba(15, 76, 92, 0) 100%);
+  opacity: calc(var(--halo) * var(--lit));
+  pointer-events: none;
+}
+.hero__ring {
+  position: absolute;
+  left: 50%;
+  top: 51.9%;
+  width: calc(var(--mark-h) * 1.86);
+  height: calc(var(--mark-h) * 1.86);
+  transform: translate(-50%, -50%) rotate(-90deg);
+  overflow: visible;
+  opacity: var(--halo);
+  pointer-events: none;
+}
+/* stroke in viewBox units (≈ 1 px at desktop size): non-scaling-stroke would
+   make the dashes screen pixels and break the pathLength-based draw-in */
+.hero__ring circle {
+  fill: none;
+  stroke: rgba(91, 197, 219, 0.36);
+  stroke-width: 0.6;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+}
 .hero__mark {
+  position: relative;
   display: block;
   width: auto;
-  height: calc(clamp(2.6rem, 7.2vw, 5.4rem) * 0.727 * 1.4);
-  margin: 0 auto calc(clamp(2.6rem, 7.2vw, 5.4rem) * 0.42);
-  filter: drop-shadow(0 2px 18px rgba(0, 0, 0, 0.45));
+  height: var(--mark-h);
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.5));
+}
+.hero__ctas {
+  margin-top: calc(var(--hero-h) * 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.8rem;
+  flex-wrap: wrap;
+}
+.hero__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.9em 0.1em;
+  font-size: 0.92rem;
+  font-weight: 560;
+  letter-spacing: 0.01em;
+  color: var(--teal-bright);
+  text-decoration: none;
+  transition: color 0.25s ease;
+}
+.hero__link span {
+  transition: transform 0.25s ease;
+}
+.hero__link:hover {
+  color: var(--ink);
+}
+.hero__link:hover span {
+  transform: translateX(3px);
+}
+.hero__meta {
+  position: absolute;
+  z-index: 2;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: 2.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 2rem;
+}
+.hero__eyebrow {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  font-size: 0.7rem;
+  font-weight: 560;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal-bright);
+}
+.hero__eyebrow::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.6;
 }
 .hero__sub {
-  margin: 2rem auto 0;
-  max-width: var(--measure);
+  margin: 0;
+  max-width: 22rem;
+  text-align: right;
+  font-size: 0.84rem;
+  line-height: 1.6;
   color: var(--ink-dim);
-  font-size: clamp(0.98rem, 1.4vw, 1.08rem);
-  text-wrap: balance;
 }
 .hero__sub em {
   font-family: var(--font-serif);
   color: var(--teal-bright);
   font-weight: 380;
-}
-.hero__ctas {
-  margin-top: 2.6rem;
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
 }
 .hero__scroll-hint {
   position: absolute;
@@ -796,6 +910,9 @@ a.shop-details__value:hover {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --header-h: 3.75rem;
+  }
   .hero {
     height: 300vh;
   }
@@ -813,6 +930,31 @@ a.shop-details__value:hover {
   }
   .site-header__cta {
     display: none;
+  }
+  .hero__content {
+    margin-top: -6vh;
+  }
+  .hero__ctas {
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .hero__meta {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    bottom: 4.6rem;
+    text-align: center;
+  }
+  .hero__sub {
+    max-width: 30ch;
+    text-align: center;
+    font-size: 0.8rem;
+  }
+  .hero__scroll-hint {
+    bottom: 1rem;
+  }
+  .hero__scroll-line {
+    height: 2.4rem;
   }
 }
 

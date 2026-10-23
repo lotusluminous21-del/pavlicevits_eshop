@@ -3,6 +3,8 @@ import Lenis from 'lenis';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initHeroScrub } from './scrub';
+import { runIntro } from './intro';
+import { initDock } from './dock';
 import { initScenes } from './scenes';
 import { initLeadForm } from './form';
 
@@ -12,13 +14,15 @@ gsap.registerPlugin(ScrollTrigger);
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+let lenis: Lenis | null = null;
 if (!reducedMotion) {
-  const lenis = new Lenis({
+  lenis = new Lenis({
     duration: 1.15,
     smoothWheel: true,
   });
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((time) => lenis.raf(time * 1000));
+  const smooth = lenis;
+  smooth.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((time) => smooth.raf(time * 1000));
   gsap.ticker.lagSmoothing(0);
 
   if (import.meta.env.DEV) {
@@ -32,20 +36,15 @@ if (!reducedMotion) {
       const target = document.querySelector(a.getAttribute('href') ?? '');
       if (target) {
         e.preventDefault();
-        lenis.scrollTo(target as HTMLElement, { offset: 0 });
+        smooth.scrollTo(target as HTMLElement, { offset: 0 });
       }
     });
   });
 }
 
-// header state
-const header = document.getElementById('site-header');
-if (header) {
-  const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 40);
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
-}
-
+// the intro listens for the hero's loading events, so it starts first
+runIntro(lenis, reducedMotion);
 initHeroScrub(reducedMotion);
+if (!reducedMotion) initDock();
 initScenes(reducedMotion);
 initLeadForm();
