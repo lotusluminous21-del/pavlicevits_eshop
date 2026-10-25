@@ -994,6 +994,102 @@ a.shop-details__value:hover {
   }
 }
 
+/* Phones held sideways: too short for the stacked title card. The seal sits
+   beside the headline and the actions, the place line keeps its two corners
+   on a row of its own below (clear of the centred scroll hint), and the sizes
+   follow the visible height. After the phone block, so it wins where both
+   apply (the narrowest phones on their side). */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --header-h: 3.75rem;
+    --emblem-d: clamp(5rem, 32svh, 9rem);
+    --hero-h: min(clamp(2.15rem, 1.2rem + 3.3vw, 3.9rem), 8.5svh);
+  }
+  .hero__stage {
+    grid-template-rows: minmax(0, 1fr) auto;
+    row-gap: 0.75rem;
+    padding-bottom: 0.9rem;
+  }
+  .hero__content {
+    flex-direction: row;
+    justify-content: center;
+    gap: clamp(1.25rem, 4vw, 2.5rem);
+    text-align: left;
+  }
+  .hero__sign {
+    flex: none;
+    margin: 0;
+  }
+  /* the button and the link stay on one row beside the seal */
+  .hero__ctas {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 1.1rem;
+    margin-top: calc(var(--hero-h) * 0.55);
+  }
+  .hero__ctas .btn {
+    padding: 0.8em 1.5em;
+  }
+  .hero__link {
+    padding-block: 0.6rem;
+    font-size: 0.86rem;
+  }
+  .hero__meta {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: calc(100vw - 2 * var(--gutter));
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2rem;
+    text-align: left;
+  }
+  .hero__eyebrow {
+    flex: none;
+    white-space: nowrap;
+  }
+  .hero__sub {
+    flex: 0 1 17rem;
+    max-width: none;
+    text-align: right;
+    font-size: 0.76rem;
+    line-height: 1.5;
+  }
+  .hero__scroll-hint {
+    bottom: 0.9rem;
+  }
+  .hero__scroll-line {
+    height: 1.8rem;
+  }
+}
+/* the narrowest phones on their side: the corners need the bottom row's
+   middle, so the scroll hint gives way */
+@media (orientation: landscape) and (max-height: 500px) and (max-width: 640px) {
+  :root {
+    --emblem-d: clamp(5rem, 28svh, 9rem);
+    --hero-h: min(clamp(2.15rem, 1.2rem + 3.3vw, 3.9rem), 8svh);
+  }
+  /* if the link still runs out of room, it wraps close under the button */
+  .hero__ctas {
+    gap: 0.1rem 0.9rem;
+  }
+  .hero__ctas .btn {
+    padding: 0.75em 1.2em;
+  }
+  .hero__link {
+    padding-block: 0.4rem;
+    font-size: 0.8rem;
+  }
+  .hero__scroll-hint {
+    display: none;
+  }
+  .hero__sub {
+    font-size: 0.7rem;
+  }
+}
+
 /* ── reduced motion ────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   html {
