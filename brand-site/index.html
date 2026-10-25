@@ -115,6 +115,10 @@
       .emblem__rings circle { fill: none; stroke: var(--k); }
       .emblem__text { fill: var(--k); }
       .emblem__drops, .emblem__p { fill: var(--m); }
+      /* the scrollbar's room is kept from the first paint, so the page doesn't
+         narrow and nudge sideways when the intro's scroll lock lifts; while
+         the intro runs that strip shows the page's navy, like the overlay */
+      html { scrollbar-gutter: stable; background: #0a0e1a; }
       html.intro-on, html.intro-on body { overflow: hidden; }
       .intro { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: #0a0e1a; animation: intro-failsafe 0.6s ease 11s forwards; }
       .intro__box { display: flex; flex-direction: column; align-items: center; gap: 28px; }

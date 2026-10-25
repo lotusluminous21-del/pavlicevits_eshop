@@ -44,6 +44,9 @@
 html {
   color-scheme: dark;
   scroll-behavior: smooth;
+  /* keep the scrollbar's room even while the intro locks scrolling (also set
+     inline in index.html for the first paint): no sideways nudge on release */
+  scrollbar-gutter: stable;
 }
 
 html.lenis,
@@ -295,7 +298,7 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  width: min(56rem, calc(100vw - 2 * var(--gutter)));
+  width: min(56rem, calc(100% - 2 * var(--gutter)));
 }
 /* the copy and the corners fade and lift on scroll: composited, not repainted */
 .hero__copy,
@@ -975,7 +978,7 @@ a.shop-details__value:hover {
     left: auto;
     right: auto;
     bottom: auto;
-    width: calc(100vw - 2 * var(--gutter));
+    width: calc(100% - 2 * var(--gutter));
     flex-direction: column;
     align-items: center;
     gap: 0.7rem;
@@ -1039,7 +1042,7 @@ a.shop-details__value:hover {
     left: auto;
     right: auto;
     bottom: auto;
-    width: calc(100vw - 2 * var(--gutter));
+    width: calc(100% - 2 * var(--gutter));
     flex-direction: row;
     justify-content: space-between;
     align-items: flex-end;
