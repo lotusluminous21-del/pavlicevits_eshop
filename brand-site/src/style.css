@@ -947,30 +947,50 @@ a.shop-details__value:hover {
   .site-header__cta {
     display: none;
   }
-  .hero__content {
-    margin-top: -6vh;
+  /* The title card and the place line stack in flow, sharing the height above
+     the scroll hint, so on short phones they cannot run into each other. The
+     seal, the headline and the spacing follow the visible height (svh: with the
+     browser's bars shown), down to an iPhone SE in Safari; tall phones keep
+     the full sizes. */
+  :root {
+    --emblem-d: clamp(5rem, 40svh - 9rem, 10.5rem);
+    --hero-h: min(2.15rem, 5.6svh);
+    --hint-b: clamp(0.6rem, 1.6svh, 1rem);     /* the scroll hint: offset, line */
+    --hint-l: clamp(1.5rem, 4.5svh, 2.4rem);
+  }
+  .hero__stage {
+    grid-template-rows: minmax(0, 1fr) auto;
+    row-gap: clamp(0.75rem, 2.5svh, 1.25rem);
+    padding-bottom: calc(var(--hint-b) + var(--hint-l) + clamp(0.75rem, 2svh, 1rem));
   }
   .hero__ctas {
     flex-direction: column;
     gap: 0.2rem;
   }
+  .hero__link {
+    padding-block: clamp(0.55rem, 1.8svh, 0.83rem);
+  }
   .hero__meta {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    width: calc(100vw - 2 * var(--gutter));
     flex-direction: column;
     align-items: center;
     gap: 0.7rem;
-    bottom: 4.6rem;
     text-align: center;
   }
   .hero__sub {
     max-width: 30ch;
     text-align: center;
-    font-size: 0.8rem;
+    font-size: clamp(0.74rem, 2.1svh, 0.8rem);
   }
   .hero__scroll-hint {
-    bottom: 1rem;
+    bottom: var(--hint-b);
   }
   .hero__scroll-line {
-    height: 2.4rem;
+    height: var(--hint-l);
   }
 }
 
