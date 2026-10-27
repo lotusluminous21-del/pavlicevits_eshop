@@ -26,13 +26,16 @@ import { createSurface, type Picture } from './render';
  * Which full-size set is used is a quality ladder, set by what the device
  * shows it can do rather than by its screen or browser (a big screen on a
  * slow decoder is what stuttered). Every screen starts on its smallest set;
- * the first decodes are timed while the intro plays, and the largest set
- * the screen needs that decodes fast enough is loaded in its place before
- * the intro hands over. It keeps listening: a set that falls
- * behind, or dropped frames, step it down a rung (and it never climbs back
- * past that); headroom at rest steps it up. Below the bottom rung, proxies
- * stand in while moving. The canvas holds no more pixels than the set in
- * use, and the compositor scales it to the screen.
+ * the first decodes are timed while the intro plays, and the set one size
+ * below the largest that decodes fast enough is loaded before the intro
+ * hands over. Climbing later is seamless and dropping back mid-scroll is
+ * what shows, so it climbs rather than drops: after a smooth stretch of
+ * scrolling, the next size up downloads in the background and takes over
+ * once it is all in. Dropped frames step it back down (to the set it
+ * climbed from, whose frames it kept) and it never climbs past that again;
+ * a set that falls behind its decodes steps down the same way. Below the
+ * bottom rung, proxies stand in while moving. The canvas holds no more
+ * pixels than the set in use, and the compositor scales it to the screen.
  */
 const FRAME_COUNT = 273;
 // the drop → burst opening (frames 0–99) gets a larger share of the scroll
@@ -65,10 +68,16 @@ const FAST = 40;
 const SETTLE_MS = 140;
 // below this speed the scroll is all but resting
 const REST = 8;
-// a device that drops this many of the last 30 frames while scrubbing steps
-// down the ladder (from the bottom rung: proxies in motion, full size at rest)
+// a device that drops this many of the last WINDOW frames while scrubbing
+// steps down the ladder (from the bottom rung: proxies in motion, full size
+// at rest); a full WINDOW with none dropped is the smooth stretch a climb needs
 const SLOW_FRAME_MS = 30;
 const SLOW_FRAMES = 4;
+const WINDOW = 30;
+// a playhead that moves more than this between draws has jumped (an anchor
+// link, back to the top): the scrub catching up after it isn't judged
+const JUMP_FRAMES = 6;
+const JUMP_MS = 600;
 
 // The ladder. A set fits when its frames decode fast enough, across the
 // workers, to keep up with a brisk scrub (faster than that, proxies stand in
@@ -273,6 +282,9 @@ export function initHeroScrub(reducedMotion: boolean): void {
   let calibrated = false;
   let switchedAt = 0;
   let sinceSwitch = 0;
+  let jumpedAt = -Infinity;
+  // the downloaded frames of the sets it climbed from, so stepping back is instant
+  const kept = new Map<string, (Blob | null)[]>();
   // recent warm full-size decodes, ms per megapixel
   const decodeCost: number[] = [];
 
@@ -339,9 +351,10 @@ export function initHeroScrub(reducedMotion: boolean): void {
     // frame gaps between the draws that move the playhead (a repaint for a
     // decode that just landed mustn't hide a long frame)
     if (pos !== lastPos) {
-      if (lastDrawT && now - lastDrawT < 250 && !constrained && now - switchedAt > QUIET_MS) {
+      if (Math.abs(pos - lastPos) > JUMP_FRAMES) jumpedAt = now;
+      if (lastDrawT && now - lastDrawT < 250 && !constrained && now - switchedAt > QUIET_MS && now - jumpedAt > JUMP_MS) {
         gaps.push(now - lastDrawT);
-        if (gaps.length > 30) gaps.shift();
+        if (gaps.length > WINDOW) gaps.shift();
         if (gaps.filter((g) => g > SLOW_FRAME_MS).length >= SLOW_FRAMES) stepDown();
       }
       lastDrawT = now;
@@ -356,6 +369,8 @@ export function initHeroScrub(reducedMotion: boolean): void {
         speed = 0;
         schedule();
         if (lastKey === -1) requestDraw();
+        // a smooth stretch may have just ended: time to climb
+        review();
       }, SETTLE_MS);
     }
     lastPos = pos;
@@ -517,12 +532,19 @@ export function initHeroScrub(reducedMotion: boolean): void {
     return r;
   };
 
-  // after each warm full-size decode: pick, keep or change the set
+  // the set to start on: one size below the largest that fits
+  const firstPick = () => Math.max(0, best(UP_MARGIN) - 1);
+
+  // a full window of scrolling on this set without a dropped frame
+  const smooth = () => gaps.length >= WINDOW && !gaps.some((g) => g > SLOW_FRAME_MS);
+
+  // after each warm full-size decode, and when the scroll comes to rest:
+  // pick, keep or change the set
   const review = () => {
     if (!calibrated) {
       if (decodeCost.length < CALIBRATION) return;
       calibrated = true;
-      const r = best(UP_MARGIN);
+      const r = firstPick();
       if (r !== rung) switchTo(r);
       else maybeReady();
       return;
@@ -533,13 +555,24 @@ export function initHeroScrub(reducedMotion: boolean): void {
       while (r > 0 && !fits(ladder[r], 1)) r--;
       ceiling = r;
       switchTo(r);
-    } else if (speed < REST && rung < Math.min(ceiling, ladder.length - 1)) {
-      const r = best(UP_MARGIN);
-      if (r > rung) prepare(r);
+    } else if (
+      speed < REST &&
+      rung < Math.min(ceiling, ladder.length - 1) &&
+      smooth() &&
+      fits(ladder[rung + 1], UP_MARGIN)
+    ) {
+      // one size at a time, each earned by a smooth stretch on the one below
+      prepare(rung + 1);
     }
   };
 
+  // climbing keeps what the smaller set downloaded, to step back to at once
+  const keep = () => {
+    if (full) kept.set(full.tier.id, full.blobs);
+  };
+
   const switchTo = (r: number) => {
+    if (r > rung) keep();
     rung = r;
     loadFull(ladder[r]);
     fit();
@@ -594,11 +627,19 @@ export function initHeroScrub(reducedMotion: boolean): void {
   };
 
   // a switch that can't wait (the first pick, a step down, a new screen):
-  // the new set streams first frames first while the old one stands in
+  // the new set streams first frames first while the old one stands in,
+  // unless it is one it climbed from, whose frames are already here
   const loadFull = (t: Tier) => {
     cancelNext();
     const set = frameSet(t, fullCapacity(t));
+    const bytes = kept.get(t.id);
+    if (bytes) {
+      kept.delete(t.id);
+      set.blobs = bytes;
+      set.fetched = bytes.slice(0, READY_FRAMES).filter(Boolean).length;
+    }
     useFull(set);
+    if (bytes?.every(Boolean)) return;
     stream(set, 'high').catch(() => {
       // no film (network, or no AVIF): the poster still stands in
       if (set.live && !set.frames.size) showFallback();
@@ -622,6 +663,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
           set.live = false;
           return;
         }
+        keep();
         rung = k;
         useFull(set);
         fit();
@@ -702,7 +744,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
       if (turned) {
         // a rotation between portrait and landscape swaps both sets
         loadProxy(ladder[0] === PORTRAIT ? PROXY_PORTRAIT : PROXY);
-        rung = calibrated ? best(UP_MARGIN) : 0;
+        rung = calibrated ? firstPick() : 0;
         loadFull(ladder[rung]);
       } else if (rung > ladder.length - 1) {
         // a smaller screen needs less (a larger one may afford more, which
@@ -719,6 +761,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
     if (posterAsked) return;
     posterAsked = true;
     cancelNext();
+    kept.clear();
     for (const set of [full, prev, proxy]) release(set);
     full = prev = proxy = null;
     const img = new Image();
@@ -744,6 +787,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
       canvas: [canvas.width, canvas.height],
       decodeMsPerMp: median(decodeCost),
       next: next?.tier.id,
+      kept: [...kept.keys()],
       slowFrames: `${gaps.filter((g) => g > SLOW_FRAME_MS).length}/${gaps.length}`,
       cached: { full: full?.frames.size, prev: prev?.frames.size, proxy: proxy?.frames.size },
     });
