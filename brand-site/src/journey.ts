@@ -13,8 +13,10 @@ import { framesToScroll, scrollToFrames, setHeroPlaying } from './scrub';
  *   2. the rest of the way, quickly: it starts at the speed the film left
  *      off, gathers pace and eases to a stop on the target.
  *
- * Any wheel, touch or key scroll takes over at once (Lenis drops the
- * animation). Links from below the hero, or to above it, scroll as before.
+ * The film part plays from the reel the hero puts on the GPU while the intro
+ * runs (scrub.ts), so it has nothing to decode or upload as it goes. Any
+ * wheel, touch or key scroll takes over at once (Lenis drops the animation).
+ * Links from below the hero, or to above it, scroll as before.
  */
 const FILM_S = 2; // the whole film, top of the hero to its end
 // the rest of the way: by distance, within these bounds

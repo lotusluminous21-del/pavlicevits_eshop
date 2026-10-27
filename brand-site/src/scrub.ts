@@ -116,6 +116,18 @@ export const setHeroPlaying = (on: boolean) => {
   playing = on;
 };
 
+// The journey reel. A link journey (journey.ts) plays the whole film in two
+// seconds, ~136 frames a second: decoding and uploading them as it goes
+// stutters, worst on the first run after a load (fresh GPU memory). So while
+// the intro plays, every REEL_STEP-th frame is decoded at about REEL_PX and
+// put on the GPU once; a journey then only draws from it, blending
+// neighbours, with nothing to decode, upload or allocate.
+const REEL_STEP = 3;
+const REEL_PX = 960 * 540;
+const REEL_FRAMES = Array.from({ length: Math.ceil(FRAME_COUNT / REEL_STEP) }, (_, k) => k * REEL_STEP);
+if (REEL_FRAMES[REEL_FRAMES.length - 1] !== FRAME_COUNT - 1) REEL_FRAMES.push(FRAME_COUNT - 1);
+const REEL_DECODES = 2;
+
 // The intro waits on these: progress over the first frames, then "ready"
 const READY_FRAMES = 12;
 const announceProgress = (share: number) =>
@@ -225,9 +237,11 @@ const frameSet = (tier: Tier, capacity: number): FrameSet => ({
   live: true,
 });
 
+// GPU memory for the decoded full-size frames: ~250 MB at most, the reel
+// (~190 MB) on top (an integrated GPU shares it with everything else)
 const fullCapacity = (t: Tier) => {
   const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
-  return Math.max(8, Math.floor(((memory >= 8 ? 480 : 240) * 2 ** 20) / (t.w * t.h * 4)));
+  return Math.max(8, Math.floor(((memory >= 8 ? 256 : 160) * 2 ** 20) / (t.w * t.h * 4)));
 };
 
 const mp = (t: { w: number; h: number }) => (t.w * t.h) / 1e6;
@@ -246,11 +260,13 @@ export function initHeroScrub(reducedMotion: boolean): void {
       lost: () => {
         for (const set of [full, prev, proxy]) if (set) clearFrames(set);
         if (fallback) fallback.tex = null;
+        dropReel();
         lastKey = -1;
       },
       restored: () => {
         lastKey = -1;
         schedule();
+        buildReel();
         draw();
       },
     });
@@ -299,11 +315,29 @@ export function initHeroScrub(reducedMotion: boolean): void {
   const kept = new Map<string, (Blob | null)[]>();
   // recent warm full-size decodes, ms per megapixel
   const decodeCost: number[] = [];
+  // the journey reel: frame → picture on the GPU, and which came from proxies
+  const reel = new Map<number, Picture>();
+  const reelFromProxy = new Set<number>();
+  // frames that wouldn't decode: left out (the reel stays incomplete and a
+  // journey decodes as it goes instead)
+  const reelFailed = new Set<number>();
+  let reelGen = 0;
+  let reelBuilding = -1;
 
-  // ready once the first frames are in, the first one is decoded and the
-  // set to keep is picked, so the intro hands over to it
+  const reelReady = () => reel.size === REEL_FRAMES.length;
+
+  // ready once the first frames are in, the first one is decoded, the set to
+  // keep is picked and the journey reel is on the GPU, so the intro hands
+  // over to all of it (its own time cap still applies)
   const maybeReady = () => {
-    if (full?.frames.has(0) && full.fetched >= READY_FRAMES && (calibrated || ladder.length < 2)) announceReady();
+    if (
+      full?.frames.has(0) &&
+      full.fetched >= READY_FRAMES &&
+      (calibrated || ladder.length < 2) &&
+      (reelReady() || !decoders)
+    ) {
+      announceReady();
+    }
   };
 
   // where a frame lands: covering the area below the header, its cropped top
@@ -399,6 +433,17 @@ export function initHeroScrub(reducedMotion: boolean): void {
     if (sharp && speed >= FAST && !(surface.uploaded(sharp.a) && (!sharp.b || surface.uploaded(sharp.b)))) {
       sharp = null;
     }
+    // a journey plays from the reel, past the full-size frames already up
+    if (!sharp && playing && reelReady()) {
+      const k = Math.min(REEL_FRAMES.length - 1, Math.floor(pos / REEL_STEP));
+      const i0 = REEL_FRAMES[k];
+      const i1 = REEL_FRAMES[Math.min(REEL_FRAMES.length - 1, k + 1)];
+      const a = reel.get(i0) as Picture;
+      const m = i1 > i0 ? (pos - i0) / (i1 - i0) : 0;
+      surface.draw(a, m > 0 ? (reel.get(i1) as Picture) : null, m, cover(a.w, a.h));
+      lastKey = key;
+      return;
+    }
     const shown = sharp ?? (sharpOk ? pair(prev, base, mix) : null) ?? pair(proxy, base, mix) ?? nearest(pos);
     if (shown) {
       if (shown.set !== proxy && !(surface.uploaded(shown.a) && (!shown.b || surface.uploaded(shown.b)))) {
@@ -439,7 +484,9 @@ export function initHeroScrub(reducedMotion: boolean): void {
   };
 
   // decode around the playhead, nearest first, in the direction of travel
+  // (nothing while a journey plays from the reel)
   const schedule = () => {
+    if (playing && reelReady()) return;
     const base = Math.floor(lastPos);
     const fullWant = constrained && speed >= REST ? [] : [base, base + 1];
     if (full && (speed < (constrained ? REST : FAST) || (playing && !constrained))) {
@@ -561,6 +608,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
       const r = firstPick();
       if (r !== rung) switchTo(r);
       else maybeReady();
+      buildReel();
       return;
     }
     if (sinceSwitch < REVIEW_AFTER) return;
@@ -602,6 +650,69 @@ export function initHeroScrub(reducedMotion: boolean): void {
     if (!set) return;
     set.live = false;
     clearFrames(set);
+  };
+
+  // Build, finish or improve the journey reel, REEL_DECODES at a time: each
+  // frame from its full-size bytes at reel size when they are in, from its
+  // proxy until then (and again from the full-size bytes once they arrive)
+  const buildReel = () => {
+    if (!decoders || !full || !proxy || !calibrated || reelBuilding === reelGen) return;
+    const gen = (reelBuilding = reelGen);
+    const { w, h } = full.tier;
+    const rw = Math.min(w, Math.round(Math.sqrt((REEL_PX * w) / h)));
+    const size: ImageBitmapOptions = { resizeWidth: rw, resizeHeight: Math.round((rw * h) / w), resizeQuality: 'medium' };
+    const due = (i: number) =>
+      !reelFailed.has(i) &&
+      ((!reel.has(i) && !!proxy?.blobs[i]) || ((reelFromProxy.has(i) || !reel.has(i)) && !!full?.blobs[i]));
+    const todo = REEL_FRAMES.filter(due);
+    let busy = 0;
+    const step = () => {
+      if (gen !== reelGen) return;
+      // once the reel is whole, improving it waits for the scroll to rest
+      if (reelReady() && (speed >= REST || playing)) {
+        if (!busy) window.setTimeout(step, 250);
+        return;
+      }
+      while (busy < REEL_DECODES && todo.length) {
+        const i = todo.shift() as number;
+        const own = full?.blobs[i];
+        const blob = own ?? proxy?.blobs[i];
+        if (!blob) continue;
+        busy++;
+        (own ? decoders.full(own, size) : decoders.proxy(blob))
+          .then(({ bmp }) => {
+            if (gen !== reelGen) return bmp.close();
+            const pic: Picture = { w: bmp.width, h: bmp.height, src: bmp, tex: null };
+            surface.upload(pic);
+            const old = reel.get(i);
+            if (old) surface.release(old);
+            reel.set(i, pic);
+            if (own) reelFromProxy.delete(i);
+            else reelFromProxy.add(i);
+            maybeReady();
+          }, () => {
+            if (gen === reelGen) reelFailed.add(i);
+          })
+          .finally(() => {
+            busy--;
+            step();
+          });
+      }
+      if (!busy && !todo.length) {
+        reelBuilding = -1;
+        // bytes that arrived meanwhile: another pass
+        if (REEL_FRAMES.some(due)) buildReel();
+      }
+    };
+    step();
+  };
+
+  const dropReel = () => {
+    reelGen++;
+    for (const pic of reel.values()) surface.release(pic);
+    reel.clear();
+    reelFromProxy.clear();
+    reelFailed.clear();
   };
 
   const arrive = (set: FrameSet) => (i: number, blob: Blob) => {
@@ -653,8 +764,8 @@ export function initHeroScrub(reducedMotion: boolean): void {
       set.fetched = bytes.slice(0, READY_FRAMES).filter(Boolean).length;
     }
     useFull(set);
-    if (bytes?.every(Boolean)) return;
-    stream(set, 'high').catch(() => {
+    if (bytes?.every(Boolean)) return buildReel();
+    stream(set, 'high').then(buildReel, () => {
       // no film (network, or no AVIF): the poster still stands in
       if (set.live && !set.frames.size) showFallback();
     });
@@ -682,6 +793,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
         useFull(set);
         fit();
         requestDraw();
+        buildReel();
       },
       () => {
         if (next === set) next = null;
@@ -695,7 +807,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
     release(proxy);
     const set = frameSet(t, PROXY_CAPACITY);
     proxy = set;
-    stream(set, 'low').catch(() => undefined);
+    stream(set, 'low').then(buildReel, () => undefined);
   };
 
   // the screen in device px (capped), which picks the ladder
@@ -756,7 +868,9 @@ export function initHeroScrub(reducedMotion: boolean): void {
     ladder = next;
     if (full) {
       if (turned) {
-        // a rotation between portrait and landscape swaps both sets
+        // a rotation between portrait and landscape swaps both sets (and
+        // the reel, rebuilt as the new proxies come in)
+        dropReel();
         loadProxy(ladder[0] === PORTRAIT ? PROXY_PORTRAIT : PROXY);
         rung = calibrated ? firstPick() : 0;
         loadFull(ladder[rung]);
@@ -775,6 +889,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
     if (posterAsked) return;
     posterAsked = true;
     cancelNext();
+    dropReel();
     kept.clear();
     for (const set of [full, prev, proxy]) release(set);
     full = prev = proxy = null;
@@ -802,6 +917,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
       decodeMsPerMp: median(decodeCost),
       next: next?.tier.id,
       kept: [...kept.keys()],
+      reel: `${reel.size}/${REEL_FRAMES.length}${reelFromProxy.size ? ` (${reelFromProxy.size} from proxies)` : ''}`,
       slowFrames: `${gaps.filter((g) => g > SLOW_FRAME_MS).length}/${gaps.length}`,
       cached: { full: full?.frames.size, prev: prev?.frames.size, proxy: proxy?.frames.size },
     });

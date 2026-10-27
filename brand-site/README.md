@@ -10,7 +10,7 @@ Built from `design-pack/10_ONE_SHOT_WEBSITE_PROMPT.md`.
 
 - Vite + vanilla TypeScript
 - GSAP ScrollTrigger (pinned reveals, counters) + Lenis (smooth scroll)
-- Hero: Seedance 2.0 clip rebuilt as AVIF frame sets (deduped, RIFE-interpolated, Real-ESRGAN 4×), scrubbed on a `<canvas>`: decoded in workers (`src/decode.ts`), drawn with WebGL (`src/render.ts`, 2D canvas fallback), frame size picked by a quality ladder that times the device (`src/scrub.ts`)
+- Hero: Seedance 2.0 clip rebuilt as AVIF frame sets (deduped, RIFE-interpolated, Real-ESRGAN 4×), scrubbed on a `<canvas>`: decoded in workers (`src/decode.ts`), drawn with WebGL (`src/render.ts`, 2D canvas fallback), frame size picked by a quality ladder that times the device (`src/scrub.ts`); links followed from inside the hero play the film first, in 2 s, from a reel of frames put on the GPU while the intro runs (`src/journey.ts`)
 - Fonts: Inter Variable + Noto Serif Display Variable (both with full Greek glyph coverage), self-hosted via Fontsource
 
 ## Run
