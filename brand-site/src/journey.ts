@@ -5,19 +5,20 @@ import { framesToScroll, scrollToFrames, setHeroPlaying } from './scrub';
  * An in-page link followed from inside the hero, before the film has played
  * through (the hero's "see the work" / "how would you like it" and the
  * header's "talk to us"), plays the film first and then travels on. One
- * continuous motion in two parts:
+ * continuous motion in two parts, eased in and out with no jolt anywhere
+ * (speed and acceleration both change smoothly):
  *
- *   1. the film, from where it stands to its end, at a steady pace: easing
- *      in from rest, then the same number of frames every second (the
- *      opening, packed tighter into the scroll, gets its full time too);
- *   2. the rest of the way, quickly: it starts at the speed the film left
- *      off, gathers pace and eases to a stop on the target.
+ *   1. the film, from where it stands to its end, briskly: easing in from
+ *      rest, then the same number of frames every second (the opening,
+ *      packed tighter into the scroll, gets its full time too);
+ *   2. the rest of the way, quickly: from the speed the film left off, the
+ *      pace builds and then eases out to rest on the target.
  *
  * Any wheel, touch or key scroll takes over at once (Lenis drops the
  * animation). Links from below the hero, or to above it, scroll as before.
  */
-const FILM_S = 6; // the whole film, top of the hero to its end
-const RAMP_S = 0.7; // easing in from rest
+const FILM_S = 2.5; // the whole film, top of the hero to its end
+const RAMP_S = 0.15; // easing in from rest: snappy, the first frames run at once
 // the rest of the way: by distance, within these bounds
 const TRAVEL_S = { min: 1, max: 1.8, base: 0.8, pxPerS: 6000 };
 
@@ -43,8 +44,13 @@ export function playThroughHero(lenis: Lenis, target: HTMLElement): boolean {
   const f0 = scrollToFrames(p0);
   const t1 = Math.max(0.3, FILM_S * (1 - f0));
   const r = Math.min(RAMP_S / t1, 0.5);
-  // film played by time s (0..1): velocity ramps up over r, then holds
-  const played = (s: number) => (s < r ? (s * s) / (2 * r * (1 - r / 2)) : (s - r / 2) / (1 - r / 2));
+  // film played by time s (0..1): the speed eases up over r along a
+  // smoothstep (so the acceleration builds from nothing too), then holds
+  const played = (s: number) => {
+    if (s >= r) return (s - r / 2) / (1 - r / 2);
+    const x = s / r;
+    return (r * (x * x * x - (x * x * x * x) / 2)) / (1 - r / 2);
+  };
   const filmY = (t: number) => {
     const p = framesToScroll(f0 + (1 - f0) * played(t / t1));
     return y0 + ((heroEnd - y0) * (p - p0)) / (1 - p0 || 1);
@@ -52,13 +58,18 @@ export function playThroughHero(lenis: Lenis, target: HTMLElement): boolean {
   // the speed the film leaves off at, px/s
   const v0 = (filmY(t1) - filmY(t1 - 0.001)) / 0.001;
 
-  // 2. the rest: a cubic from v0 to rest (monotonic while v0 · t2 ≤ 3 · d2)
+  // 2. the rest: a quintic from v0 (and no acceleration, as the film leaves
+  // off) to rest (no speed, no acceleration) on the target; it only moves
+  // forward while v0 · t2 stays under ~2.5 · d2
   const d2 = yT - heroEnd;
   let t2 = clamp(TRAVEL_S.min, TRAVEL_S.base + d2 / TRAVEL_S.pxPerS, TRAVEL_S.max);
-  if (v0 * t2 > 3 * d2) t2 = (3 * d2) / v0;
+  if (v0 * t2 > 2.4 * d2) t2 = (2.4 * d2) / v0;
   const travelY = (t: number) => {
     const u = (t - t1) / t2;
-    return heroEnd + (u * u * u - 2 * u * u + u) * t2 * v0 + (3 * u * u - 2 * u * u * u) * d2;
+    const u3 = u * u * u;
+    const u4 = u3 * u;
+    const u5 = u4 * u;
+    return heroEnd + (u - 6 * u3 + 8 * u4 - 3 * u5) * t2 * v0 + (10 * u3 - 15 * u4 + 6 * u5) * d2;
   };
 
   const total = t1 + t2;

@@ -60,6 +60,8 @@ const MAX_CANVAS_PX = 3840 * 2160 * 1.1;
 const FULL_DECODES = Math.max(1, Math.min(2, (navigator.hardwareConcurrency || 4) - 2));
 const PROXY_DECODES = 2;
 const AHEAD = 10;
+// while the film plays itself: a decode's round trip on top of the decode
+const LEAD_MS = 20;
 const PROXY_AHEAD = 24;
 const PROXY_CAPACITY = 48;
 // scrub speed (frames/s) above which full-size frames are decoded only
@@ -395,7 +397,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
     const sharpOk = !constrained || speed < REST;
     let sharp = sharpOk ? pair(full, base, mix) : null;
     // at speed, the full pair only counts once it is on the GPU: two 4K
-    // uploads in one frame cost the frame (the pump sends one a frame)
+    // uploads in one frame cost the frame (the pump sends them up ahead)
     if (sharp && speed >= FAST && !(surface.uploaded(sharp.a) && (!sharp.b || surface.uploaded(sharp.b)))) {
       sharp = null;
     }
@@ -438,17 +440,35 @@ export function initHeroScrub(reducedMotion: boolean): void {
     }
   };
 
+  // how near a frame is: the way the playhead is heading before the way it came
+  const reach = (i: number) => Math.abs(i - lastPos) * ((i - lastPos) * dir < 0 ? 3 : 1);
+
+  // While the film plays itself it moves fast (about two frames a frame) on
+  // a known path: full-size frames are decoded where the playhead will be by
+  // the time they are done, not where it is (it would pass them first), and
+  // twice as far ahead; the ones it has passed are let go.
+  const playAhead = () => !!full && playing && !constrained;
+  const passed = (i: number) => (i - lastPos) * dir < -2;
+
   // decode around the playhead, nearest first, in the direction of travel
   const schedule = () => {
     const base = Math.floor(lastPos);
-    const fullWant = constrained && speed >= REST ? [] : [base, base + 1];
-    if (full && (speed < (constrained ? REST : FAST) || (playing && !constrained))) {
-      // never want more than the cache holds, or decodes evict each other
-      const ahead = Math.min(AHEAD, full.capacity - 4);
-      for (let d = 1; d <= ahead; d++) fullWant.push(base + 1 + d * dir);
-      fullWant.push(base - dir, base - 2 * dir);
+    if (full && playAhead()) {
+      const lead = Math.ceil((speed * (median(decodeCost) * mp(full.tier) + LEAD_MS)) / 1000);
+      const ahead = Math.min(AHEAD * 2, full.capacity - 4);
+      const want: number[] = [];
+      for (let d = lead; d <= lead + ahead; d++) want.push(base + d * dir);
+      request(full, want, FULL_DECODES);
+    } else {
+      const fullWant = constrained && speed >= REST ? [] : [base, base + 1];
+      if (full && speed < (constrained ? REST : FAST)) {
+        // never want more than the cache holds, or decodes evict each other
+        const ahead = Math.min(AHEAD, full.capacity - 4);
+        for (let d = 1; d <= ahead; d++) fullWant.push(base + 1 + d * dir);
+        fullWant.push(base - dir, base - 2 * dir);
+      }
+      request(full, fullWant, FULL_DECODES);
     }
-    request(full, fullWant, FULL_DECODES);
     const proxyWant: number[] = [];
     for (let d = 0; d <= PROXY_AHEAD; d++) proxyWant.push(base + d * dir);
     for (let d = 1; d <= 4; d++) proxyWant.push(base - d * dir);
@@ -456,8 +476,10 @@ export function initHeroScrub(reducedMotion: boolean): void {
   };
 
   // decoded frames go up to the GPU ahead of the playhead, so reaching them
-  // costs only the draw: a slice of each frame, and at most one full-size
-  // frame per frame between this and the draw (a 4K upload is several ms)
+  // costs only the draw: a slice of each frame. Where uploads are cheap (the
+  // workers hand over frames already on the GPU) several go up in it; where
+  // one is costly, just that one, and none on top of a full-size frame the
+  // draw already sent up this frame
   const pump = () => {
     pumpRequest = 0;
     const t0 = performance.now();
@@ -466,8 +488,6 @@ export function initHeroScrub(reducedMotion: boolean): void {
       if (!set) continue;
       for (const [i, pic] of set.frames) if (!surface.uploaded(pic)) due.push([i, pic, set === full]);
     }
-    // nearest first, the way the playhead is heading before the way it came
-    const reach = (i: number) => Math.abs(i - lastPos) * ((i - lastPos) * dir < 0 ? 3 : 1);
     due.sort((a, b) => reach(a[0]) - reach(b[0]));
     for (const [, pic, large] of due) {
       if (performance.now() - t0 > UPLOAD_SLICE_MS || (large && sentOn === gsap.ticker.frame)) {
@@ -475,7 +495,6 @@ export function initHeroScrub(reducedMotion: boolean): void {
         break;
       }
       surface.upload(pic);
-      if (large) sentOn = gsap.ticker.frame;
     }
     // a stand-in on screen may now have its own frame on the GPU
     if (due.length && lastKey === -1) requestDraw();
@@ -493,7 +512,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
       ({ bmp, ms, cold }) => {
         set.decoding.delete(i);
         // a superseded set, or a full frame the playhead has already left
-        if (!set.live || (set === full && Math.abs(i - lastPos) > AHEAD + 2)) {
+        if (!set.live || (set === full && (playAhead() ? passed(i) : Math.abs(i - lastPos) > AHEAD + 2))) {
           bmp.close();
           schedule();
           return;
@@ -519,13 +538,14 @@ export function initHeroScrub(reducedMotion: boolean): void {
     );
   };
 
-  // over capacity: drop the frames farthest from the playhead
+  // over capacity: drop the frames farthest from the playhead (behind it
+  // counts as farther than ahead)
   const evict = (set: FrameSet) => {
     while (set.frames.size > set.capacity) {
       let far = -1;
       let farD = -1;
       for (const j of set.frames.keys()) {
-        const d = Math.abs(j - lastPos);
+        const d = reach(j);
         if (d > farD) {
           farD = d;
           far = j;
