@@ -7,6 +7,7 @@ import { runIntro } from './intro';
 import { initDock } from './dock';
 import { initScenes } from './scenes';
 import { initLeadForm } from './form';
+import { playThroughHero } from './journey';
 
 document.documentElement.classList.add('js');
 
@@ -30,13 +31,17 @@ if (!reducedMotion) {
     (window as unknown as Record<string, unknown>).__motion = { gsap, lenis };
   }
 
-  // anchor links route through Lenis so smooth scroll stays consistent
+  // anchor links route through Lenis so smooth scroll stays consistent; from
+  // inside the hero the film plays on the way (journey.ts), except for the
+  // skip link, which goes straight there
   document.querySelectorAll<HTMLAnchorElement>('a[href^="#"]').forEach((a) => {
     a.addEventListener('click', (e) => {
-      const target = document.querySelector(a.getAttribute('href') ?? '');
+      const target = document.querySelector<HTMLElement>(a.getAttribute('href') ?? '');
       if (target) {
         e.preventDefault();
-        smooth.scrollTo(target as HTMLElement, { offset: 0 });
+        if (a.classList.contains('skip-link') || !playThroughHero(smooth, target)) {
+          smooth.scrollTo(target, { offset: 0 });
+        }
       }
     });
   });

@@ -99,10 +99,22 @@ const QUIET_MS = 1500;
 const UPLOAD_SLICE_MS = 4;
 
 const OPENING_SHARE = OPENING_END / (FRAME_COUNT - 1);
-const scrollToFrames = (p: number) =>
+// share of the hero's scroll → share of the film, and back (journey.ts)
+export const scrollToFrames = (p: number) =>
   p < OPENING_SCROLL
     ? (p / OPENING_SCROLL) * OPENING_SHARE
     : OPENING_SHARE + ((p - OPENING_SCROLL) / (1 - OPENING_SCROLL)) * (1 - OPENING_SHARE);
+export const framesToScroll = (f: number) =>
+  f < OPENING_SHARE
+    ? (f / OPENING_SHARE) * OPENING_SCROLL
+    : OPENING_SCROLL + ((f - OPENING_SHARE) / (1 - OPENING_SHARE)) * (1 - OPENING_SCROLL);
+
+// While the film plays itself (journey.ts), its path is known: full-size
+// frames are decoded ahead along it even at speeds that otherwise get proxies
+let playing = false;
+export const setHeroPlaying = (on: boolean) => {
+  playing = on;
+};
 
 // The intro waits on these: progress over the first frames, then "ready"
 const READY_FRAMES = 12;
@@ -430,7 +442,7 @@ export function initHeroScrub(reducedMotion: boolean): void {
   const schedule = () => {
     const base = Math.floor(lastPos);
     const fullWant = constrained && speed >= REST ? [] : [base, base + 1];
-    if (speed < (constrained ? REST : FAST) && full) {
+    if (full && (speed < (constrained ? REST : FAST) || (playing && !constrained))) {
       // never want more than the cache holds, or decodes evict each other
       const ahead = Math.min(AHEAD, full.capacity - 4);
       for (let d = 1; d <= ahead; d++) fullWant.push(base + 1 + d * dir);
@@ -454,7 +466,9 @@ export function initHeroScrub(reducedMotion: boolean): void {
       if (!set) continue;
       for (const [i, pic] of set.frames) if (!surface.uploaded(pic)) due.push([i, pic, set === full]);
     }
-    due.sort((a, b) => Math.abs(a[0] - lastPos) - Math.abs(b[0] - lastPos));
+    // nearest first, the way the playhead is heading before the way it came
+    const reach = (i: number) => Math.abs(i - lastPos) * ((i - lastPos) * dir < 0 ? 3 : 1);
+    due.sort((a, b) => reach(a[0]) - reach(b[0]));
     for (const [, pic, large] of due) {
       if (performance.now() - t0 > UPLOAD_SLICE_MS || (large && sentOn === gsap.ticker.frame)) {
         queuePump();
