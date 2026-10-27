@@ -10,7 +10,7 @@ Built from `design-pack/10_ONE_SHOT_WEBSITE_PROMPT.md`.
 
 - Vite + vanilla TypeScript
 - GSAP ScrollTrigger (pinned reveals, counters) + Lenis (smooth scroll)
-- Hero: Seedance 2.0 clip rebuilt as AVIF frame sets (deduped, RIFE-interpolated, Real-ESRGAN 4×), scrubbed on a `<canvas>`
+- Hero: Seedance 2.0 clip rebuilt as AVIF frame sets (deduped, RIFE-interpolated, Real-ESRGAN 4×), scrubbed on a `<canvas>`: decoded in workers (`src/decode.ts`), drawn with WebGL (`src/render.ts`, 2D canvas fallback), frame size picked by a quality ladder that times the device (`src/scrub.ts`)
 - Fonts: Inter Variable + Noto Serif Display Variable (both with full Greek glyph coverage), self-hosted via Fontsource
 
 ## Run
@@ -45,7 +45,10 @@ in the opening, then two a second), fills the gaps with RIFE in-betweens in
 proportion to the motion, upscales every frame 4× with Real-ESRGAN, and
 writes `public/media/hero/{m,l,xl,p}/NNNN.avif` (1920, 2560, 3840 wide and a
 1296 × 2160 portrait crop) plus `hero-poster.webp`. It prints `FRAME_COUNT`
-and `OPENING_END` for `src/scrub.ts`, which picks the set per screen.
+and `OPENING_END` for `src/scrub.ts`. The screen caps which sets it may use;
+the device's measured decode speed and dropped frames pick among them (see
+the header of `src/scrub.ts`). In `npm run dev`, `__hero()` in the console
+shows the set in use, the ladder and the timings.
 
 Requires ffmpeg on PATH. Generation source jobs (Higgsfield, 2026-07-16):
 hero image `ea3dc3db`, hero bloom `001a8fad`, material `781b6b17`,
