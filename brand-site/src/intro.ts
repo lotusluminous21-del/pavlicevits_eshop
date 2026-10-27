@@ -84,7 +84,7 @@ function handoff(intro: HTMLElement, done: () => void): void {
       .set(mark, { opacity: 0 }, 1.15);
   }
   // the light comes up under the seal as it lands
-  tl.fromTo('.hero__sign', { '--lit': 0 }, { '--lit': 1, duration: 1.1, ease: 'power2.out' }, 0.85);
+  tl.fromTo('.hero__light', { opacity: 0 }, { opacity: 1, duration: 1.1, ease: 'power2.out' }, 0.85);
   tl.to(intro, { backgroundColor: 'rgba(10, 14, 26, 0)', duration: 0.95, ease: 'power2.inOut' }, 0.3)
     .fromTo('.hero__canvas', { scale: 1.06 }, { scale: 1, duration: 1.3, ease: 'power2.out', clearProps: 'transform' }, 0.3)
     .fromTo('.hero__headline > span', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.1 }, 0.7)
@@ -98,7 +98,7 @@ function fadeOut(intro: HTMLElement, done: () => void, reducedMotion: boolean): 
   gsap.timeline({ onComplete: done })
     .to(intro, { opacity: 0, duration: d, ease: 'power1.out' }, 0)
     .to(REVEAL, { opacity: 1, duration: d, ease: 'power1.out' }, 0.05)
-    .fromTo('.hero__sign', { '--lit': 0 }, { '--lit': 1, duration: d, ease: 'power1.out' }, 0.05);
+    .fromTo('.hero__light', { opacity: 0 }, { opacity: 1, duration: d, ease: 'power1.out' }, 0.05);
 }
 
 export function runIntro(scroller: Scroller, reducedMotion: boolean): void {

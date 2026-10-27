@@ -12,10 +12,18 @@ import gsap from 'gsap';
  */
 export function initDock(): void {
   const sign = document.querySelector<HTMLElement>('.hero__sign');
+  const halo = sign?.querySelector<HTMLElement>('.hero__halo');
   const slot = document.querySelector<SVGSVGElement>('.site-header__mark');
   const ring = slot?.querySelector<SVGCircleElement>('.roundel__ring');
   const word = document.querySelector<HTMLElement>('.site-header__word');
-  if (!sign || !slot || !ring || !word) return;
+  if (!sign || !halo || !slot || !ring || !word) return;
+
+  // Everything here moves and fades on the GPU; only the roundel's ring,
+  // drawn in as an SVG stroke, repaints (about 20 px square). The wordmark
+  // and the roundel are lifted onto layers of their own only while docking
+  // moves them: text on a layer (or overlapping one) loses subpixel
+  // antialiasing (ClearType on Windows), so at rest they are drawn as before.
+  const lift = (on: boolean) => gsap.set([word, slot], { willChange: on ? 'transform, opacity' : 'auto' });
 
   const untransformed = <T,>(el: HTMLElement, read: () => T): T => {
     const prev = el.style.transform;
@@ -34,9 +42,15 @@ export function initDock(): void {
       end: '24% top',
       scrub: 0.6,
       invalidateOnRefresh: true,
+      onToggle: (self) => {
+        if (self.isActive) lift(true);
+      },
     },
+    // settled at either end (the scrub runs on a little past the range)
+    onComplete: () => lift(false),
+    onReverseComplete: () => lift(false),
   })
-    .to(sign, { '--halo': 0, duration: 0.3, ease: 'none' }, 0)
+    .to(halo, { opacity: 0, duration: 0.3, ease: 'none' }, 0)
     .to(sign, { y: () => sign.offsetHeight * 0.3, scale: 0.86, duration: 0.6, ease: 'power1.in' }, 0)
     .to(sign, { opacity: 0, duration: 0.42, ease: 'power1.in' }, 0.1)
     .fromTo(word, { x: () => -room() }, { x: 0, duration: 0.42, ease: 'power2.inOut' }, 0.5)

@@ -311,29 +311,34 @@ body {
    docks into it, rings and text falling away so its centre P lands on the
    header's P (dock.ts). It stands on a soft petrol light, the hero halo of the
    visual direction, which shows through the seal's open centre.
-   --halo / --ring: docking fades the light, then the rings and text;
-   --lit: the intro brings the light up when the seal lands (intro.ts). */
+   --ring: the rings and text. */
 .hero__sign {
-  --halo: 1;
   --ring: 1;
-  --lit: 1;
   position: relative;
   margin: 0 auto calc(var(--hero-h) * 0.6);
   /* its own layer: docking moves and scales it every frame without
      repainting the shadow and the light */
   will-change: transform, opacity;
 }
-.hero__sign::before {
-  content: "";
+/* The light, as two layers of its own: the intro brings .hero__light up when
+   the seal lands (intro.ts), docking fades .hero__halo out (dock.ts). Both
+   only change opacity on the GPU; fading it through a custom property would
+   repaint the seal and its blurred shadow on every frame. */
+.hero__light {
   position: absolute;
   left: 50%;
   top: 50%;
   width: calc(var(--emblem-d) * 2.3);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
-  background: radial-gradient(closest-side, rgba(91, 197, 219, 0.2), rgba(43, 168, 194, 0.08) 48%, rgba(15, 76, 92, 0) 100%);
-  opacity: calc(var(--halo) * var(--lit));
   pointer-events: none;
+  will-change: opacity;
+}
+.hero__halo {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(closest-side, rgba(91, 197, 219, 0.2), rgba(43, 168, 194, 0.08) 48%, rgba(15, 76, 92, 0) 100%);
+  will-change: opacity;
 }
 .hero__emblem {
   position: relative;
@@ -423,6 +428,8 @@ body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
+  /* fades on scroll (scrub.ts) */
+  will-change: opacity;
 }
 .hero__scroll-line {
   display: block;
